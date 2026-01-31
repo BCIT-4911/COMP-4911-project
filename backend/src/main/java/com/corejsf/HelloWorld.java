@@ -12,6 +12,6 @@ public class HelloWorld{
 	@GET
 	@Produces(MediaType.TEXT_PLAIN)
     public String getGreet() {
-        return "Hello World";
+        return "Greetings from the backend";
     }
 }

@@ -1,20 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\herek\\Desktop\\COMP4911\\COMP-4911-project\\frontend\\frontend.csproj": {}
+    "/Users/aleendawood/COMP-4911-project/frontend/frontend.csproj": {}
   },
   "projects": {
-    "C:\\Users\\herek\\Desktop\\COMP4911\\COMP-4911-project\\frontend\\frontend.csproj": {
+    "/Users/aleendawood/COMP-4911-project/frontend/frontend.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\herek\\Desktop\\COMP4911\\COMP-4911-project\\frontend\\frontend.csproj",
+        "projectUniqueName": "/Users/aleendawood/COMP-4911-project/frontend/frontend.csproj",
         "projectName": "frontend",
-        "projectPath": "C:\\Users\\herek\\Desktop\\COMP4911\\COMP-4911-project\\frontend\\frontend.csproj",
-        "packagesPath": "C:\\Users\\herek\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\herek\\Desktop\\COMP4911\\COMP-4911-project\\frontend\\obj\\",
+        "projectPath": "/Users/aleendawood/COMP-4911-project/frontend/frontend.csproj",
+        "packagesPath": "/Users/aleendawood/.nuget/packages/",
+        "outputPath": "/Users/aleendawood/COMP-4911-project/frontend/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\herek\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "/Users/aleendawood/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net10.0"
@@ -62,7 +62,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.101/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/10.0.101/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.AspNetCore": "(,10.0.32767]",
             "Microsoft.AspNetCore.Antiforgery": "(,10.0.32767]",

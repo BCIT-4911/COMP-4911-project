@@ -81,7 +81,7 @@ http://localhost:8080/Project/api/greet
 
 ## Database Setup
 
-TBD
+In progress
 
 
 ## Running Both Together

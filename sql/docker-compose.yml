@@ -1,6 +1,6 @@
 services:
-  mysql_db:
-    image: mysql:latest
+  db:
+    image: mysql:8.4
     container_name: project_manager_mysql
     restart: always
     env_file:
@@ -11,7 +11,7 @@ services:
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
       - ./init_scripts:/docker-entrypoint-initdb.d
       - mysql_data:/var/lib/mysql

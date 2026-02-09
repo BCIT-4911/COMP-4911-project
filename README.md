@@ -81,7 +81,7 @@ http://localhost:8080/Project/api/greet
 
 ## Database Setup
 
-In progress
+In progress...
 
 
 ## Running Both Together

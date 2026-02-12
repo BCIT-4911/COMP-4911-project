@@ -1,0 +1,19 @@
+## Build outputs
+bin/
+obj/
+
+## Visual Studio files
+*.user
+.vs/
+.vscode/
+
+## Common ignores
+/node_modules/
+/target/
+*.log
+*.class
+*.war
+.tern-project
+.forge_settings
+.metadata
+appsettings.Development.json

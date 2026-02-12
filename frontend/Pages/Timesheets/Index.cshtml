@@ -1,0 +1,133 @@
+@page
+@model frontend.Pages.Timesheets.IndexModel
+@{
+    ViewData["Title"] = "Timesheet";
+}
+
+<div class="container py-4">
+    <form method="post">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+            <div>
+                <h1 class="display-6 mb-0">Timesheet</h1>
+                <div class="text-muted">Log hours by work package</div>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" asp-page-handler="AddRow" class="btn btn-outline-primary">
+                    + Add Row
+                </button>
+
+                <button type="submit" asp-page-handler="Save" class="btn btn-primary">
+                    Save Draft
+                </button>
+
+                <button type="submit" asp-page-handler="Submit" class="btn btn-success">
+                    Submit
+                </button>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(Model.FlashMessage))
+        {
+            <div class="alert alert-info">@Model.FlashMessage</div>
+        }
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Employee</label>
+                        <input class="form-control" value="@Model.EmployeeName" disabled />
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Week Starting</label>
+                        <input class="form-control" value="@Model.WeekStart.ToString("yyyy-MM-dd")" disabled />
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Status</label>
+                        <span class="badge bg-secondary">@Model.Status</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width:140px;">Date</th>
+                                <th>Work Package</th>
+                                <th style="width:120px;">Hours</th>
+                                <th style="width:160px;">Labor Grade</th>
+                                <th>Notes</th>
+                                <th style="width:110px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (int i = 0; i < Model.Rows.Count; i++)
+                            {
+                                <tr>
+                                    <td>
+                                        <input class="form-control" type="date" asp-for="Rows[i].Date" />
+                                    </td>
+
+                                    <td>
+                                        <select class="form-select" asp-for="Rows[i].WorkPackageId">
+                                            <option value="">Select…</option>
+                                            @foreach (var wp in Model.WorkPackages)
+                                            {
+                                                <option value="@wp.Id">@wp.Name</option>
+                                            }
+                                        </select>
+                                    </td>
+
+                                    <td>
+                                        <input class="form-control" type="number" step="0.25" min="0"
+                                               asp-for="Rows[i].Hours" />
+                                    </td>
+
+                                    <td>
+                                        <select class="form-select" asp-for="Rows[i].LaborGrade">
+                                            @foreach (var g in Model.LaborGrades)
+                                            {
+                                                <option value="@g">@g</option>
+                                            }
+                                        </select>
+                                    </td>
+
+                                    <td>
+                                        <input class="form-control" asp-for="Rows[i].Notes" />
+                                    </td>
+
+                                    <td class="text-end">
+                                        <button class="btn btn-outline-danger btn-sm" type="submit"
+                                                asp-page-handler="DeleteRow" asp-route-rowIndex="@i">
+                                            Remove
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot>
+                            <tr class="table-light">
+                                <td colspan="2" class="fw-semibold">Total</td>
+                                <td class="fw-semibold">
+                                    @Model.Rows.Sum(r => r.Hours).ToString("0.##")
+                                </td>
+                                <td colspan="3"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <div class="text-muted small">
+                    * This is a demo page. Data will not be saved and is only visible to you.
+                </div>
+            </div>
+        </div>
+    </form>
+</div>

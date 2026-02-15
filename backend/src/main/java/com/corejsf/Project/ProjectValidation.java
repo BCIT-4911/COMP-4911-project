@@ -2,6 +2,13 @@ package com.corejsf.Project;
 
 import java.sql.Date;
 
+/**
+ * Validation class for Project
+ * 
+ * @author Raymond
+ * @version 1.0
+ * @since 2026-02-15
+ */
 public final class ProjectValidation {
     public static void validateId(final String id) {
         if (id == null || id.isEmpty()) {

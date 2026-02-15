@@ -6,6 +6,13 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.validation.constraints.Size;
 
+/**
+ * Project Class
+ * 
+ * @author Raymond
+ * @version 1.0
+ * @since 2026-02-15
+ */
 public class Project {
     @Id
     @Size(max = 255, message = "Project ID must be less than 255 characters")
@@ -52,6 +59,9 @@ public class Project {
         this.project_manager_id = projectManager;
     }
 
+    /**
+     * Getters and Setters
+     */
     public String getProject_id() {
         return project_id;
     }
@@ -120,6 +130,11 @@ public class Project {
         return project_manager_id;
     }
 
+    /**
+     * Generates a report of the project
+     * 
+     * @return String representation of the project report
+     */
     public String generateReport() {
         StringBuilder builder = new StringBuilder();
         builder.append("Project ID: " + project_id + "\n");

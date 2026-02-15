@@ -1,342 +1,155 @@
-package com.corejsf.entity;
+package com.corejsf.Entity;
 
-import java.util.Arrays;
+import java.math.BigDecimal;
+import jakarta.persistence.*;
 
-/**
- * A class representing a single row of a Timesheet.
- *
- * @author Bruce Link
- * @version 2.0
+/*
+ * This class represents a single horizontal row within the timesheet grid. 
+ * Instead of creating individual vertical entries for each logged hour, the ERD 
+ * consolidates an entire week's worth of hours for a specific task into a single row. 
+ * This structure aligns efficiently with the intended frontend UI grid representation.
+ * * - tsRowId: The primary key identifying the row record.
+ * - monday through sunday: Mapped using BigDecimal with precision=4 and scale=1 
+ * to adhere to the ERD's DECIMAL(4,1) specification, allowing employees to log 
+ * hours in 0.1 increments.
+ * - laborGrade: A foreign key referencing Labor_Grade, required to determine the 
+ * applicable billing rate for the hours logged in this row.
+ * - workPackage: A foreign key referencing Work_Package, indicating the specific 
+ * task or project the recorded hours are charged against.
+ * - timesheet: A foreign key linking back to the parent Timesheet, associating 
+ * the row with a specific weekly submission and its corresponding employee.
  */
-public class TimesheetRow implements java.io.Serializable {
+@Entity
+@Table(name = "Timesheet_Row")
+public class TimesheetRow {
 
-    /** Timesheet row index for Saturday. */
-    public static final int SAT = 0;
+    @Id
+    @Column(name = "ts_row_id", nullable = false)
+    private Integer tsRowId;
 
-    /** Timesheet row index for Sunday. */
-    public static final int SUN = 1;
+    @Column(name = "ts_row_monday", precision = 4, scale = 1, nullable = false)
+    private BigDecimal monday;
 
-    /** Timesheet row index for Monday. */
-    public static final int MON = 2;
+    @Column(name = "ts_row_tuesday", precision = 4, scale = 1, nullable = false)
+    private BigDecimal tuesday;
 
-    /** Timesheet row index for Tuesday. */
-    public static final int TUE = 3;
+    @Column(name = "ts_row_wednesday", precision = 4, scale = 1, nullable = false)
+    private BigDecimal wednesday;
 
-    /** Timesheet row index for Wednesday. */
-    public static final int WED = 4;
+    @Column(name = "ts_row_thursday", precision = 4, scale = 1, nullable = false)
+    private BigDecimal thursday;
 
-    /** Timesheet row index for Thursday. */
-    public static final int THU = 5;
+    @Column(name = "ts_row_friday", precision = 4, scale = 1, nullable = false)
+    private BigDecimal friday;
 
-    /** Timesheet row index for Friday. */
-    public static final int FRI = 6;
+    @Column(name = "ts_row_saturday", precision = 4, scale = 1, nullable = false)
+    private BigDecimal saturday;
 
-    /** decimal base in float. */
-    public static final float BASE10 = 10.0F;
+    @Column(name = "ts_row_sunday", precision = 4, scale = 1, nullable = false)
+    private BigDecimal sunday;
 
-    /** Day number for Friday. */
-    public static final int FIRST_DAY = SAT;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "labor_grade_id", nullable = false)
+    private LaborGrade laborGrade;
 
-    /** Day number for Friday. */
-    public static final int LAST_DAY = FRI;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "wp_id", nullable = false)
+    private WorkPackage workPackage;
 
-    /** Version number. */
-    private static final long serialVersionUID = 4L;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "ts_id", nullable = false)
+    private Timesheet timesheet;
 
-    /** mask for packing, unpacking hours. */
-    private static final long[] MASK = {0xFFL,
-            0xFF00L,
-            0xFF0000L,
-            0xFF000000L,
-            0xFF00000000L,
-            0xFF0000000000L,
-            0xFF000000000000L};
-
-    /** mask for packing, unpacking hours. */
-    private static final long[] UMASK = {0xFFFFFFFFFFFFFF00L,
-            0xFFFFFFFFFFFF00FFL,
-            0xFFFFFFFFFF00FFFFL,
-            0xFFFFFFFF00FFFFFFL,
-            0xFFFFFF00FFFFFFFFL,
-            0xFFFF00FFFFFFFFFFL,
-            0xFF00FFFFFFFFFFFFL};
-
-    /** 2**8. */
-    private static final long BYTE_BASE = 256;
-
-    /** max number of deci-hours per day. */
-    private static final int DECI_MAX = 240;
-
-    /** number of bits in a byte. */
-    private static final int BITS_PER_BYTE = 8;
-
-    /** The timesheetId. */
-    private int timesheetId;
-
-    /** The WorkPackageId. Must be a unique for a given timesheetId. */
-    private String workPackageId;
-
-    /** hours for the week, packed into a long.
-     * Each of the low-order 7 bytes is the decihours for one day.
-     * Order is 00-FR-TH-WE-TU-MO-SU-SA
-     * Counting days d = 0 .. 6 (starting at Saturday) the position of
-     * a day's byte is shifted d * 8 bits to the left.
-     */
-    private long packedHours;
-
-    /** create empty timesheetRow to be modified later.*/
+    // JPA requires an empty, no-argument constructor
     public TimesheetRow() {
     }
 
-    /**
-     * Initialize timesheet row with instance data, no hours charged.
-     * @param timesheetId timesheet number
-     * @param workPackageId work package id
-     */
-    public TimesheetRow(int timesheetId, String workPackageId) {
-        this.timesheetId = timesheetId;
-        this.workPackageId = workPackageId;
+    // Getters and Setters are required by JPA to access and modify the fields
+    public Integer getTsRowId() {
+        return tsRowId;
     }
 
-    /**
-     * Initialize timesheet row with instance data, hours charged (in order of
-     * Saturday, .. Friday.
-     * @param timesheetId timesheet number
-     * @param workPackageId work package id
-     * @param hours the charges for each day of the week.  There must be 7, or
-     *        else an array with 7 hours passed.
-     */
-    public TimesheetRow(int timesheetId, String workPackageId, String notes,
-                        float...hours) {
-        if (hours.length != Timesheet.DAYS_IN_WEEK) {
-            throw new IllegalArgumentException("Wrong number of hours");
-        }
-        setHours(hours);
-        this.timesheetId = timesheetId;
-        this.workPackageId = workPackageId;
+    public void setTsRowId(final Integer tsRowId) {
+        this.tsRowId = tsRowId;
     }
 
-    /**
-     * convert hour to decihour.  hour rounded to one fractional decimal place.
-     * @param hour as float
-     * @return equivalent number of decihours as int
-     */
-    public static int toDecihour(float hour) {
-        return Math.round(hour * BASE10);
+    public BigDecimal getMonday() {
+        return monday;
     }
 
-    /**
-     * convert decihour to hour.
-     * @param decihour as int
-     * @return equivalent number of hours as float
-     */
-    public static float toHour(int decihour) {
-        return decihour / BASE10;
+    public void setMonday(final BigDecimal monday) {
+        this.monday = monday;
     }
 
-
-    /**
-     * timesheetId getter.
-     * @return the timesheetId
-     */
-    public int gettimesheetId() {
-        return timesheetId;
+    public BigDecimal getTuesday() {
+        return tuesday;
     }
 
-    /**
-     * timesheetId setter.
-     * @param id the timesheetId to set, must be >= 0
-     */
-    public void settimesheetId(final int id) {
-        if (id < 0) {
-            throw new IllegalArgumentException("timesheetId must be >= 0");
-        }
-        this.timesheetId = id;
+    public void setTuesday(final BigDecimal tuesday) {
+        this.tuesday = tuesday;
     }
 
-    /**
-     * workPackageId getter.
-     * @return the workPackageId
-     */
-    public String getWorkPackageId() {
-        return workPackageId;
+    public BigDecimal getWednesday() {
+        return wednesday;
     }
 
-    /**
-     * workPackageId setter.
-     * @param wp the workPackageId to set
-     */
-    public void setWorkPackageId(final String wp) {
-        this.workPackageId = wp;
+    public void setWednesday(final BigDecimal wednesday) {
+        this.wednesday = wednesday;
     }
 
-    /**
-     * packedHours getter.
-     * @return the hours charged for each day, packed into a long.
-     */
-    public long getPackedHours() {
-        return packedHours;
+    public BigDecimal getThursday() {
+        return thursday;
     }
 
-    /**
-     * packedHours setter.
-     * @param packedHours the hours charged for each day, packed into a long
-     */
-    public void setPackedHours(final long packedHours) {
-        checkHoursForWeek(packedHours);
-        this.packedHours = packedHours;
+    public void setThursday(final BigDecimal thursday) {
+        this.thursday = thursday;
     }
 
-    /**
-     * Extract the hours for a given day.
-     * @param d the day number (0 = Saturday .. 6 = Friday)
-     * @return hours for that day
-     */
-    public float getHour(int d) {
-        return toHour(getDecihour(d));
+    public BigDecimal getFriday() {
+        return friday;
     }
 
-    /**
-     * Set the hours for a given day. Rounded to one decimal.
-     * @param d the day number (0 = Saturday .. 6 = Friday)
-     * @param charge hours charged for that day
-     * @throws IllegalArgumentException if charge < 0 or > 24
-     */
-    public void setHour(int d, float charge) {
-        if (charge < 0.0 || charge > Timesheet.HOURS_IN_DAY) {
-            throw new IllegalArgumentException("Charge is out of range");
-        }
-        setDecihour(d, toDecihour(charge));
+    public void setFriday(final BigDecimal friday) {
+        this.friday = friday;
     }
 
-    /**
-     * adds total hours for this timesheet row.
-     * @return the weekly hours
-     */
-    public Float getSum() {
-        return toHour(getDeciSum());
+    public BigDecimal getSaturday() {
+        return saturday;
     }
 
-    /**
-     * Adds total hours for this timesheet row.
-     * @return total hours in units of decihours
-     */
-    public int getDeciSum() {
-        int[] charges = getDecihours();
-        int sum = 0;
-        for (int charge: charges) {
-            sum += charge;
-        }
-        return sum;
+    public void setSaturday(final BigDecimal saturday) {
+        this.saturday = saturday;
     }
 
-    /**
-     * Extract the integer hours * 10 for a given day.
-     * @param d the day number (0 = Saturday .. 6 = Friday)
-     * @return hours for that day
-     */
-    public int getDecihour(int d) {
-        if (d < FIRST_DAY || d > LAST_DAY) {
-            throw new IllegalArgumentException("day number out of range");
-        }
-        return (int) ((packedHours & MASK[d]) >> d * BITS_PER_BYTE);
+    public BigDecimal getSunday() {
+        return sunday;
     }
 
-    /**
-     * Set the integer hours * 10 for a given day.
-     * @param d the day number (0 = Saturday .. 6 = Friday)
-     * @param charge hours charged for that day
-     * @throws IllegalArgumentException if invalid day or charge
-     */
-    public void setDecihour(int d, int charge) {
-        if (d < FIRST_DAY || d > LAST_DAY) {
-            throw new IllegalArgumentException("day number out of range, "
-                    + "must be in 0 .. 6");
-        }
-        if (charge < 0 || charge > DECI_MAX) {
-            throw new IllegalArgumentException("charge out of range, "
-                    + "must be 0 .. 240");
-        }
-        packedHours = packedHours & UMASK[d]
-                | (long) charge << (d * BITS_PER_BYTE);
+    public void setSunday(final BigDecimal sunday) {
+        this.sunday = sunday;
     }
 
-    /**
-     * Get hours array of charges, index is day number.
-     * @return hours as array of charges
-     */
-    public float[] getHours() {
-        float[] result = new float[LAST_DAY + 1];
-        long check = packedHours;
-        for (int i = FIRST_DAY; i <= LAST_DAY; i++) {
-            result[i] = check % BYTE_BASE / BASE10;
-            check /= BYTE_BASE;
-        }
-        return result;
+    public LaborGrade getLaborGrade() {
+        return laborGrade;
     }
 
-    /**
-     *  Convert hours array to packed hours and store in hours field.
-     *  Index of array is day of week number, starting with Saturday
-     * @param charges array of hours to pack (single fractional digit)
-     * @throws IllegalArgumentException if charges < 0 or > 24
-     */
-    public void setHours(float[] charges) {
-        for (float charge : charges) {
-            if (charge < 0.0 || charge > Timesheet.HOURS_IN_DAY) {
-                throw new IllegalArgumentException("charge is out of "
-                        + "maximum hours in day range");
-            }
-        }
-        long result = 0;
-        for (int i = LAST_DAY; i >= FIRST_DAY; i--) {
-            result = result * BYTE_BASE + toDecihour(charges[i]);
-        }
-        packedHours = result;
+    public void setLaborGrade(final LaborGrade laborGrade) {
+        this.laborGrade = laborGrade;
     }
 
-    /**
-     * Get hours array of charges, index is day number.
-     * @return hours as array of charges
-     */
-    public int[] getDecihours() {
-        int[] result = new int[LAST_DAY + 1];
-        long check = packedHours;
-        for (int i = FIRST_DAY; i <= LAST_DAY; i++) {
-            result[i] = (int) (check % BYTE_BASE);
-            check /= BYTE_BASE;
-        }
-        return result;
+    public WorkPackage getWorkPackage() {
+        return workPackage;
     }
 
-
-    /* throw IllegalArgumentException if an hour is out of range */
-    private void checkHoursForWeek(final long packedDecihours) {
-        if (packedDecihours < 0) {
-            throw new IllegalArgumentException(
-                    "improperly formed packedHours < 0");
-        }
-        long check = packedDecihours;
-        for (int i = FIRST_DAY; i <= LAST_DAY; i++) {
-            if (check % BYTE_BASE > Timesheet.HOURS_IN_DAY) {
-                throw new IllegalArgumentException(
-                        "improperly formed packedHours");
-            }
-            check /= BYTE_BASE;
-        }
-        //top byte must be zero
-        if (check > 0) {
-            throw new IllegalArgumentException(
-                    "improperly formed packedHours");
-        }
-
+    public void setWorkPackage(final WorkPackage workPackage) {
+        this.workPackage = workPackage;
     }
 
-    @Override
-    public String toString() {
-        return timesheetId + " " + workPackageId + " "
-                + Arrays.toString(getHours());
+    public Timesheet getTimesheet() {
+        return timesheet;
     }
 
-
+    public void setTimesheet(final Timesheet timesheet) {
+        this.timesheet = timesheet;
+    }
 }

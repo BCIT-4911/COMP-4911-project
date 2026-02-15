@@ -2,6 +2,7 @@ package com.corejsf.entity;
 
 import java.io.Serial;
 import java.io.Serializable;
+import org.mindrot.jbcrypt.BCrypt;
 
 /**
  * Login Credentials.
@@ -17,8 +18,11 @@ public class UserCredential implements Serializable {
     /** The login ID. */
     private String userName;
 
-    /** The password. */
-    private String password;
+    /** Plain password. */
+    private String passwordPlain;
+
+    /** The hashed password. */
+    private String passwordHash;
 
     /**
      * userName getter.
@@ -41,20 +45,21 @@ public class UserCredential implements Serializable {
      * @return the password
      */
     public String getPassword() {
-        return password;
+        return passwordPlain;
     }
 
     /**
      * password setter.
-     * @param pw the password to set
+     * @param plainPassword the password to set
      */
-    public void setPassword(final String pw) {
-        password = pw;
+    public void setPassword(String plainPassword) {
+        this.passwordHash = BCrypt.hashpw(plainPassword, BCrypt.gensalt());
     }
+
 
     @Override
     public String toString() {
-        return userName + '\t' + password;
+        return userName + '\t' + passwordPlain;
     }
 
 }

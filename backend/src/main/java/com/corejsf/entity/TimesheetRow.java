@@ -8,7 +8,7 @@ import java.util.Arrays;
  * @author Bruce Link
  * @version 2.0
  */
-public class TimesheetEntry implements java.io.Serializable {
+public class TimesheetRow implements java.io.Serializable {
 
     /** Timesheet row index for Saturday. */
     public static final int SAT = 0;
@@ -70,10 +70,10 @@ public class TimesheetEntry implements java.io.Serializable {
     /** number of bits in a byte. */
     private static final int BITS_PER_BYTE = 8;
 
-    /** The projectId. */
-    private int projectId;
+    /** The timesheetId. */
+    private int timesheetId;
 
-    /** The WorkPackageId. Must be a unique for a given projectId. */
+    /** The WorkPackageId. Must be a unique for a given timesheetId. */
     private String workPackageId;
 
     /** hours for the week, packed into a long.
@@ -84,41 +84,36 @@ public class TimesheetEntry implements java.io.Serializable {
      */
     private long packedHours;
 
-    /** Any notes added to the timesheet row. */
-    private String notes;
-
     /** create empty timesheetRow to be modified later.*/
-    public TimesheetEntry() {
+    public TimesheetRow() {
     }
 
     /**
      * Initialize timesheet row with instance data, no hours charged.
-     * @param projectId project number
+     * @param timesheetId timesheet number
      * @param workPackageId work package id
      */
-    public TimesheetEntry(int projectId, String workPackageId) {
-        this.projectId = projectId;
+    public TimesheetRow(int timesheetId, String workPackageId) {
+        this.timesheetId = timesheetId;
         this.workPackageId = workPackageId;
     }
 
     /**
      * Initialize timesheet row with instance data, hours charged (in order of
      * Saturday, .. Friday.
-     * @param projectId project number
+     * @param timesheetId timesheet number
      * @param workPackageId work package id
-     * @param notes is a field for comments for this row
      * @param hours the charges for each day of the week.  There must be 7, or
      *        else an array with 7 hours passed.
      */
-    public TimesheetEntry(int projectId, String workPackageId, String notes,
+    public TimesheetRow(int timesheetId, String workPackageId, String notes,
                         float...hours) {
         if (hours.length != Timesheet.DAYS_IN_WEEK) {
             throw new IllegalArgumentException("Wrong number of hours");
         }
         setHours(hours);
-        this.projectId = projectId;
+        this.timesheetId = timesheetId;
         this.workPackageId = workPackageId;
-        this.notes = notes;
     }
 
     /**
@@ -141,22 +136,22 @@ public class TimesheetEntry implements java.io.Serializable {
 
 
     /**
-     * projectId getter.
-     * @return the projectId
+     * timesheetId getter.
+     * @return the timesheetId
      */
-    public int getProjectId() {
-        return projectId;
+    public int gettimesheetId() {
+        return timesheetId;
     }
 
     /**
-     * projectId setter.
-     * @param id the projectId to set, must be >= 0
+     * timesheetId setter.
+     * @param id the timesheetId to set, must be >= 0
      */
-    public void setProjectId(final int id) {
+    public void settimesheetId(final int id) {
         if (id < 0) {
-            throw new IllegalArgumentException("ProjectId must be >= 0");
+            throw new IllegalArgumentException("timesheetId must be >= 0");
         }
-        this.projectId = id;
+        this.timesheetId = id;
     }
 
     /**
@@ -212,22 +207,6 @@ public class TimesheetEntry implements java.io.Serializable {
             throw new IllegalArgumentException("Charge is out of range");
         }
         setDecihour(d, toDecihour(charge));
-    }
-
-    /**
-     * getter for notes section.
-     * @return the notes
-     */
-    public String getNotes() {
-        return notes;
-    }
-
-    /**
-     * setter for notes section.
-     * @param notes the notes to set
-     */
-    public void setNotes(final String notes) {
-        this.notes = notes;
     }
 
     /**
@@ -330,25 +309,6 @@ public class TimesheetEntry implements java.io.Serializable {
         return result;
     }
 
-    /**
-     *  Convert hours array to packed hours and store in hours field.
-     *  Index of array is day of week number, starting with Saturday
-     * @param charges array of hours to pack (single fractional digit)
-     * @throws IllegalArgumentException if charges < 0 or > 24
-     */
-    public void setDecihours(int[] charges) {
-        for (float charge : charges) {
-            if (charge < 0 || charge > Timesheet.DECIHOURS_IN_DAY) {
-                throw new IllegalArgumentException("charge is out of "
-                        + "maximum hours in day range");
-            }
-        }
-        long result = 0;
-        for (int i = LAST_DAY; i >= FIRST_DAY; i--) {
-            result = result * BYTE_BASE + charges[i];
-        }
-        packedHours = result;
-    }
 
     /* throw IllegalArgumentException if an hour is out of range */
     private void checkHoursForWeek(final long packedDecihours) {
@@ -358,7 +318,7 @@ public class TimesheetEntry implements java.io.Serializable {
         }
         long check = packedDecihours;
         for (int i = FIRST_DAY; i <= LAST_DAY; i++) {
-            if (check % BYTE_BASE > Timesheet.DECIHOURS_IN_DAY) {
+            if (check % BYTE_BASE > Timesheet.HOURS_IN_DAY) {
                 throw new IllegalArgumentException(
                         "improperly formed packedHours");
             }
@@ -374,7 +334,7 @@ public class TimesheetEntry implements java.io.Serializable {
 
     @Override
     public String toString() {
-        return projectId + " " + workPackageId + " "
+        return timesheetId + " " + workPackageId + " "
                 + Arrays.toString(getHours());
     }
 

@@ -1,7 +1,6 @@
 package com.corejsf.Project;
 
 import java.sql.Date;
-
 import jakarta.persistence.ForeignKey;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
@@ -21,14 +20,24 @@ public class Project {
     final private Date created_date;
     private Date last_modified_date;
     final private int created_by_id;
-    private Date modified_by;
     private float markup_date;
     @JoinColumn(name = "project_manager_id", foreignKey = @ForeignKey(name = "project_manager"))
     final private long project_manager_id;
 
     public Project(final String id, final ProjectType type, final String name, final String desc,
             final ProjectStatus status, final Date start, final Date end, final Date created, final Date modified,
-            final int createdBy, final Date modifiedBy, final float markup, final long projectManager) {
+            final int createdBy, final float markup, final long projectManager) {
+        ProjectValidation.validateId(id);
+        ProjectValidation.validateName(name);
+        ProjectValidation.validateDescription(desc);
+        ProjectValidation.validateStartDate(start);
+        ProjectValidation.validateEndDate(end, start);
+        ProjectValidation.validateCreatedDate(created);
+        ProjectValidation.validateLastModifiedDate(modified, created);
+        ProjectValidation.validateCreatedById(createdBy);
+        ProjectValidation.validateMarkup(markup);
+        ProjectValidation.validateProjectManagerId(projectManager);
+
         this.project_id = id;
         this.project_type = type;
         this.project_name = name;
@@ -39,7 +48,6 @@ public class Project {
         this.created_date = created;
         this.last_modified_date = modified;
         this.created_by_id = createdBy;
-        this.modified_by = modifiedBy;
         this.markup_date = markup;
         this.project_manager_id = projectManager;
     }
@@ -100,14 +108,6 @@ public class Project {
         return created_by_id;
     }
 
-    public Date getModified_by() {
-        return modified_by;
-    }
-
-    public void setModified_by(Date modified_by) {
-        this.modified_by = modified_by;
-    }
-
     public float getMarkup_date() {
         return markup_date;
     }
@@ -120,7 +120,7 @@ public class Project {
         return project_manager_id;
     }
 
-    public String generateReport(){
+    public String generateReport() {
         StringBuilder builder = new StringBuilder();
         builder.append("Project ID: " + project_id + "\n");
         builder.append("Project Manager: " + project_manager_id + "\n");
@@ -133,7 +133,6 @@ public class Project {
         builder.append("Created Date: " + created_date + "\n");
         builder.append("Last Modified Date: " + last_modified_date + "\n");
         builder.append("Created By: " + created_by_id + "\n");
-        builder.append("Modified By: " + modified_by + "\n");
         builder.append("Markup: " + markup_date + "\n");
         return builder.toString();
     }

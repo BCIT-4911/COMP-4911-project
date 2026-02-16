@@ -29,7 +29,7 @@ import com.corejsf.Entity.WorkPackageType;
 @Singleton
 public class EmptyDbSeeder {
 
-    @PersistenceContext(unitName = "pmPU")
+    @PersistenceContext(unitName = "project-management-pu")
     private EntityManager em;
 
     @PostConstruct

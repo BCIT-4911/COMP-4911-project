@@ -7,7 +7,7 @@ import jakarta.persistence.PersistenceContext;
 @Stateless
 public class DatabaseTestService {
 
-    @PersistenceContext(unitName = "pmPU")
+    @PersistenceContext(unitName = "project-management-pu")
     private EntityManager em;
 
     public String testConnection() {

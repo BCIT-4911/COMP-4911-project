@@ -11,7 +11,7 @@ import com.corejsf.Entity.WorkPackage;
 @Stateless
 public class WorkPackageRepo {
 
-    @PersistenceContext(unitName = "pmPU")
+    @PersistenceContext(unitName = "project-management-pu")
     private EntityManager em;
 
     public WorkPackage findById(String wpId) {

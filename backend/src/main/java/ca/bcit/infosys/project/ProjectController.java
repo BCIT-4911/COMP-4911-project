@@ -137,22 +137,22 @@ public class ProjectController {
 
         // Delete work package assignments for all WPs in this project
         List<String> wpIds = em.createQuery(
-                "SELECT w.wpId FROM WorkPackage w WHERE w.projId = :projId", String.class)
+                "SELECT w.wpId FROM WorkPackage w WHERE w.project.projId = :projId", String.class)
                 .setParameter("projId", id)
                 .getResultList();
         for (String wpId : wpIds) {
-            em.createQuery("DELETE FROM WorkPackageAssignment wpa WHERE wpa.wpId = :wpId")
+            em.createQuery("DELETE FROM WorkPackageAssignment wpa WHERE wpa.workPackage.wpId = :wpId")
                     .setParameter("wpId", wpId)
                     .executeUpdate();
         }
 
         // Delete work packages
-        em.createQuery("DELETE FROM WorkPackage w WHERE w.projId = :projId")
+        em.createQuery("DELETE FROM WorkPackage w WHERE w.project.projId = :projId")
                 .setParameter("projId", id)
                 .executeUpdate();
 
         // Delete project assignments
-        em.createQuery("DELETE FROM ProjectAssignment pa WHERE pa.projId = :projId")
+        em.createQuery("DELETE FROM ProjectAssignment pa WHERE pa.project.projId = :projId")
                 .setParameter("projId", id)
                 .executeUpdate();
 
@@ -237,7 +237,7 @@ public class ProjectController {
     public List<WorkPackage> getWorkPackages(@PathParam("id") String id) {
         findProject(id);
         return em.createQuery(
-                "SELECT w FROM WorkPackage w WHERE w.projId = :projId", WorkPackage.class)
+                "SELECT w FROM WorkPackage w WHERE w.project.projId = :projId", WorkPackage.class)
                 .setParameter("projId", id)
                 .getResultList();
     }
@@ -251,7 +251,7 @@ public class ProjectController {
     public List<Employee> getAssignedEmployees(@PathParam("id") String id) {
         findProject(id);
         return em.createQuery(
-                "SELECT e FROM Employee e JOIN ProjectAssignment pa ON e.empId = pa.empId WHERE pa.projId = :projId",
+                "SELECT e FROM Employee e JOIN ProjectAssignment pa ON e = pa.employee WHERE pa.project.projId = :projId",
                 Employee.class)
                 .setParameter("projId", id)
                 .getResultList();

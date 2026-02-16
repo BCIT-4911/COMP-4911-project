@@ -148,7 +148,7 @@ public class WorkPackageController {
      */
     private void deleteWorkPackageRecursive(String wpId) {
         List<String> childIds = em.createQuery(
-                "SELECT w.wpId FROM WorkPackage w WHERE w.parentWpId = :parentId", String.class)
+                "SELECT w.wpId FROM WorkPackage w WHERE w.parentWorkPackage.wpId = :parentId", String.class)
                 .setParameter("parentId", wpId)
                 .getResultList();
 
@@ -156,7 +156,7 @@ public class WorkPackageController {
             deleteWorkPackageRecursive(childId);
         }
 
-        em.createQuery("DELETE FROM WorkPackageAssignment wpa WHERE wpa.wpId = :wpId")
+        em.createQuery("DELETE FROM WorkPackageAssignment wpa WHERE wpa.workPackage.wpId = :wpId")
                 .setParameter("wpId", wpId)
                 .executeUpdate();
 
@@ -178,7 +178,7 @@ public class WorkPackageController {
         findEmployee(empId);
 
         TypedQuery<Long> query = em.createQuery(
-                "SELECT COUNT(wpa) FROM WorkPackageAssignment wpa WHERE wpa.wpId = :wpId AND wpa.empId = :empId",
+                "SELECT COUNT(wpa) FROM WorkPackageAssignment wpa WHERE wpa.workPackage.wpId = :wpId AND wpa.employee.empId = :empId",
                 Long.class);
         query.setParameter("wpId", wpId);
         query.setParameter("empId", empId);
@@ -204,7 +204,7 @@ public class WorkPackageController {
     @Transactional
     public void removeEmployee(@PathParam("id") String wpId, @PathParam("empId") int empId) {
         TypedQuery<WorkPackageAssignment> query = em.createQuery(
-                "SELECT wpa FROM WorkPackageAssignment wpa WHERE wpa.wpId = :wpId AND wpa.empId = :empId",
+                "SELECT wpa FROM WorkPackageAssignment wpa WHERE wpa.workPackage.wpId = :wpId AND wpa.employee.empId = :empId",
                 WorkPackageAssignment.class);
         query.setParameter("wpId", wpId);
         query.setParameter("empId", empId);
@@ -225,7 +225,7 @@ public class WorkPackageController {
     public List<Employee> getAssignedEmployees(@PathParam("id") String id) {
         findWorkPackage(id);
         return em.createQuery(
-                "SELECT e FROM Employee e JOIN WorkPackageAssignment wpa ON e.empId = wpa.empId WHERE wpa.wpId = :wpId",
+                "SELECT e FROM Employee e JOIN WorkPackageAssignment wpa ON e = wpa.employee WHERE wpa.workPackage.wpId = :wpId",
                 Employee.class)
                 .setParameter("wpId", id)
                 .getResultList();
@@ -264,7 +264,7 @@ public class WorkPackageController {
     public List<WorkPackage> getChildren(@PathParam("id") String id) {
         findWorkPackage(id);
         return em.createQuery(
-                "SELECT w FROM WorkPackage w WHERE w.parentWpId = :parentId", WorkPackage.class)
+                "SELECT w FROM WorkPackage w WHERE w.parentWorkPackage.wpId = :parentId", WorkPackage.class)
                 .setParameter("parentId", id)
                 .getResultList();
     }

@@ -1,4 +1,4 @@
-package ca.bcit.infosys.entities;
+package ca.bcit.infosys.workpackage;
 
 public enum WpStatus {
     OPEN_FOR_CHARGES("Open for Charges"),

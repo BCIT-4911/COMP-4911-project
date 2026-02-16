@@ -1,4 +1,4 @@
-package ca.bcit.infosys.entities;
+package ca.bcit.infosys.workpackage;
 
 public enum WpType {
     SUMMARY("Summary"),

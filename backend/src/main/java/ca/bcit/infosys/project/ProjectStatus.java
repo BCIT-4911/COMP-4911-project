@@ -1,4 +1,4 @@
-package com.corejsf.Project;
+package ca.bcit.infosys.project;
 
 /**
  * ProjectStatus Enum

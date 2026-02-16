@@ -1,4 +1,4 @@
-package ca.bcit.infosys.entities;
+package ca.bcit.infosys.workpackage;
 
 import jakarta.persistence.*;
 import java.io.Serializable;

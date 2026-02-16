@@ -1,13 +1,13 @@
-package ca.bcit.infosys.entities;
+package ca.bcit.infosys.workpackage;
 
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
 
 @Converter(autoApply = true)
-public class WpStatusConverter implements AttributeConverter<WpStatus, String> {
+public class WpTypeConverter implements AttributeConverter<WpType, String> {
 
     @Override
-    public String convertToDatabaseColumn(WpStatus attribute) {
+    public String convertToDatabaseColumn(WpType attribute) {
         if (attribute == null) {
             return null;
         }
@@ -15,13 +15,13 @@ public class WpStatusConverter implements AttributeConverter<WpStatus, String> {
     }
 
     @Override
-    public WpStatus convertToEntityAttribute(String dbData) {
+    public WpType convertToEntityAttribute(String dbData) {
         if (dbData == null) {
             return null;
         }
-        for (WpStatus status : WpStatus.values()) {
-            if (status.getDisplayName().equals(dbData)) {
-                return status;
+        for (WpType type : WpType.values()) {
+            if (type.getDisplayName().equals(dbData)) {
+                return type;
             }
         }
         throw new IllegalArgumentException("Unknown database value: " + dbData);

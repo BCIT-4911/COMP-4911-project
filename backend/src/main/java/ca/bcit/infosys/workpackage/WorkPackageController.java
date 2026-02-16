@@ -52,6 +52,14 @@ public class WorkPackageController {
     }
 
     /**
+     * Gets all work packages.
+     */
+    @GET
+    public List<WorkPackage> getAllWorkPackages() {
+        return em.createQuery("SELECT w FROM WorkPackage w", WorkPackage.class).getResultList();
+    }
+
+    /**
      * Gets a single work package by ID.
      */
     @GET

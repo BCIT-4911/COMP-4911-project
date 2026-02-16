@@ -51,6 +51,14 @@ public class ProjectController {
     }
 
     /**
+     * Gets all projects.
+     */
+    @GET
+    public List<Project> getAllProjects() {
+        return em.createQuery("SELECT p FROM Project p", Project.class).getResultList();
+    }
+
+    /**
      * Gets a single project by ID.
      */
     @GET
@@ -103,6 +111,41 @@ public class ProjectController {
         existing.setProject_manager_id(project.getProject_manager_id());
         existing.setModified_date(LocalDateTime.now());
         em.merge(existing);
+    }
+
+    /**
+     * Deletes a project and all its associated work packages and assignments.
+     */
+    @DELETE
+    @Path("/{id}")
+    @Transactional
+    public void deleteProject(@PathParam("id") String id) {
+        findProject(id);
+
+        // Delete work package assignments for all WPs in this project
+        List<String> wpIds = em.createQuery(
+                "SELECT w.wpId FROM WorkPackage w WHERE w.projId = :projId", String.class)
+                .setParameter("projId", id)
+                .getResultList();
+        for (String wpId : wpIds) {
+            em.createQuery("DELETE FROM WorkPackageAssignment wpa WHERE wpa.wpId = :wpId")
+                    .setParameter("wpId", wpId)
+                    .executeUpdate();
+        }
+
+        // Delete work packages
+        em.createQuery("DELETE FROM WorkPackage w WHERE w.projId = :projId")
+                .setParameter("projId", id)
+                .executeUpdate();
+
+        // Delete project assignments
+        em.createQuery("DELETE FROM ProjectAssignment pa WHERE pa.projId = :projId")
+                .setParameter("projId", id)
+                .executeUpdate();
+
+        // Delete the project
+        Project project = em.find(Project.class, id);
+        em.remove(project);
     }
 
     /**

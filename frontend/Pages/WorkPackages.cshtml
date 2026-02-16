@@ -1,0 +1,301 @@
+@page
+@model WorkPackagesModel
+@{
+    ViewData["Title"] = "Work Packages";
+}
+
+<div class="crud-page-container">
+    <div class="crud-header">
+        <div>
+            <h1 class="crud-title">Work Packages</h1>
+            <p class="crud-subtitle">
+                Project: <strong id="projectLabel">@Model.ProjectId</strong>
+                &nbsp;&middot;&nbsp;
+                <a href="/Projects" class="back-link">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                    Back to Projects
+                </a>
+            </p>
+        </div>
+        <button class="btn-primary-crud" onclick="openCreateModal()" id="newWpBtn" disabled>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New Work Package
+        </button>
+    </div>
+
+    <div class="crud-table-wrapper">
+        <table class="crud-table" id="wpTable">
+            <thead>
+                <tr>
+                    <th>WP ID</th>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                    <th>Parent WP</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>% Complete</th>
+                    <th>RE ID</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="wpBody">
+                <tr><td colspan="10" class="loading-cell">Loading work packages...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Create / Edit Modal -->
+<div class="modal-overlay" id="wpModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="modalTitle">New Work Package</h2>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <form id="wpForm" onsubmit="handleSubmit(event)">
+            <input type="hidden" id="editMode" value="false" />
+            <input type="hidden" id="originalId" />
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="wpId">Work Package ID *</label>
+                    <input type="text" id="wpId" required placeholder="e.g. P001-1.1" />
+                </div>
+                <div class="form-group">
+                    <label for="wpName">Name *</label>
+                    <input type="text" id="wpName" required placeholder="e.g. Requirements Gathering" />
+                </div>
+                <div class="form-group">
+                    <label for="wpType">Type</label>
+                    <select id="wpType">
+                        <option value="SUMMARY">Summary</option>
+                        <option value="LOWEST_LEVEL">Lowest-Level</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="wpStatus">Status</label>
+                    <select id="wpStatus">
+                        <option value="OPEN_FOR_CHARGES">Open for Charges</option>
+                        <option value="CLOSED_FOR_CHARGES">Closed for Charges</option>
+                        <option value="COMPLETE">Complete</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="parentWpId">Parent WP ID</label>
+                    <input type="text" id="parentWpId" placeholder="Optional" />
+                </div>
+                <div class="form-group">
+                    <label for="reEmployeeId">RE Employee ID *</label>
+                    <input type="number" id="reEmployeeId" required min="1" placeholder="e.g. 1" />
+                </div>
+                <div class="form-group">
+                    <label for="planStartDate">Start Date *</label>
+                    <input type="date" id="planStartDate" required />
+                </div>
+                <div class="form-group">
+                    <label for="planEndDate">End Date *</label>
+                    <input type="date" id="planEndDate" required />
+                </div>
+            </div>
+
+            <div class="form-group" style="grid-column: 1/-1;">
+                <label for="wpDesc">Description</label>
+                <textarea id="wpDesc" rows="3" placeholder="Describe the work package..."></textarea>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary-crud" onclick="closeModal()">Cancel</button>
+                <button type="submit" class="btn-primary-crud" id="submitBtn">Create Work Package</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="toast-container" id="toastContainer"></div>
+
+@section Scripts {
+<script>
+    const API = '@Model.ApiBaseUrl';
+    const PROJECT_ID = '@Model.ProjectId';
+
+    // ---- Load Work Packages ----
+    async function loadWorkPackages() {
+        if (!PROJECT_ID) {
+            document.getElementById('wpBody').innerHTML =
+                '<tr><td colspan="10" class="error-cell">No project selected. <a href="/Projects">Go to Projects</a></td></tr>';
+            return;
+        }
+        document.getElementById('newWpBtn').disabled = false;
+        try {
+            const res = await fetch(`${API}/api/projects/${encodeURIComponent(PROJECT_ID)}/workpackages`);
+            if (!res.ok) throw new Error('Failed to load work packages');
+            const wps = await res.json();
+            renderTable(wps);
+        } catch (err) {
+            document.getElementById('wpBody').innerHTML =
+                `<tr><td colspan="10" class="error-cell">Error: ${err.message}</td></tr>`;
+        }
+    }
+
+    function statusDisplay(s) {
+        const map = {
+            'OPEN_FOR_CHARGES': 'Open',
+            'CLOSED_FOR_CHARGES': 'Closed',
+            'COMPLETE': 'Complete'
+        };
+        return map[s] || s || 'N/A';
+    }
+
+    function statusClass(s) {
+        if (s === 'OPEN_FOR_CHARGES') return 'badge-open';
+        if (s === 'COMPLETE') return 'badge-complete';
+        return 'badge-archived';
+    }
+
+    function typeDisplay(t) {
+        const map = { 'SUMMARY': 'Summary', 'LOWEST_LEVEL': 'Lowest-Level' };
+        return map[t] || t || 'N/A';
+    }
+
+    function renderTable(wps) {
+        const tbody = document.getElementById('wpBody');
+        if (wps.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="10" class="empty-cell">No work packages found. Click "New Work Package" to create one.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = wps.map(w => `
+            <tr>
+                <td><code>${esc(w.wpId)}</code></td>
+                <td class="name-cell">${esc(w.wpName || '')}</td>
+                <td><span class="badge badge-type">${typeDisplay(w.wpType)}</span></td>
+                <td><span class="badge ${statusClass(w.status)}">${statusDisplay(w.status)}</span></td>
+                <td>${w.parentWpId ? '<code>' + esc(w.parentWpId) + '</code>' : '—'}</td>
+                <td>${w.planStartDate || '—'}</td>
+                <td>${w.planEndDate || '—'}</td>
+                <td>${w.percentComplete != null ? w.percentComplete + '%' : '—'}</td>
+                <td>${w.reEmployeeId || '—'}</td>
+                <td class="actions-cell">
+                    <button class="btn-action btn-edit" onclick='openEditModal(${JSON.stringify(w)})' title="Edit">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
+                    <button class="btn-action btn-delete" onclick="deleteWP('${esc(w.wpId)}')" title="Delete">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    // ---- Create ----
+    function openCreateModal() {
+        document.getElementById('editMode').value = 'false';
+        document.getElementById('modalTitle').textContent = 'New Work Package';
+        document.getElementById('submitBtn').textContent = 'Create Work Package';
+        document.getElementById('wpId').disabled = false;
+        document.getElementById('wpForm').reset();
+        document.getElementById('wpModal').classList.add('active');
+    }
+
+    // ---- Edit ----
+    function openEditModal(w) {
+        document.getElementById('editMode').value = 'true';
+        document.getElementById('originalId').value = w.wpId;
+        document.getElementById('modalTitle').textContent = 'Edit Work Package';
+        document.getElementById('submitBtn').textContent = 'Save Changes';
+        document.getElementById('wpId').value = w.wpId;
+        document.getElementById('wpId').disabled = true;
+        document.getElementById('wpName').value = w.wpName || '';
+        document.getElementById('wpType').value = w.wpType || 'SUMMARY';
+        document.getElementById('wpStatus').value = w.status || 'OPEN_FOR_CHARGES';
+        document.getElementById('parentWpId').value = w.parentWpId || '';
+        document.getElementById('reEmployeeId').value = w.reEmployeeId || '';
+        document.getElementById('planStartDate').value = w.planStartDate || '';
+        document.getElementById('planEndDate').value = w.planEndDate || '';
+        document.getElementById('wpDesc').value = w.description || '';
+        document.getElementById('wpModal').classList.add('active');
+    }
+
+    function closeModal() {
+        document.getElementById('wpModal').classList.remove('active');
+    }
+
+    // ---- Submit ----
+    async function handleSubmit(e) {
+        e.preventDefault();
+        const isEdit = document.getElementById('editMode').value === 'true';
+        const id = isEdit ? document.getElementById('originalId').value : document.getElementById('wpId').value;
+
+        const body = {
+            wpId: document.getElementById('wpId').disabled ? id : document.getElementById('wpId').value,
+            wpName: document.getElementById('wpName').value,
+            projId: PROJECT_ID,
+            wpType: document.getElementById('wpType').value,
+            status: document.getElementById('wpStatus').value,
+            parentWpId: document.getElementById('parentWpId').value || null,
+            reEmployeeId: parseInt(document.getElementById('reEmployeeId').value) || 0,
+            planStartDate: document.getElementById('planStartDate').value || null,
+            planEndDate: document.getElementById('planEndDate').value || null,
+            description: document.getElementById('wpDesc').value || null,
+            structureLocked: false
+        };
+
+        try {
+            let url, method;
+            if (isEdit) {
+                url = `${API}/api/workpackages/${encodeURIComponent(id)}`;
+                method = 'PUT';
+            } else {
+                url = `${API}/api/workpackages`;
+                method = 'POST';
+            }
+            const res = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            if (!res.ok) {
+                const text = await res.text();
+                throw new Error(text || res.statusText);
+            }
+            closeModal();
+            showToast(isEdit ? 'Work package updated!' : 'Work package created!', 'success');
+            loadWorkPackages();
+        } catch (err) {
+            showToast('Error: ' + err.message, 'error');
+        }
+    }
+
+    // ---- Delete ----
+    async function deleteWP(id) {
+        if (!confirm(`Delete work package "${id}" and all its children? This cannot be undone.`)) return;
+        try {
+            const res = await fetch(`${API}/api/workpackages/${encodeURIComponent(id)}`, { method: 'DELETE' });
+            if (!res.ok) throw new Error(await res.text());
+            showToast('Work package deleted!', 'success');
+            loadWorkPackages();
+        } catch (err) {
+            showToast('Error: ' + err.message, 'error');
+        }
+    }
+
+    // ---- Helpers ----
+    function esc(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+    function showToast(msg, type) {
+        const c = document.getElementById('toastContainer');
+        const t = document.createElement('div');
+        t.className = `toast toast-${type}`;
+        t.textContent = msg;
+        c.appendChild(t);
+        setTimeout(() => { t.classList.add('fade-out'); setTimeout(() => t.remove(), 300); }, 3000);
+    }
+
+    // ---- Init ----
+    document.addEventListener('DOMContentLoaded', loadWorkPackages);
+</script>
+}

@@ -1,6 +1,8 @@
 package com.corejsf.Entity;
 
 import java.time.LocalDate;
+
+import jakarta.json.bind.annotation.JsonbTransient;
 import jakarta.persistence.*;
 
 @Entity
@@ -11,10 +13,12 @@ public class ProjectAssignment {
     @Column(name = "pa_id")
     private Integer paId;
 
+    @JsonbTransient
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "emp_id", nullable = false)
     private Employee employee;
 
+    @JsonbTransient
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "proj_id", nullable = false)
     private Project project;
@@ -23,10 +27,8 @@ public class ProjectAssignment {
     private LocalDate assignmentDate;
 
     public ProjectAssignment() {
-        // Default constructor for JPA
     }
 
-    //setter getters
     public Integer getPaId() {
         return paId;
     }
@@ -58,6 +60,4 @@ public class ProjectAssignment {
     public void setAssignmentDate(LocalDate assignmentDate) {
         this.assignmentDate = assignmentDate;
     }
-
 }
-

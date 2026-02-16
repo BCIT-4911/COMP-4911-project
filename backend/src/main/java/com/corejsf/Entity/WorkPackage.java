@@ -4,6 +4,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+import jakarta.json.bind.annotation.JsonbProperty;
+import jakarta.json.bind.annotation.JsonbTransient;
 import jakarta.persistence.*;
 
 @Entity
@@ -20,22 +22,23 @@ public class WorkPackage {
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
+    @JsonbTransient
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "proj_id", nullable = false)
     private Project project;
 
-    // FK: parent_wp_id -> Work_Package(wp_id)
+    @JsonbTransient
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_wp_id")
     private WorkPackage parentWorkPackage;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "wp_type")
-    private WorkPackageType wpType; // 'Summary', 'Lowest-Level'
+    private WorkPackageType wpType;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
-    private WorkPackageStatus status; // 'Open for Charges', 'Closed for Charges', 'Complete'
+    private WorkPackageStatus status;
 
     @Column(name = "structure_locked")
     private Boolean structureLocked;
@@ -52,7 +55,7 @@ public class WorkPackage {
     @Column(name = "plan_end_date", nullable = false)
     private LocalDate planEndDate;
 
-    // FK: re_employee_id -> Employee(emp_id)
+    @JsonbTransient
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "re_employee_id", nullable = false)
     private Employee responsibleEmployee;
@@ -75,12 +78,12 @@ public class WorkPackage {
     @Column(name = "modified_date")
     private LocalDateTime modifiedDate;
 
-    // FK: created_by -> Employee(emp_id)
+    @JsonbTransient
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by")
     private Employee createdBy;
 
-    // FK: modified_by -> Employee(emp_id)
+    @JsonbTransient
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "modified_by")
     private Employee modifiedBy;
@@ -97,10 +100,54 @@ public class WorkPackage {
     @Column(name = "anticipated_problems", length = 255)
     private String anticipatedProblems;
 
+    @Transient
+    private String projIdTransient;
+
+    @Transient
+    private String parentWpIdTransient;
+
+    @Transient
+    private Integer reEmployeeIdTransient;
+
     public WorkPackage() {
     }
 
-// deleted redundant work package status enum which was here
+    // --- Transient raw-ID accessors for the REST contract ---
+
+    @JsonbProperty("projId")
+    public String getProjId() {
+        if (projIdTransient != null) return projIdTransient;
+        return project != null ? project.getProjId() : null;
+    }
+
+    @JsonbProperty("projId")
+    public void setProjId(String projId) {
+        this.projIdTransient = projId;
+    }
+
+    @JsonbProperty("parentWpId")
+    public String getParentWpId() {
+        if (parentWpIdTransient != null) return parentWpIdTransient;
+        return parentWorkPackage != null ? parentWorkPackage.getWpId() : null;
+    }
+
+    @JsonbProperty("parentWpId")
+    public void setParentWpId(String parentWpId) {
+        this.parentWpIdTransient = parentWpId;
+    }
+
+    @JsonbProperty("reEmployeeId")
+    public Integer getReEmployeeId() {
+        if (reEmployeeIdTransient != null) return reEmployeeIdTransient;
+        return responsibleEmployee != null ? responsibleEmployee.getEmpId() : null;
+    }
+
+    @JsonbProperty("reEmployeeId")
+    public void setReEmployeeId(Integer reEmployeeId) {
+        this.reEmployeeIdTransient = reEmployeeId;
+    }
+
+    // --- Standard getters/setters ---
 
     public String getWpId() {
         return wpId;
@@ -124,22 +171,6 @@ public class WorkPackage {
 
     public void setDescription(final String description) {
         this.description = description;
-    }
-
-    public Project getProject() {
-        return project;
-    }
-
-    public void setProject(final Project project) {
-        this.project = project;
-    }
-
-    public WorkPackage getParentWorkPackage() {
-        return parentWorkPackage;
-    }
-
-    public void setParentWorkPackage(final WorkPackage parentWorkPackage) {
-        this.parentWorkPackage = parentWorkPackage;
     }
 
     public WorkPackageType getWpType() {
@@ -198,14 +229,6 @@ public class WorkPackage {
         this.planEndDate = planEndDate;
     }
 
-    public Employee getResponsibleEmployee() {
-        return responsibleEmployee;
-    }
-
-    public void setResponsibleEmployee(final Employee responsibleEmployee) {
-        this.responsibleEmployee = responsibleEmployee;
-    }
-
     public BigDecimal getBac() {
         return bac;
     }
@@ -254,22 +277,6 @@ public class WorkPackage {
         this.modifiedDate = modifiedDate;
     }
 
-    public Employee getCreatedBy() {
-        return createdBy;
-    }
-
-    public void setCreatedBy(final Employee createdBy) {
-        this.createdBy = createdBy;
-    }
-
-    public Employee getModifiedBy() {
-        return modifiedBy;
-    }
-
-    public void setModifiedBy(final Employee modifiedBy) {
-        this.modifiedBy = modifiedBy;
-    }
-
     public String getWorkAccomplished() {
         return workAccomplished;
     }
@@ -300,5 +307,47 @@ public class WorkPackage {
 
     public void setAnticipatedProblems(final String anticipatedProblems) {
         this.anticipatedProblems = anticipatedProblems;
+    }
+
+    // --- JPA relationship accessors (hidden from JSON) ---
+
+    public Project getProject() {
+        return project;
+    }
+
+    public void setProject(final Project project) {
+        this.project = project;
+    }
+
+    public WorkPackage getParentWorkPackage() {
+        return parentWorkPackage;
+    }
+
+    public void setParentWorkPackage(final WorkPackage parentWorkPackage) {
+        this.parentWorkPackage = parentWorkPackage;
+    }
+
+    public Employee getResponsibleEmployee() {
+        return responsibleEmployee;
+    }
+
+    public void setResponsibleEmployee(final Employee responsibleEmployee) {
+        this.responsibleEmployee = responsibleEmployee;
+    }
+
+    public Employee getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(final Employee createdBy) {
+        this.createdBy = createdBy;
+    }
+
+    public Employee getModifiedBy() {
+        return modifiedBy;
+    }
+
+    public void setModifiedBy(final Employee modifiedBy) {
+        this.modifiedBy = modifiedBy;
     }
 }

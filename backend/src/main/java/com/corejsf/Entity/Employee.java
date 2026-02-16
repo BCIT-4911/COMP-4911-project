@@ -2,6 +2,7 @@ package com.corejsf.Entity;
 
 import java.math.BigDecimal;
 
+import jakarta.json.bind.annotation.JsonbTransient;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -27,6 +28,7 @@ public class Employee {
     @Column(name = "emp_last_name", nullable = false, length = 255)
     private String empLastName;
 
+    @JsonbTransient
     @Column(name = "emp_password", nullable = false, length = 255)
     private String empPassword;
 
@@ -34,17 +36,17 @@ public class Employee {
     @Column(name = "system_role", nullable = true, length = 20)
     private SystemRole systemRole;
 
-    // Employee_E_Signature(emp_e_sig_id)
+    @JsonbTransient
     @OneToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "emp_e_sig_id", nullable = false)
     private EmployeeESignature eSignature;
 
-    // Labor_Grade(labor_grade_id)
+    @JsonbTransient
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "labor_grade_id", nullable = false)
     private LaborGrade laborGrade;
 
-    // Self-referencing FK: supervisor_id -> Employee(emp_id)
+    @JsonbTransient
     @ManyToOne(fetch = FetchType.LAZY, optional = true)
     @JoinColumn(name = "supervisor_id")
     private Employee supervisor;

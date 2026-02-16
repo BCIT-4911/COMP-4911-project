@@ -1,6 +1,8 @@
 package com.corejsf.Entity;
 
 import java.time.LocalDate;
+
+import jakarta.json.bind.annotation.JsonbTransient;
 import jakarta.persistence.*;
 
 @Entity
@@ -11,10 +13,12 @@ public class WorkPackageAssignment {
     @Column(name = "wpa_id")
     private Integer wpaId;
 
+    @JsonbTransient
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "emp_id", nullable = false)
     private Employee employee;
 
+    @JsonbTransient
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "wp_id", nullable = false)
     private WorkPackage workPackage;
@@ -23,11 +27,8 @@ public class WorkPackageAssignment {
     private LocalDate assignmentDate;
 
     public WorkPackageAssignment() {
-        // Default constructor for JPA
     }
-    
 
-    //setter getters
     public Integer getWpaId() {
         return wpaId;
     }
@@ -59,7 +60,4 @@ public class WorkPackageAssignment {
     public void setAssignmentDate(LocalDate assignmentDate) {
         this.assignmentDate = assignmentDate;
     }
-
-
 }
-

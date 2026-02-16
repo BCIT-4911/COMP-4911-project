@@ -1,4 +1,4 @@
-package com.corejsf.Entity;
+package com.corejsf.entity;
 
 import java.math.BigDecimal;
 import jakarta.persistence.*;

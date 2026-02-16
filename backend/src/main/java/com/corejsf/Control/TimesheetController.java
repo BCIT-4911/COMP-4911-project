@@ -1,6 +1,8 @@
 package com.corejsf.Control;
 
-import com.corejsf.Entity.*;
+import com.corejsf.entity.Timesheet;
+import com.corejsf.entity.TimesheetRow;
+import com.corejsf.entity.EmployeeESignature;
 import jakarta.ejb.Stateless;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -35,6 +37,43 @@ public class TimesheetController {
 
     @PersistenceContext
     private EntityManager em;
+
+    /**
+     * Front-end sends data about new timesheet, which is eventually
+     * transferred over to back-end and saved in the database.
+     * @param timesheet
+     * @return Timesheet
+     */
+    public Timesheet createTimesheet(Timesheet timesheet) {
+        em.persist(timesheet);
+        return timesheet;
+    }
+
+    /**
+     * Get one timesheet by ID. Database finds timesheet with
+     * specified ID.
+     * @param tsId
+     * @return Timesheet
+     */
+    public Timesheet getTimesheet(Integer tsId) {
+        return em.find(Timesheet.class, tsId);
+
+    }
+
+    /**We can add a method to fetch all lists for a specific employee here later */
+
+    /**We can add a method to fetch all lists for a specific employee here later */
+
+    /** Select only the timesheets that are signed but not approved yet*/
+    public List<Timesheet> getPendingTimesheets() {
+        return em.createQuery(
+                "SELECT t FROM Timesheet t WHERE t.eSignature IS NOT NULL AND t.approvalStatus = false",
+                Timesheet.class)
+                .getResultList();
+
+    }
+
+
 
     public void saveAsDraft(Integer tsId, List<TimesheetRow> draftRows) {
         Timesheet timesheet = em.find(Timesheet.class, tsId);

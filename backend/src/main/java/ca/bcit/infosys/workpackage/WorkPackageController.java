@@ -4,15 +4,27 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import ca.bcit.infosys.employee.Employee;
-import ca.bcit.infosys.project.Project;
+import com.corejsf.Entity.Employee;
+import com.corejsf.Entity.Project;
+import com.corejsf.Entity.WorkPackage;
+import com.corejsf.Entity.WorkPackageAssignment;
+import com.corejsf.Entity.WorkPackageStatus;
+
 import jakarta.ejb.Stateless;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;
 import jakarta.transaction.Transactional;
-import jakarta.ws.rs.*;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
@@ -77,13 +89,13 @@ public class WorkPackageController {
     public Response createWorkPackage(WorkPackage wp) {
         WorkPackageValidation.validate(wp);
 
-        if (em.find(Project.class, wp.getProjId()) == null) {
-            throw new NotFoundException("Project with id " + wp.getProjId() + " not found.");
+        if (em.find(Project.class, wp.getProject().getProjId()) == null) {
+            throw new NotFoundException("Project with id " + wp.getProject().getProjId() + " not found.");
         }
 
-        if (wp.getParentWpId() != null && !wp.getParentWpId().isEmpty()) {
-            if (em.find(WorkPackage.class, wp.getParentWpId()) == null) {
-                throw new NotFoundException("Parent WorkPackage with id " + wp.getParentWpId() + " not found.");
+        if (wp.getParentWorkPackage() != null && wp.getParentWorkPackage().getWpId() != null) {
+            if (em.find(WorkPackage.class, wp.getParentWorkPackage().getWpId()) == null) {
+                throw new NotFoundException("Parent WorkPackage with id " + wp.getParentWorkPackage().getWpId() + " not found.");
             }
         }
 
@@ -105,15 +117,15 @@ public class WorkPackageController {
 
         WorkPackageValidation.validateName(wp.getWpName());
 
-        if (wp.getParentWpId() != null && !wp.getParentWpId().isEmpty()) {
-            if (em.find(WorkPackage.class, wp.getParentWpId()) == null) {
-                throw new NotFoundException("Parent WorkPackage with id " + wp.getParentWpId() + " not found.");
+        if (wp.getParentWorkPackage() != null && wp.getParentWorkPackage().getWpId() != null) {
+            if (em.find(WorkPackage.class, wp.getParentWorkPackage().getWpId()) == null) {
+                throw new NotFoundException("Parent WorkPackage with id " + wp.getParentWorkPackage().getWpId() + " not found.");
             }
         }
 
         existing.setWpName(wp.getWpName());
         existing.setDescription(wp.getDescription());
-        existing.setParentWpId(wp.getParentWpId());
+        existing.setParentWorkPackage(wp.getParentWorkPackage());
         existing.setModifiedDate(LocalDateTime.now());
         em.merge(existing);
     }
@@ -178,8 +190,8 @@ public class WorkPackageController {
         Integer maxId = em.createQuery("SELECT MAX(wpa.wpaId) FROM WorkPackageAssignment wpa", Integer.class)
                 .getSingleResult();
         assignment.setWpaId(maxId == null ? 1 : maxId + 1);
-        assignment.setWpId(wpId);
-        assignment.setEmpId(empId);
+        assignment.setWorkPackage(findWorkPackage(wpId));
+        assignment.setEmployee(findEmployee(empId));
         assignment.setAssignmentDate(LocalDate.now());
         em.persist(assignment);
     }
@@ -227,7 +239,7 @@ public class WorkPackageController {
     @Transactional
     public void close(@PathParam("id") String id) {
         WorkPackage wp = findWorkPackage(id);
-        wp.setStatus(WpStatus.CLOSED_FOR_CHARGES);
+        wp.setStatus(WorkPackageStatus.CLOSED_FOR_CHARGES);
         em.merge(wp);
     }
 
@@ -239,7 +251,7 @@ public class WorkPackageController {
     @Transactional
     public void open(@PathParam("id") String id) {
         WorkPackage wp = findWorkPackage(id);
-        wp.setStatus(WpStatus.OPEN_FOR_CHARGES);
+        wp.setStatus(WorkPackageStatus.OPEN_FOR_CHARGES);
         em.merge(wp);
     }
 
@@ -265,10 +277,10 @@ public class WorkPackageController {
     @Path("/{id}/parent")
     public WorkPackage getParent(@PathParam("id") String id) {
         WorkPackage wp = findWorkPackage(id);
-        if (wp.getParentWpId() == null) {
+        if (wp.getParentWorkPackage() == null) {
             throw new NotFoundException("Work package " + id + " has no parent.");
         }
-        return findWorkPackage(wp.getParentWpId());
+        return findWorkPackage(wp.getParentWorkPackage().getWpId());
     }
 
     /**
@@ -282,8 +294,8 @@ public class WorkPackageController {
         return "Work Package Report---------------------\n"
                 + "ID: " + wp.getWpId() + "\n"
                 + "Name: " + wp.getWpName() + "\n"
-                + "Project ID: " + wp.getProjId() + "\n"
-                + "Status: " + (wp.getStatus() != null ? wp.getStatus().getDisplayName() : "N/A") + "\n"
+                + "Project ID: " + wp.getProject().getProjId() + "\n"
+                + "Status: " + (wp.getStatus() != null ? wp.getStatus().name() : "N/A") + "\n"
                 + "Description: " + (wp.getDescription() != null ? wp.getDescription() : "N/A") + "\n";
     }
 }

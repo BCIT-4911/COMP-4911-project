@@ -1,6 +1,6 @@
 package ca.bcit.infosys.workpackage;
 
-import ca.bcit.infosys.workpackage.WorkPackage;
+import com.corejsf.Entity.WorkPackage;
 
 /**
  * Validation class for WorkPackage.
@@ -13,7 +13,7 @@ public final class WorkPackageValidation {
         }
         validateId(wp.getWpId());
         validateName(wp.getWpName());
-        validateProjectId(wp.getProjId());
+        validateProjectId(wp.getProject().getProjId());
     }
 
     public static void validateId(final String id) {

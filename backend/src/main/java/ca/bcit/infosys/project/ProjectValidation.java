@@ -1,5 +1,6 @@
 package ca.bcit.infosys.project;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -81,8 +82,8 @@ public final class ProjectValidation {
         }
     }
 
-    public static void validateMarkup(final float markup) {
-        if (markup < 0) {
+    public static void validateMarkup(final BigDecimal markup) {
+        if (markup == null || markup.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Project markup must be greater than 0");
         }
     }

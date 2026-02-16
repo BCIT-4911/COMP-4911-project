@@ -123,7 +123,7 @@ CREATE TABLE Timesheet(
     emp_id INT NOT NULL,
     week_ending DATE NOT NULL,
     approver_id INT NOT NULL,
-    approval_status BOOLEAN NOT NULL,
+    approved BOOLEAN NOT NULL,
     return_comment TEXT,
     emp_e_sig_id INT, 
     FOREIGN KEY (emp_id) REFERENCES Employee(emp_id),

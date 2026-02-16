@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using System.Text.Json;
+using frontend.data;
 
 namespace frontend.Pages.EarnedValue;
 
@@ -25,53 +27,115 @@ public class IndexModel : PageModel
     public Dictionary<int, decimal> SVByMonth { get; set; } = new();
     public Dictionary<int, decimal> CVByMonth { get; set; } = new();
 
-    public void OnGet()
+    // public void OnGet()
+    // {
+    //     Projects = new() { new(1, "Demo Project") };
+    //     ControlAccounts = new() { new(1, "Control Account A") };
+
+    //     // Demo data (replace with real backend later)
+    //     WorkPackages = new List<WorkPackageVm>
+    //     {
+    //         new(1,"Procure Anvil","0/100")
+    //         {
+    //             BCWS = new() { [5]=1500 },
+    //             BCWP = new() { } // none earned yet
+    //         },
+    //         new(2,"Paint Fake Tunnel","50/50")
+    //         {
+    //             BCWS = new() { [3]=500, [4]=500 },
+    //             BCWP = new() { [4]=500 } // example earned
+    //         },
+    //         new(3,"Build Road","Units Complete")
+    //         {
+    //             BCWS = new() { [1]=600,[2]=600,[3]=600,[4]=600,[5]=600 },
+    //             BCWP = new() { [1]=600,[2]=600,[3]=300 } // example partial earned
+    //         },
+    //         new(4,"Build ASM","Milestones")
+    //         {
+    //             BCWS = new() { [2]=1000,[3]=1000,[4]=1000 },
+    //             BCWP = new() { [2]=1000 } // first milestone achieved
+    //         },
+    //         new(5,"Install ASM","% Complete")
+    //         {
+    //             BCWS = new() { [4]=500,[5]=500,[6]=500 },
+    //             BCWP = new() { [4]=250 } // 50% of first slice
+    //         },
+    //     };
+
+    //     // Totals by month
+    //     for (int m = 1; m <= MonthCount; m++)
+    //     {
+    //         TotalBCWSByMonth[m] = WorkPackages.Sum(wp => wp.BCWS.TryGetValue(m, out var v) ? v : 0);
+    //         TotalBCWPByMonth[m] = WorkPackages.Sum(wp => wp.BCWP.TryGetValue(m, out var v) ? v : 0);
+
+    //         SVByMonth[m] = TotalBCWPByMonth[m] - TotalBCWSByMonth[m];
+
+    //         // CV placeholder (ACWP not wired yet)
+    //         var acwp = 0m;
+    //         CVByMonth[m] = TotalBCWPByMonth[m] - acwp;
+    //     }
+    // }
+
+    public async Task OnGetAsync()
     {
         Projects = new() { new(1, "Demo Project") };
         ControlAccounts = new() { new(1, "Control Account A") };
 
-        // Demo data (replace with real backend later)
-        WorkPackages = new List<WorkPackageVm>
+        var apiUrl = "http://localhost:8080/Project/api/earned-value?parentWpId=CA-1";
+
+        using var http = new HttpClient();
+        var response = await http.GetAsync(apiUrl);
+
+        if (!response.IsSuccessStatusCode)
         {
-            new(1,"Procure Anvil","0/100")
-            {
-                BCWS = new() { [5]=1500 },
-                BCWP = new() { } // none earned yet
-            },
-            new(2,"Paint Fake Tunnel","50/50")
-            {
-                BCWS = new() { [3]=500, [4]=500 },
-                BCWP = new() { [4]=500 } // example earned
-            },
-            new(3,"Build Road","Units Complete")
-            {
-                BCWS = new() { [1]=600,[2]=600,[3]=600,[4]=600,[5]=600 },
-                BCWP = new() { [1]=600,[2]=600,[3]=300 } // example partial earned
-            },
-            new(4,"Build ASM","Milestones")
-            {
-                BCWS = new() { [2]=1000,[3]=1000,[4]=1000 },
-                BCWP = new() { [2]=1000 } // first milestone achieved
-            },
-            new(5,"Install ASM","% Complete")
-            {
-                BCWS = new() { [4]=500,[5]=500,[6]=500 },
-                BCWP = new() { [4]=250 } // 50% of first slice
-            },
+            Console.WriteLine("API FAILED: " + response.StatusCode);
+            return;
+        }
+
+        var json = await response.Content.ReadAsStringAsync();
+
+        var options = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
         };
 
-        // Totals by month
+        var data = JsonSerializer.Deserialize<List<WorkPackageApiDto>>(json, options);
+
+        if (data == null) return;
+
+        WorkPackages.Clear();
+
+        foreach (var wp in data)
+        {
+            var vm = new WorkPackageVm(
+            wp.number,
+            wp.description!,
+            wp.evMethod!
+            )
+            {
+                BCWS = wp.bcwsByWeek ?? new(),
+                BCWP = wp.bcwpByWeek ?? new()
+            };
+
+            WorkPackages.Add(vm);
+
+        }
+        // determine week count dynamically
+        MonthCount = WorkPackages
+            .SelectMany(w => w.BCWS.Keys)
+            .DefaultIfEmpty(0)
+            .Max();
+
+        // totals
         for (int m = 1; m <= MonthCount; m++)
         {
             TotalBCWSByMonth[m] = WorkPackages.Sum(wp => wp.BCWS.TryGetValue(m, out var v) ? v : 0);
             TotalBCWPByMonth[m] = WorkPackages.Sum(wp => wp.BCWP.TryGetValue(m, out var v) ? v : 0);
 
             SVByMonth[m] = TotalBCWPByMonth[m] - TotalBCWSByMonth[m];
-
-            // CV placeholder (ACWP not wired yet)
-            var acwp = 0m;
-            CVByMonth[m] = TotalBCWPByMonth[m] - acwp;
+            CVByMonth[m] = TotalBCWPByMonth[m]; // ACWP = 0 for now
         }
+
     }
 
     public record Option(int Id, string Name);

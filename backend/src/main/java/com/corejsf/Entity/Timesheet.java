@@ -31,4 +31,67 @@ public class Timesheet {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "emp_e_sig_id")
     private EmployeeESignature signature;
+
+    public Timesheet() {
+        // Default constructor for JPA
+    }
+
+    //setter getters
+    public Integer getTsId() {
+        return tsId;
+    }
+
+    public void setTsId(Integer tsId) {
+        this.tsId = tsId;
+    }
+
+    public Employee getEmployee() {
+        return employee;
+    }
+
+    public void setEmployee(Employee employee) {
+        this.employee = employee;
+    }
+
+    public LocalDate getWeekEnding() {
+        return weekEnding;
+    }
+
+    public void setWeekEnding(LocalDate weekEnding) {
+        this.weekEnding = weekEnding;
+    }
+
+    public Employee getApprover() {
+        return approver;
+    }
+
+    public void setApprover(Employee approver) {
+        this.approver = approver;
+    }
+
+    public Boolean getApprovalStatus() {
+        return approvalStatus;
+    }
+
+    public void setApprovalStatus(Boolean approvalStatus) {
+        this.approvalStatus = approvalStatus;
+    }
+
+    public String getReturnComment() {
+        return returnComment;
+    }
+
+    public void setReturnComment(String returnComment) {
+        this.returnComment = returnComment;
+    }
+
+    public EmployeeESignature getSignature() {
+        return signature;
+    }
+
+    public void setSignature(EmployeeESignature signature) {
+        this.signature = signature;
+    }
+
+
 }

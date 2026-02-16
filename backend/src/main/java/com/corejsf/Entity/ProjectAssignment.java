@@ -21,5 +21,43 @@ public class ProjectAssignment {
 
     @Column(name = "assignment_date", nullable = false)
     private LocalDate assignmentDate;
+
+    public ProjectAssignment() {
+        // Default constructor for JPA
+    }
+
+    //setter getters
+    public Integer getPaId() {
+        return paId;
+    }
+
+    public void setPaId(Integer paId) {
+        this.paId = paId;
+    }
+
+    public Employee getEmployee() {
+        return employee;
+    }
+
+    public void setEmployee(Employee employee) {
+        this.employee = employee;
+    }
+
+    public Project getProject() {
+        return project;
+    }
+
+    public void setProject(Project project) {
+        this.project = project;
+    }
+
+    public LocalDate getAssignmentDate() {
+        return assignmentDate;
+    }
+
+    public void setAssignmentDate(LocalDate assignmentDate) {
+        this.assignmentDate = assignmentDate;
+    }
+
 }
 

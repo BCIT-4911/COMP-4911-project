@@ -21,5 +21,45 @@ public class WorkPackageAssignment {
 
     @Column(name = "assignment_date", nullable = false)
     private LocalDate assignmentDate;
+
+    public WorkPackageAssignment() {
+        // Default constructor for JPA
+    }
+    
+
+    //setter getters
+    public Integer getWpaId() {
+        return wpaId;
+    }
+
+    public void setWpaId(Integer wpaId) {
+        this.wpaId = wpaId;
+    }
+
+    public Employee getEmployee() {
+        return employee;
+    }
+
+    public void setEmployee(Employee employee) {
+        this.employee = employee;
+    }
+
+    public WorkPackage getWorkPackage() {
+        return workPackage;
+    }
+
+    public void setWorkPackage(WorkPackage workPackage) {
+        this.workPackage = workPackage;
+    }
+
+    public LocalDate getAssignmentDate() {
+        return assignmentDate;
+    }
+
+    public void setAssignmentDate(LocalDate assignmentDate) {
+        this.assignmentDate = assignmentDate;
+    }
+
+
 }
 

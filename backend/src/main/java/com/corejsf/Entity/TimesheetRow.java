@@ -43,5 +43,100 @@ public class TimesheetRow {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "ts_id", nullable = false)
     private Timesheet timesheet;
+
+    public TimesheetRow() {
+        // Default constructor for JPA
+    }
+
+    //setter getters
+    public Integer getTsRowId() {
+        return tsRowId;
+    }
+
+    public void setTsRowId(Integer tsRowId) {
+        this.tsRowId = tsRowId;
+    }
+
+    public BigDecimal getMonday() {
+        return monday;
+    }
+
+    public void setMonday(BigDecimal monday) {
+        this.monday = monday;
+    }
+
+    public BigDecimal getTuesday() {
+        return tuesday;
+    }
+
+    public void setTuesday(BigDecimal tuesday) {
+        this.tuesday = tuesday;
+    }
+
+    public BigDecimal getWednesday() {
+        return wednesday;
+    }
+
+    public void setWednesday(BigDecimal wednesday) {
+        this.wednesday = wednesday;
+    }
+
+    public BigDecimal getThursday() {
+        return thursday;
+    }
+
+    public void setThursday(BigDecimal thursday) {
+        this.thursday = thursday;
+    }
+
+    public BigDecimal getFriday() {
+        return friday;
+    }
+
+    public void setFriday(BigDecimal friday) {
+        this.friday = friday;
+    }
+
+    public BigDecimal getSaturday() {
+        return saturday;
+    }
+
+    public void setSaturday(BigDecimal saturday) {
+        this.saturday = saturday;
+    }
+
+    public BigDecimal getSunday() {
+        return sunday;
+    }
+
+    public void setSunday(BigDecimal sunday) {
+        this.sunday = sunday;
+    }
+
+    public LaborGrade getLaborGrade() {
+        return laborGrade;
+    }
+
+    public void setLaborGrade(LaborGrade laborGrade) {
+        this.laborGrade = laborGrade;
+    }
+
+    public WorkPackage getWorkPackage() {
+        return workPackage;
+    }
+
+    public void setWorkPackage(WorkPackage workPackage) {
+        this.workPackage = workPackage;
+    }
+
+    public Timesheet getTimesheet() {
+        return timesheet;
+    }
+
+    public void setTimesheet(Timesheet timesheet) {
+        this.timesheet = timesheet;
+    }
+
+
 }
 

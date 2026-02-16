@@ -13,7 +13,8 @@ public class EmployeeESignature {
     private Integer empESigId;
 
     @Lob
-    @Column(name = "signature_data", nullable = false)
+    @Basic(optional = false)
+    @Column(name = "signature_data", nullable = false, columnDefinition = "LONGBLOB")
     private byte[] signatureData;
 
     @Column(name = "signed_at", nullable = false)

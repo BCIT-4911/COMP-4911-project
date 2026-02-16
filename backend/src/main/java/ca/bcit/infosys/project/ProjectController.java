@@ -4,15 +4,27 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import ca.bcit.infosys.employee.Employee;
-import ca.bcit.infosys.workpackage.WorkPackage;
+import com.corejsf.Entity.Employee;
+import com.corejsf.Entity.Project;
+import com.corejsf.Entity.ProjectAssignment;
+import com.corejsf.Entity.ProjectStatus;
+import com.corejsf.Entity.WorkPackage;
+
 import ca.bcit.infosys.workpackage.WorkPackageValidation;
 import jakarta.ejb.Stateless;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;
 import jakarta.transaction.Transactional;
-import jakarta.ws.rs.*;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 
 /**
@@ -74,16 +86,17 @@ public class ProjectController {
     @POST
     @Transactional
     public void createProject(Project project) {
-        ProjectValidation.validateId(project.getProject_id());
-        ProjectValidation.validateName(project.getProject_name());
-        ProjectValidation.validateDescription(project.getProject_desc());
-        ProjectValidation.validateStartDate(project.getStart_date());
-        ProjectValidation.validateEndDate(project.getEnd_date(), project.getStart_date());
-        ProjectValidation.validateMarkup(project.getMarkup_rate());
-        ProjectValidation.validateProjectManagerId(project.getProject_manager_id());
+        ProjectValidation.validateId(project.getProjId());
+        ProjectValidation.validateName(project.getProjName());
+        ProjectValidation.validateDescription(project.getDescription());
+        ProjectValidation.validateStartDate(project.getStartDate());
+        ProjectValidation.validateEndDate(project.getEndDate(), project.getStartDate());
+        ProjectValidation.validateMarkup(project.getMarkupRate());
+        ProjectValidation.validateProjectManagerId(project.getProjectManagerId());
 
-        project.setCreated_date(LocalDateTime.now());
-        project.setModified_date(LocalDateTime.now());
+        project.setProjectManager(findEmployee(project.getProjectManagerId()));
+        project.setCreatedDate(LocalDateTime.now());
+        project.setModifiedDate(LocalDateTime.now());
         em.persist(project);
     }
 
@@ -97,19 +110,19 @@ public class ProjectController {
     public void updateProject(@PathParam("id") String id, Project project) {
         Project existing = findProject(id);
 
-        ProjectValidation.validateName(project.getProject_name());
-        ProjectValidation.validateDescription(project.getProject_desc());
-        ProjectValidation.validateDates(project.getStart_date(), project.getEnd_date());
-        ProjectValidation.validateMarkup(project.getMarkup_rate());
-        ProjectValidation.validateProjectManagerId(project.getProject_manager_id());
+        ProjectValidation.validateName(project.getProjName());
+        ProjectValidation.validateDescription(project.getDescription());
+        ProjectValidation.validateDates(project.getStartDate(), project.getEndDate());
+        ProjectValidation.validateMarkup(project.getMarkupRate());
+        ProjectValidation.validateProjectManagerId(project.getProjectManagerId());
 
-        existing.setProject_name(project.getProject_name());
-        existing.setProject_desc(project.getProject_desc());
-        existing.setStart_date(project.getStart_date());
-        existing.setEnd_date(project.getEnd_date());
-        existing.setMarkup_rate(project.getMarkup_rate());
-        existing.setProject_manager_id(project.getProject_manager_id());
-        existing.setModified_date(LocalDateTime.now());
+        existing.setProjName(project.getProjName());
+        existing.setDescription(project.getDescription());
+        existing.setStartDate(project.getStartDate());
+        existing.setEndDate(project.getEndDate());
+        existing.setMarkupRate(project.getMarkupRate());
+        existing.setProjectManager(findEmployee(project.getProjectManagerId()));
+        existing.setModifiedDate(LocalDateTime.now());
         em.merge(existing);
     }
 
@@ -156,7 +169,7 @@ public class ProjectController {
     @Transactional
     public void closeProject(@PathParam("id") String id) {
         Project project = findProject(id);
-        project.setProject_status(ProjectStatus.ARCHIVED);
+        project.setStatus(ProjectStatus.ARCHIVED);
         em.merge(project);
     }
 
@@ -168,7 +181,7 @@ public class ProjectController {
     @Transactional
     public void openProject(@PathParam("id") String id) {
         Project project = findProject(id);
-        project.setProject_status(ProjectStatus.OPEN);
+        project.setStatus(ProjectStatus.OPEN);
         em.merge(project);
     }
 
@@ -181,7 +194,7 @@ public class ProjectController {
     public void addWorkPackage(@PathParam("id") String id, WorkPackage wp) {
         findProject(id);
         WorkPackageValidation.validate(wp);
-        wp.setProjId(id);
+        wp.setProject(findProject(id));
         em.persist(wp);
     }
 
@@ -253,14 +266,14 @@ public class ProjectController {
     public String generateReport(@PathParam("id") String id) {
         Project p = findProject(id);
         return "Project Report---------------------\n"
-                + "Project ID: " + p.getProject_id() + "\n"
-                + "Project Manager: " + p.getProject_manager_id() + "\n"
-                + "Type: " + p.getProject_type() + "\n"
-                + "Name: " + p.getProject_name() + "\n"
-                + "Description: " + p.getProject_desc() + "\n"
-                + "Status: " + p.getProject_status() + "\n"
-                + "Start Date: " + p.getStart_date() + "\n"
-                + "End Date: " + p.getEnd_date() + "\n"
-                + "Markup: " + p.getMarkup_rate() + "\n";
+                + "Project ID: " + p.getProjId() + "\n" 
+                + "Project Manager: " + p.getProjectManager().getEmpId() + "\n"
+                + "Type: " + p.getProjType() + "\n"
+                + "Name: " + p.getProjName() + "\n"
+                + "Description: " + p.getDescription() + "\n"
+                + "Status: " + p.getStatus() + "\n"
+                + "Start Date: " + p.getStartDate() + "\n"
+                + "End Date: " + p.getEndDate() + "\n"
+                + "Markup: " + p.getMarkupRate() + "\n";
     }
 }

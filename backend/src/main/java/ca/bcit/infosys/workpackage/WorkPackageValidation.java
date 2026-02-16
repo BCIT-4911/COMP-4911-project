@@ -13,7 +13,7 @@ public final class WorkPackageValidation {
         }
         validateId(wp.getWpId());
         validateName(wp.getWpName());
-        validateProjectId(wp.getProject().getProjId());
+        validateProjectId(wp.getProjId());
     }
 
     public static void validateId(final String id) {

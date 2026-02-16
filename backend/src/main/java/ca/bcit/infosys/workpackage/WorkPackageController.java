@@ -89,14 +89,28 @@ public class WorkPackageController {
     public Response createWorkPackage(WorkPackage wp) {
         WorkPackageValidation.validate(wp);
 
-        if (em.find(Project.class, wp.getProject().getProjId()) == null) {
-            throw new NotFoundException("Project with id " + wp.getProject().getProjId() + " not found.");
+        String projId = wp.getProjId();
+        if (projId == null) {
+            throw new IllegalArgumentException("projId is required.");
+        }
+        Project project = em.find(Project.class, projId);
+        if (project == null) {
+            throw new NotFoundException("Project with id " + projId + " not found.");
+        }
+        wp.setProject(project);
+
+        Integer reEmpId = wp.getReEmployeeId();
+        if (reEmpId != null) {
+            wp.setResponsibleEmployee(findEmployee(reEmpId));
         }
 
-        if (wp.getParentWorkPackage() != null && wp.getParentWorkPackage().getWpId() != null) {
-            if (em.find(WorkPackage.class, wp.getParentWorkPackage().getWpId()) == null) {
-                throw new NotFoundException("Parent WorkPackage with id " + wp.getParentWorkPackage().getWpId() + " not found.");
+        String parentWpId = wp.getParentWpId();
+        if (parentWpId != null) {
+            WorkPackage parent = em.find(WorkPackage.class, parentWpId);
+            if (parent == null) {
+                throw new NotFoundException("Parent WorkPackage with id " + parentWpId + " not found.");
             }
+            wp.setParentWorkPackage(parent);
         }
 
         wp.setCreatedDate(LocalDateTime.now());
@@ -117,15 +131,20 @@ public class WorkPackageController {
 
         WorkPackageValidation.validateName(wp.getWpName());
 
-        if (wp.getParentWorkPackage() != null && wp.getParentWorkPackage().getWpId() != null) {
-            if (em.find(WorkPackage.class, wp.getParentWorkPackage().getWpId()) == null) {
-                throw new NotFoundException("Parent WorkPackage with id " + wp.getParentWorkPackage().getWpId() + " not found.");
+        // Resolve transient parentWpId to a JPA WorkPackage entity
+        String parentWpId = wp.getParentWpId();
+        if (parentWpId != null) {
+            WorkPackage parent = em.find(WorkPackage.class, parentWpId);
+            if (parent == null) {
+                throw new NotFoundException("Parent WorkPackage with id " + parentWpId + " not found.");
             }
+            existing.setParentWorkPackage(parent);
+        } else {
+            existing.setParentWorkPackage(null);
         }
 
         existing.setWpName(wp.getWpName());
         existing.setDescription(wp.getDescription());
-        existing.setParentWorkPackage(wp.getParentWorkPackage());
         existing.setModifiedDate(LocalDateTime.now());
         em.merge(existing);
     }

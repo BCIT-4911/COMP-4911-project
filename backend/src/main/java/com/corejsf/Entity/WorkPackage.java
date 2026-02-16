@@ -100,14 +100,7 @@ public class WorkPackage {
     public WorkPackage() {
     }
 
-
-
-    public enum WorkPackageStatus {
-        OPEN_FOR_CHARGES,
-        CLOSED_FOR_CHARGES,
-        COMPLETE
-    }
-
+// deleted redundant work package status enum which was here
 
     public String getWpId() {
         return wpId;

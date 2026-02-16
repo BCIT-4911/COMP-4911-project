@@ -42,7 +42,7 @@ CREATE TABLE Employee(
     system_role ENUM('HR', 'ADMIN', 'EMPLOYEE'),
     emp_e_sig_id INT NOT NULL,
     labor_grade_id INT NOT NULL,
-    supervisor_id INT NOT NULL,
+    supervisor_id INT,
     vacation_sick_balance DECIMAL(10,2),
     expected_weekly_hours DECIMAL(3,1) NOT NULL,
     FOREIGN KEY (emp_e_sig_id) REFERENCES Employee_E_Signature(emp_e_sig_id),

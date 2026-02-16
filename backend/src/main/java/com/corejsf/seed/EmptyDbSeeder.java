@@ -5,25 +5,22 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+import com.corejsf.Entity.Employee;
+import com.corejsf.Entity.EmployeeESignature;
+import com.corejsf.Entity.LaborGrade;
+import com.corejsf.Entity.Project;
+import com.corejsf.Entity.ProjectStatus;
+import com.corejsf.Entity.ProjectType;
+import com.corejsf.Entity.SystemRole;
+import com.corejsf.Entity.WorkPackage;
+import com.corejsf.Entity.WorkPackageStatus;
+import com.corejsf.Entity.WorkPackageType;
+
 import jakarta.annotation.PostConstruct;
 import jakarta.ejb.Singleton;
 import jakarta.ejb.Startup;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
-
-import com.corejsf.Entity.Employee;
-import com.corejsf.Entity.Project;
-import com.corejsf.Entity.WorkPackage;
-import com.corejsf.Entity.EmployeeESignature;
-import com.corejsf.Entity.LaborGrade;
-import com.corejsf.Entity.SystemRole;
-
-
-
-import com.corejsf.Entity.ProjectStatus;
-import com.corejsf.Entity.ProjectType;
-import com.corejsf.Entity.WorkPackageStatus;
-import com.corejsf.Entity.WorkPackageType;
 
 @Startup
 @Singleton
@@ -60,7 +57,6 @@ public class EmptyDbSeeder {
             sig.setSignedAt(LocalDateTime.now());
             em.persist(sig);
         }
-
 
         Employee admin = em.find(Employee.class, 100);
         if (admin == null) {

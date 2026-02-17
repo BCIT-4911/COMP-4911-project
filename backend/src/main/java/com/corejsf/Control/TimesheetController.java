@@ -62,6 +62,14 @@ public class TimesheetController {
 
     /**We can add a method to fetch all lists for a specific employee here later */
 
+    public List<Timesheet> getTimesheetsByEmployee(Integer employeeId) {
+        return em.createQuery(
+                        "SELECT t FROM Timesheet t WHERE t.employee.empId = :empId",
+                        Timesheet.class)
+                .setParameter("empId", employeeId)
+                .getResultList();
+    }
+
     /**We can add a method to fetch all lists for a specific employee here later */
 
     /** Select only the timesheets that are signed but not approved yet

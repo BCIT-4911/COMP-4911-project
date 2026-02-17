@@ -13,17 +13,12 @@ import com.corejsf.Entity.WorkPackageType;
 /**
  * Validation class for Timesheet operations.
  * Validates request DTOs before they reach the persistence layer.
- *
- * Proves mitigation of:
- *   Risk #7 (Rounding / 0.1 Increment Drift) via validateHourIncrement
- *   Risk #8 (Timesheet State Machine Integrity) via validateNotApproved
- *   Risk #11 (Lowest-Level WP Validation)      via validateWorkPackageChargeable
  */
 public final class TimesheetValidation {
 
     private static final BigDecimal INCREMENT = new BigDecimal("0.1");
     private static final BigDecimal MAX_DAILY_HOURS = new BigDecimal("24.0");
-    private static final BigDecimal MAX_WEEKLY_HOURS = new BigDecimal("168.0"); // 7 * 24
+    private static final BigDecimal MAX_WEEKLY_HOURS = new BigDecimal("168.0"); 
 
     // -------------------------------------------------------------------------
     // Top-level validation entry points
@@ -65,10 +60,7 @@ public final class TimesheetValidation {
     public static void validateWeekEnding(LocalDate weekEnding) {
         if (weekEnding == null) {
             throw new IllegalArgumentException("Week ending date is required.");
-        }
-        if (weekEnding.isAfter(LocalDate.now())) {
-            throw new IllegalArgumentException("Week ending date cannot be in the future.");
-        }
+        }        
     }
 
     public static void validateRowsNotEmpty(List<TimesheetRowRequestDTO> rows) {

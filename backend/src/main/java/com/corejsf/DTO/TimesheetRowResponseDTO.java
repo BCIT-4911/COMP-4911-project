@@ -2,12 +2,17 @@ package com.corejsf.DTO;
 
 import java.math.BigDecimal;
 
-public class TimesheetRowDTO {
-    private Integer    tsRowId;
-    private String     wpId;
-    private String     wpName;         
-    private Integer    laborGradeId;    
-    private String     laborGradeCode; 
+/**
+ * Outbound DTO returned by the API for a single timesheet row.
+ * Includes server-generated IDs and resolved display names.
+ */
+public class TimesheetRowResponseDTO {
+
+    private Integer tsRowId;
+    private String wpId;
+    private String wpName;
+    private Integer laborGradeId;
+    private String laborGradeCode;
     private BigDecimal monday;
     private BigDecimal tuesday;
     private BigDecimal wednesday;
@@ -36,6 +41,10 @@ public class TimesheetRowDTO {
         return wpName;
     }
 
+    public void setWpName(String wpName) {
+        this.wpName = wpName;
+    }
+
     public Integer getLaborGradeId() {
         return laborGradeId;
     }
@@ -48,6 +57,9 @@ public class TimesheetRowDTO {
         return laborGradeCode;
     }
 
+    public void setLaborGradeCode(String laborGradeCode) {
+        this.laborGradeCode = laborGradeCode;
+    }
 
     public BigDecimal getMonday() {
         return monday;
@@ -104,13 +116,4 @@ public class TimesheetRowDTO {
     public void setSunday(BigDecimal sunday) {
         this.sunday = sunday;
     }
-
-    public void setWpName(String wpName) {
-        this.wpName = wpName;
-    }
-
-    public void setLaborGradeCode(String laborGradeCode) {
-        this.laborGradeCode = laborGradeCode;
-    }
-    
 }

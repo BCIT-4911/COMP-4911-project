@@ -3,16 +3,21 @@ package com.corejsf.DTO;
 import java.time.LocalDate;
 import java.util.List;
 
-public class TimesheetDTO {
-    private Integer               tsId;
-    private Integer               empId;
-    private String                empName;       
-    private LocalDate             weekEnding;
-    private Boolean                aproved;       
-    private Integer               approverId;
-    private String                approverName;  
-    private String                returnComment;
-    private List<TimesheetRowDTO> rows;
+/**
+ * Outbound DTO returned by the API for a timesheet.
+ * Includes server-generated fields, resolved display names, and nested rows.
+ */
+public class TimesheetResponseDTO {
+
+    private Integer tsId;
+    private Integer empId;
+    private String empName;
+    private LocalDate weekEnding;
+    private Boolean approved;
+    private Integer approverId;
+    private String approverName;
+    private String returnComment;
+    private List<TimesheetRowResponseDTO> rows;
 
     public Integer getTsId() {
         return tsId;
@@ -46,12 +51,12 @@ public class TimesheetDTO {
         this.weekEnding = weekEnding;
     }
 
-    public Boolean getAproved() {
-        return aproved;
+    public Boolean getApproved() {
+        return approved;
     }
 
-    public void setAproved(Boolean aproved) {
-        this.aproved = aproved;
+    public void setApproved(Boolean approved) {
+        this.approved = approved;
     }
 
     public Integer getApproverId() {
@@ -78,11 +83,11 @@ public class TimesheetDTO {
         this.returnComment = returnComment;
     }
 
-    public List<TimesheetRowDTO> getRows() {
+    public List<TimesheetRowResponseDTO> getRows() {
         return rows;
     }
 
-    public void setRows(List<TimesheetRowDTO> rows) {
+    public void setRows(List<TimesheetRowResponseDTO> rows) {
         this.rows = rows;
     }
 }

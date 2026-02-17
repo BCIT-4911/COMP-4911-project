@@ -69,6 +69,57 @@ public class TimesheetResource {
         return Response.ok(timesheets).build();
     }
 
+    /**
+     *
+     * @param id
+     * @param rows
+     * @return Response
+     */
+    @POST
+    @Path("/{id}/draft")
+    public Response saveAsDraft(@PathParam("id") Integer id, List<TimesheetRow> rows) {
+        try {
+            timesheetController.saveAsDraft(id, rows);
+            return Response.ok().build();
+        } catch (Exception e) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(e.getMessage())
+                    .build();
+        }
+    }
+
+    /**
+     * If hours = 40, timesheet data is sent to database via TimesheetController.
+     * If hours != 40, error message stating why Timesheet cannot be submitted.
+     * @param id
+     * @param signatureData
+     * @return Response
+     */
+    @POST
+    @Path("/{id}/submit")
+    public Response submitTimesheet(@PathParam("id") Integer id, byte[] signatureData) {
+        try {
+            boolean valid = timesheetController.validateHours(id, new BigDecimal("40"));
+            if (!valid) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity("Timesheet does not meet the 40-hour requirement")
+                        .build();
+            }
+
+            timesheetController.finalizeSubmission(id, signatureData);
+            return Response.ok().build();
+        } catch (Exception e) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(e.getMessage())
+                    .build();
+        }
+
+    }
+
+
+
+
+
 
 
 

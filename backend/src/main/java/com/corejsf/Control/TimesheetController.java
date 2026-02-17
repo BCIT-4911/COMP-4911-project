@@ -91,7 +91,7 @@ public class TimesheetController {
 
 
 
-    public void saveAsDraft(Integer tsId, List<TimesheetRow> draftRows) {
+    public Timesheet saveAsDraft(Integer tsId, List<TimesheetRow> draftRows) {
         Timesheet timesheet = em.find(Timesheet.class, tsId);
         
         // Only allow edits if the timesheet has not been approved
@@ -101,6 +101,7 @@ public class TimesheetController {
             timesheet.setRows(draftRows);
             em.merge(timesheet);
         }
+        return timesheet;
     }
 
     public boolean validateHours(Integer tsId, BigDecimal expectedWeeklyHours) {

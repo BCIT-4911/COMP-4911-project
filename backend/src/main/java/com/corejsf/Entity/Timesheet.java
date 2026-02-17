@@ -25,8 +25,8 @@ public class Timesheet {
     @Column(name = "week_ending", nullable = false)
     private LocalDate weekEnding;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "approver_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "approver_id", nullable = true)
     private Employee approver;
 
     @Column(name = "approved", nullable = false)
@@ -98,7 +98,5 @@ public class Timesheet {
 
     public void setSignature(EmployeeESignature signature) {
         this.signature = signature;
-    }
-
-
+    } 
 }

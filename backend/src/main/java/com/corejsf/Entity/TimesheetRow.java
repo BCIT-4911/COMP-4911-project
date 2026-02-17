@@ -1,7 +1,14 @@
 package com.corejsf.Entity;
 
 import java.math.BigDecimal;
-import jakarta.persistence.*;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "Timesheet_Row")
@@ -26,7 +33,7 @@ public class TimesheetRow {
     @Column(name = "ts_row_friday", precision = 4, scale = 1, nullable = false)
     private BigDecimal friday;
 
-    @Column(name = "ts_row_saturday", precision = 4, scale = 1, nullable = false)
+    @Column(name = "ts_row_saturday", precision = 4, scale = 1, nullable = true)
     private BigDecimal saturday;
 
     @Column(name = "ts_row_sunday", precision = 4, scale = 1, nullable = false)

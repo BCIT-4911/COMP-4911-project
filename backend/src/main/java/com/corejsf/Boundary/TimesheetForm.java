@@ -1,8 +1,8 @@
-package com.corejsf.Boundary;
+package com.corejsf.boundary;
 
 import com.corejsf.Control.TimesheetController;
-import com.corejsf.Entity.TimesheetRow;
-import com.corejsf.Entity.WorkPackage;
+import com.corejsf.entity.TimesheetRow;
+import com.corejsf.entity.WorkPackage;
 import jakarta.inject.Named;
 import jakarta.faces.view.ViewScoped;
 import jakarta.inject.Inject;

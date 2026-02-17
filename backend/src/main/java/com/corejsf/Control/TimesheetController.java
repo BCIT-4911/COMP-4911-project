@@ -64,13 +64,29 @@ public class TimesheetController {
 
     /**We can add a method to fetch all lists for a specific employee here later */
 
-    /** Select only the timesheets that are signed but not approved yet*/
+    /** Select only the timesheets that are signed but not approved yet
+     * @return List<Timesheet>
+     */
     public List<Timesheet> getPendingTimesheets() {
         return em.createQuery(
                 "SELECT t FROM Timesheet t WHERE t.eSignature IS NOT NULL AND t.approvalStatus = false",
                 Timesheet.class)
                 .getResultList();
+    }
 
+    /**
+     * Removes timesheet only if not signed and submitted.
+     * @param tsId
+     * @return boolean
+     */
+    public boolean deleteTimesheet(Integer tsId) {
+        Timesheet timesheet = em.find(Timesheet.class, tsId);
+
+        if (timesheet.geteSignature() == null) {
+            em.remove(timesheet);
+            return true;
+        }
+        return false;
     }
 
 

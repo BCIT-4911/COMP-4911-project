@@ -70,7 +70,8 @@ public class TimesheetResource {
     }
 
     /**
-     *
+     * Grabs Id and List of TimesheetRows that are to be saved, which are
+     * sent to TimesheetController to send the saved data to the database
      * @param id
      * @param rows
      * @return Response
@@ -79,8 +80,8 @@ public class TimesheetResource {
     @Path("/{id}/draft")
     public Response saveAsDraft(@PathParam("id") Integer id, List<TimesheetRow> rows) {
         try {
-            timesheetController.saveAsDraft(id, rows);
-            return Response.ok().build();
+            Timesheet saved = timesheetController.saveAsDraft(id, rows);
+            return Response.ok(saved).build();
         } catch (Exception e) {
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity(e.getMessage())
@@ -116,11 +117,64 @@ public class TimesheetResource {
 
     }
 
+    /**
+     * Approval is sent to the database, and a response to
+     * ASP.NET is sent.
+     * @param id
+     * @return Response
+     */
+    @POST
+    @Path("/{id}/approve")
+    public Response approveTimesheet(@PathParam("id") Integer id) {
+        try {
+            timesheetController.applyApprovalLock(id);
+            return Response.ok().build();
+        } catch (Exception e) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(e.getMessage())
+                    .build();
+    }
+}
 
+    /**
+     * Grabs Id and comment, and it sends it over to the controller, which
+     * ultimately stores the rejected timesheet in the database. Then,
+     * if that was a success, a message is sent to the Front-End.
+     * @param id
+     * @param comments
+     * @return Response
+     */
+    @POST
+    @Path("/{id}/reject")
+    public Response rejectTimesheet(@PathParam("id") Integer id, String comments) {
+        try {
+            timesheetController.returnForCorrection(id, comments);
+            return Response.ok().build();
+        } catch (Exception e) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(e.getMessage())
+                    .build();
 
+        }
+    }
 
-
-
+    /**
+     * Grabs Id to delete the appropriate Timesheet. If deleted = true,
+     * returns a Response signifying no content.
+     * @param id
+     * @return Response
+     */
+    @DELETE
+    @Path("/{id}")
+    public Response deleteTimesheet(@PathParam("id") Integer id) {
+        boolean deleted = timesheetController.deleteTimesheet(id);
+        if (deleted) {
+            return Response.noContent().build();
+        }
+        return Response.status(Response.Status.BAD_REQUEST)
+                .entity("Cannot delete submitted timesheet")
+                .build();
+    }
 
 
 }

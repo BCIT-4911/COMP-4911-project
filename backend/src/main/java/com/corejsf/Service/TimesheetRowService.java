@@ -5,14 +5,14 @@ import java.util.stream.Collectors;
 
 import jakarta.ejb.Stateless;
 
-import com.corejsf.DTO.TimesheetRowDTO;
+import com.corejsf.DTO.TimesheetRowResponseDTO;
 import com.corejsf.Entity.TimesheetRow;
 
 @Stateless
 public class TimesheetRowService {
 
-    public TimesheetRowDTO toDTO(TimesheetRow row) {
-        TimesheetRowDTO dto = new TimesheetRowDTO();
+    public TimesheetRowResponseDTO toResponseDTO(TimesheetRow row) {
+        TimesheetRowResponseDTO dto = new TimesheetRowResponseDTO();
         dto.setTsRowId(row.getTsRowId());
         dto.setWpId(row.getWorkPackage().getWpId());
         dto.setWpName(row.getWorkPackage().getWpName());
@@ -28,9 +28,9 @@ public class TimesheetRowService {
         return dto;
     }
 
-    public List<TimesheetRowDTO> toDTOList(List<TimesheetRow> rows) {
+    public List<TimesheetRowResponseDTO> toResponseDTOList(List<TimesheetRow> rows) {
         return rows.stream()
-                   .map(this::toDTO)
+                   .map(this::toResponseDTO)
                    .collect(Collectors.toList());
     }
 }

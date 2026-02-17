@@ -43,7 +43,6 @@ public class EmptyDbSeeder {
         LaborGrade lg = em.find(LaborGrade.class, 1);
         if (lg == null) {
             lg = new LaborGrade();
-            lg.setLaborGradeId(1);
             lg.setGradeCode("E1");
             lg.setChargeRate(new BigDecimal("85.00"));
             em.persist(lg);
@@ -52,7 +51,6 @@ public class EmptyDbSeeder {
         EmployeeESignature sig = em.find(EmployeeESignature.class, 1);
         if (sig == null) {
             sig = new EmployeeESignature();
-            sig.setEmpESigId(1);
             sig.setSignatureData(new byte[] { 0x00 });
             sig.setSignedAt(LocalDateTime.now());
             em.persist(sig);
@@ -61,7 +59,6 @@ public class EmptyDbSeeder {
         Employee admin = em.find(Employee.class, 100);
         if (admin == null) {
             admin = new Employee();
-            admin.setEmpId(100);
             admin.setEmpFirstName("Wile");
             admin.setEmpLastName("Coyote");
             admin.setEmpPassword("password");
@@ -125,7 +122,6 @@ public class EmptyDbSeeder {
 
         em.persist(parent);
 
-        // 6) Child Work Packages (Lowest-Level) shown on your report
         createChild("WP-1", "Procure Anvil", proj, parent, admin,
                 LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 31),
                 new BigDecimal("1500.00"), new BigDecimal("0.00"));

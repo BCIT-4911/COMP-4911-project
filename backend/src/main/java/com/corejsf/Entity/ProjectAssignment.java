@@ -10,7 +10,8 @@ import jakarta.persistence.*;
 public class ProjectAssignment {
 
     @Id
-    @Column(name = "pa_id")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "pa_id", nullable = false)
     private Integer paId;
 
     @JsonbTransient

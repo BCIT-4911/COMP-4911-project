@@ -10,6 +10,7 @@ import jakarta.persistence.*;
 public class RateHistory {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "rate_history_id", nullable = false)
     private Integer rateHistoryId;
 

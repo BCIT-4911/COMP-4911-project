@@ -9,6 +9,7 @@ import jakarta.persistence.*;
 public class EmployeeESignature {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "emp_e_sig_id", nullable = false)
     private Integer empESigId;
 

@@ -10,7 +10,8 @@ import jakarta.persistence.*;
 public class WorkPackageAssignment {
 
     @Id
-    @Column(name = "wpa_id")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "wpa_id", nullable = false)
     private Integer wpaId;
 
     @JsonbTransient

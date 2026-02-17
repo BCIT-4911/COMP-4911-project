@@ -8,7 +8,8 @@ import jakarta.persistence.*;
 public class TimesheetRow {
 
     @Id
-    @Column(name = "ts_row_id")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "ts_row_id", nullable = false)
     private Integer tsRowId;
 
     @Column(name = "ts_row_monday", precision = 4, scale = 1, nullable = false)

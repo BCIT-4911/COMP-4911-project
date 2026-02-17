@@ -5,129 +5,521 @@
 }
 
 <div class="container py-4">
-    <form method="post">
-        <div class="d-flex align-items-center justify-content-between mb-3">
-            <div>
-                <h1 class="display-6 mb-0">Timesheet</h1>
-                <div class="text-muted">Log hours by work package</div>
-            </div>
+    <!-- Header -->
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+            <h1 class="display-6 mb-0">Timesheet</h1>
+            <div class="text-muted">Log hours by work package</div>
+        </div>
+        <div class="d-flex gap-2" id="actionButtons">
+            <button class="btn btn-outline-primary" onclick="addRow()">+ Add Row</button>
+            <button class="btn btn-success" onclick="submitTimesheet()">Submit</button>
+        </div>
+    </div>
 
-            <div class="d-flex gap-2">
-                <button type="submit" asp-page-handler="AddRow" class="btn btn-outline-primary">
-                    + Add Row
-                </button>
+    <!-- Alert area -->
+    <div id="alertArea"></div>
 
-                <button type="submit" asp-page-handler="Save" class="btn btn-primary">
-                    Save Draft
-                </button>
-
-                <button type="submit" asp-page-handler="Submit" class="btn btn-success">
-                    Submit
-                </button>
+    <!-- Timesheet header card -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Employee ID</label>
+                    <input type="number" class="form-control" id="empIdInput" min="1"
+                           value="@(Model.EmpId ?? 1)" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Week Ending</label>
+                    <input type="date" class="form-control" id="weekEndingInput" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Approver ID</label>
+                    <input type="number" class="form-control" id="approverIdInput" min="1" />
+                </div>
             </div>
         </div>
+    </div>
 
-        @if (!string.IsNullOrWhiteSpace(Model.FlashMessage))
-        {
-            <div class="alert alert-info">@Model.FlashMessage</div>
+    <!-- Rows table -->
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Work Package</th>
+                            <th>Labor Grade</th>
+                            <th style="width:90px;">Mon</th>
+                            <th style="width:90px;">Tue</th>
+                            <th style="width:90px;">Wed</th>
+                            <th style="width:90px;">Thu</th>
+                            <th style="width:90px;">Fri</th>
+                            <th style="width:90px;">Sat</th>
+                            <th style="width:90px;">Sun</th>
+                            <th style="width:90px;">Total</th>
+                            <th style="width:60px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="rowsBody">
+                    </tbody>
+                    <tfoot>
+                        <tr class="table-light fw-semibold">
+                            <td colspan="2">Daily Totals</td>
+                            <td id="totalMon">0.0</td>
+                            <td id="totalTue">0.0</td>
+                            <td id="totalWed">0.0</td>
+                            <td id="totalThu">0.0</td>
+                            <td id="totalFri">0.0</td>
+                            <td id="totalSat">0.0</td>
+                            <td id="totalSun">0.0</td>
+                            <td id="totalAll">0.0</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Timesheets Section -->
+    <div class="card shadow-sm mt-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Submitted Timesheets</h5>
+            <button class="btn btn-outline-secondary btn-sm" onclick="loadTimesheets()">
+                Load for Employee
+            </button>
+        </div>
+        <div class="card-body">
+            <div id="timesheetsListArea">
+                <p class="text-muted mb-0">Click "Load for Employee" to view submitted timesheets.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastContainer"></div>
+
+@section Scripts {
+<script>
+    const API = '@Model.ApiBaseUrl';
+
+    let workPackages = [];
+    let laborGrades = [];
+
+    // ========================================================================
+    // Initialization
+    // ========================================================================
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        setDefaultWeekEnding();
+        await Promise.all([loadWorkPackages(), loadLaborGrades()]);
+        addRow();
+    });
+
+    function setDefaultWeekEnding() {
+        const today = new Date();
+        const day = today.getDay(); // 0=Sun
+        const weekEnd = new Date(today);
+        weekEnd.setDate(today.getDate() - day); // last Sunday (week ending)
+        document.getElementById('weekEndingInput').value = formatDateISO(weekEnd);
+    }
+
+    // ========================================================================
+    // Load dropdown data
+    // ========================================================================
+
+    async function loadWorkPackages() {
+        try {
+            const res = await fetch(`${API}/api/workpackages`);
+            if (!res.ok) throw new Error('Failed to load work packages');
+            workPackages = await res.json();
+        } catch (err) {
+            showAlert('Could not load work packages: ' + err.message, 'warning');
+        }
+    }
+
+    async function loadLaborGrades() {
+        try {
+            const res = await fetch(`${API}/api/labor-grades`);
+            if (!res.ok) throw new Error('Failed to load labor grades');
+            laborGrades = await res.json();
+        } catch (err) {
+            showAlert('Could not load labor grades: ' + err.message, 'warning');
+        }
+    }
+
+    // ========================================================================
+    // Row management
+    // ========================================================================
+
+    function addRow() {
+        const tbody = document.getElementById('rowsBody');
+        const tr = document.createElement('tr');
+
+        const wpOptions = workPackages.map(wp =>
+            `<option value="${esc(wp.wpId)}">${esc(wp.wpId)} - ${esc(wp.wpName || '')}</option>`
+        ).join('');
+
+        const lgOptions = laborGrades.map(lg =>
+            `<option value="${lg.laborGradeId}">${esc(lg.gradeCode)} ($${lg.chargeRate})</option>`
+        ).join('');
+
+        tr.innerHTML = `
+            <td>
+                <select class="form-select form-select-sm wp-select">
+                    <option value="">Select...</option>
+                    ${wpOptions}
+                </select>
+            </td>
+            <td>
+                <select class="form-select form-select-sm lg-select">
+                    <option value="">Select...</option>
+                    ${lgOptions}
+                </select>
+            </td>
+            <td><input type="number" class="form-control form-control-sm hr-mon" step="0.1" min="0" max="24" value="0" oninput="updateTotals()" /></td>
+            <td><input type="number" class="form-control form-control-sm hr-tue" step="0.1" min="0" max="24" value="0" oninput="updateTotals()" /></td>
+            <td><input type="number" class="form-control form-control-sm hr-wed" step="0.1" min="0" max="24" value="0" oninput="updateTotals()" /></td>
+            <td><input type="number" class="form-control form-control-sm hr-thu" step="0.1" min="0" max="24" value="0" oninput="updateTotals()" /></td>
+            <td><input type="number" class="form-control form-control-sm hr-fri" step="0.1" min="0" max="24" value="0" oninput="updateTotals()" /></td>
+            <td><input type="number" class="form-control form-control-sm hr-sat" step="0.1" min="0" max="24" value="" oninput="updateTotals()" /></td>
+            <td><input type="number" class="form-control form-control-sm hr-sun" step="0.1" min="0" max="24" value="0" oninput="updateTotals()" /></td>
+            <td class="fw-semibold row-total">0.0</td>
+            <td>
+                <button class="btn btn-outline-danger btn-sm" onclick="removeRow(this)" title="Remove">&times;</button>
+            </td>
+        `;
+
+        tbody.appendChild(tr);
+        updateTotals();
+    }
+
+    function removeRow(btn) {
+        const tbody = document.getElementById('rowsBody');
+        if (tbody.rows.length <= 1) {
+            showAlert('Timesheet must have at least one row.', 'warning');
+            return;
+        }
+        btn.closest('tr').remove();
+        updateTotals();
+    }
+
+    // ========================================================================
+    // Totals
+    // ========================================================================
+
+    function updateTotals() {
+        const days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+        const dayTotals = [0, 0, 0, 0, 0, 0, 0];
+
+        document.querySelectorAll('#rowsBody tr').forEach(tr => {
+            let rowTotal = 0;
+            days.forEach((d, i) => {
+                const val = parseFloat(tr.querySelector(`.hr-${d}`).value) || 0;
+                dayTotals[i] += val;
+                rowTotal += val;
+            });
+            tr.querySelector('.row-total').textContent = rowTotal.toFixed(1);
+        });
+
+        let grandTotal = 0;
+        days.forEach((d, i) => {
+            document.getElementById(`total${capitalize(d)}`).textContent = dayTotals[i].toFixed(1);
+            grandTotal += dayTotals[i];
+        });
+        document.getElementById('totalAll').textContent = grandTotal.toFixed(1);
+    }
+
+    // ========================================================================
+    // Submit (creates and submits in one step)
+    // ========================================================================
+
+    async function submitTimesheet() {
+        const dto = buildRequestDTO();
+        if (!dto) return;
+
+        try {
+            // Step 1: Create the timesheet via POST
+            const createRes = await fetch(`${API}/api/timesheets`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(dto)
+            });
+
+            if (!createRes.ok) {
+                const errText = await createRes.text();
+                throw new Error(errText || createRes.statusText);
+            }
+
+            const created = await createRes.json();
+            const tsId = created.tsId;
+
+            // Step 2: Immediately submit via PUT /submit
+            const submitRes = await fetch(`${API}/api/timesheets/${tsId}/submit`, {
+                method: 'PUT'
+            });
+
+            if (!submitRes.ok) {
+                const errText = await submitRes.text();
+                throw new Error(errText || submitRes.statusText);
+            }
+
+            showToast('Timesheet submitted successfully!', 'success');
+
+            // Reset the form for a new entry
+            resetForm();
+
+            // Refresh the timesheets list so the new entry appears
+            loadTimesheets();
+        } catch (err) {
+            showAlert('Submit failed: ' + err.message, 'danger');
+        }
+    }
+
+    // ========================================================================
+    // Build request DTO from form
+    // ========================================================================
+
+    function buildRequestDTO() {
+        const empId = parseInt(document.getElementById('empIdInput').value);
+        const weekEnding = document.getElementById('weekEndingInput').value;
+        const approverIdVal = document.getElementById('approverIdInput').value;
+        const approverId = approverIdVal ? parseInt(approverIdVal) : null;
+
+        if (!empId || empId <= 0) {
+            showAlert('Please enter a valid Employee ID.', 'warning');
+            return null;
+        }
+        if (!weekEnding) {
+            showAlert('Please select a Week Ending date.', 'warning');
+            return null;
         }
 
-        <div class="card shadow-sm mb-4">
-            <div class="card-body">
-                <div class="row g-3">
-                    <div class="col-md-4">
-                        <label class="form-label">Employee</label>
-                        <input class="form-control" value="@Model.EmployeeName" disabled />
-                    </div>
+        const rows = [];
+        let valid = true;
 
-                    <div class="col-md-4">
-                        <label class="form-label">Week Starting</label>
-                        <input class="form-control" value="@Model.WeekStart.ToString("yyyy-MM-dd")" disabled />
-                    </div>
+        document.querySelectorAll('#rowsBody tr').forEach((tr, idx) => {
+            const wpId = tr.querySelector('.wp-select').value;
+            const lgId = tr.querySelector('.lg-select').value;
 
-                    <div class="col-md-4">
-                        <label class="form-label">Status</label>
-                        <span class="badge bg-secondary">@Model.Status</span>
-                    </div>
-                </div>
+            if (!wpId) {
+                showAlert(`Row ${idx + 1}: Please select a Work Package.`, 'warning');
+                valid = false;
+                return;
+            }
+            if (!lgId) {
+                showAlert(`Row ${idx + 1}: Please select a Labor Grade.`, 'warning');
+                valid = false;
+                return;
+            }
+
+            rows.push({
+                wpId: wpId,
+                laborGradeId: parseInt(lgId),
+                monday:    parseHours(tr.querySelector('.hr-mon').value),
+                tuesday:   parseHours(tr.querySelector('.hr-tue').value),
+                wednesday: parseHours(tr.querySelector('.hr-wed').value),
+                thursday:  parseHours(tr.querySelector('.hr-thu').value),
+                friday:    parseHours(tr.querySelector('.hr-fri').value),
+                saturday:  parseHours(tr.querySelector('.hr-sat').value),
+                sunday:    parseHours(tr.querySelector('.hr-sun').value)
+            });
+        });
+
+        if (!valid) return null;
+
+        return { empId, weekEnding, approverId, rows };
+    }
+
+    // ========================================================================
+    // Reset form after successful submission
+    // ========================================================================
+
+    function resetForm() {
+        document.getElementById('rowsBody').innerHTML = '';
+        document.getElementById('approverIdInput').value = '';
+        addRow();
+    }
+
+    // ========================================================================
+    // UI Helpers
+    // ========================================================================
+
+    function showAlert(msg, type) {
+        const area = document.getElementById('alertArea');
+        area.innerHTML = `
+            <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                ${esc(msg)}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
-        </div>
+        `;
+    }
 
-        <div class="card shadow-sm">
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table align-middle">
-                        <thead class="table-light">
-                            <tr>
-                                <th style="width:140px;">Date</th>
-                                <th>Work Package</th>
-                                <th style="width:120px;">Hours</th>
-                                <th style="width:160px;">Labor Grade</th>
-                                <th>Notes</th>
-                                <th style="width:110px;"></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @for (int i = 0; i < Model.Rows.Count; i++)
-                            {
-                                <tr>
-                                    <td>
-                                        <input class="form-control" type="date" asp-for="Rows[i].Date" />
-                                    </td>
-
-                                    <td>
-                                        <select class="form-select" asp-for="Rows[i].WorkPackageId">
-                                            <option value="">Select…</option>
-                                            @foreach (var wp in Model.WorkPackages)
-                                            {
-                                                <option value="@wp.Id">@wp.Name</option>
-                                            }
-                                        </select>
-                                    </td>
-
-                                    <td>
-                                        <input class="form-control" type="number" step="0.25" min="0"
-                                               asp-for="Rows[i].Hours" />
-                                    </td>
-
-                                    <td>
-                                        <select class="form-select" asp-for="Rows[i].LaborGrade">
-                                            @foreach (var g in Model.LaborGrades)
-                                            {
-                                                <option value="@g">@g</option>
-                                            }
-                                        </select>
-                                    </td>
-
-                                    <td>
-                                        <input class="form-control" asp-for="Rows[i].Notes" />
-                                    </td>
-
-                                    <td class="text-end">
-                                        <button class="btn btn-outline-danger btn-sm" type="submit"
-                                                asp-page-handler="DeleteRow" asp-route-rowIndex="@i">
-                                            Remove
-                                        </button>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                        <tfoot>
-                            <tr class="table-light">
-                                <td colspan="2" class="fw-semibold">Total</td>
-                                <td class="fw-semibold">
-                                    @Model.Rows.Sum(r => r.Hours).ToString("0.##")
-                                </td>
-                                <td colspan="3"></td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-
-                <div class="text-muted small">
-                    * This is a demo page. Data will not be saved and is only visible to you.
-                </div>
+    function showToast(msg, type) {
+        const c = document.getElementById('toastContainer');
+        const t = document.createElement('div');
+        t.className = `toast align-items-center text-bg-${type} border-0 show`;
+        t.setAttribute('role', 'alert');
+        t.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">${esc(msg)}</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto"
+                        data-bs-dismiss="toast"></button>
             </div>
-        </div>
-    </form>
-</div>
+        `;
+        c.appendChild(t);
+        setTimeout(() => t.remove(), 4000);
+    }
+
+    function esc(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    function capitalize(s) {
+        return s.charAt(0).toUpperCase() + s.slice(1);
+    }
+
+    function formatDateISO(d) {
+        return d.toISOString().split('T')[0];
+    }
+
+    function parseHours(val) {
+        const n = parseFloat(val);
+        return isNaN(n) ? 0 : Math.round(n * 10) / 10;
+    }
+
+    // ========================================================================
+    // View Timesheets by Employee
+    // ========================================================================
+
+    async function loadTimesheets() {
+        const empId = document.getElementById('empIdInput').value;
+        if (!empId) {
+            showAlert('Enter an Employee ID first.', 'warning');
+            return;
+        }
+
+        const area = document.getElementById('timesheetsListArea');
+        area.innerHTML = '<p class="text-muted">Loading...</p>';
+
+        try {
+            const res = await fetch(`${API}/api/timesheets?empId=${empId}`);
+            if (!res.ok) throw new Error(await res.text());
+            const list = await res.json();
+
+            if (list.length === 0) {
+                area.innerHTML = '<p class="text-muted mb-0">No timesheets found for this employee.</p>';
+                return;
+            }
+
+            renderTimesheetList(list);
+        } catch (err) {
+            area.innerHTML = `<p class="text-danger mb-0">Error: ${esc(err.message)}</p>`;
+        }
+    }
+
+    function renderTimesheetList(timesheets) {
+        const area = document.getElementById('timesheetsListArea');
+
+        const headerRow = `
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Week Ending</th>
+                        <th>Employee</th>
+                        <th>Approver</th>
+                        <th>Status</th>
+                        <th>Total Hours</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${timesheets.map(ts => renderTimesheetSummary(ts)).join('')}
+                </tbody>
+            </table>
+        `;
+
+        area.innerHTML = headerRow;
+    }
+
+    function renderTimesheetSummary(ts) {
+        const totalHours = (ts.rows || []).reduce((sum, r) => {
+            return sum
+                + (r.monday || 0) + (r.tuesday || 0) + (r.wednesday || 0)
+                + (r.thursday || 0) + (r.friday || 0) + (r.saturday || 0)
+                + (r.sunday || 0);
+        }, 0);
+
+        const status = ts.approved ? 'Submitted' : 'Draft';
+        const statusBadge = ts.approved
+            ? '<span class="badge bg-success">Submitted</span>'
+            : '<span class="badge bg-warning text-dark">Draft</span>';
+
+        const detailId = `detail-${ts.tsId}`;
+
+        return `
+            <tr class="ts-summary-row" style="cursor:pointer;" onclick="toggleDetail(${ts.tsId})">
+                <td>${ts.tsId}</td>
+                <td>${esc(ts.weekEnding || '')}</td>
+                <td>${esc(ts.empName || 'Emp #' + ts.empId)}</td>
+                <td>${ts.approverName ? esc(ts.approverName) : (ts.approverId ? 'Emp #' + ts.approverId : '—')}</td>
+                <td>${statusBadge}</td>
+                <td>${totalHours.toFixed(1)}</td>
+            </tr>
+            <tr id="${detailId}" style="display:none;">
+                <td colspan="6" class="p-0">
+                    ${renderTimesheetDetail(ts)}
+                </td>
+            </tr>
+        `;
+    }
+
+    function renderTimesheetDetail(ts) {
+        if (!ts.rows || ts.rows.length === 0) {
+            return '<div class="p-3 text-muted">No rows.</div>';
+        }
+
+        const dayHeaders = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        const dayFields = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+
+        let rowsHtml = ts.rows.map(r => {
+            const dayValues = dayFields.map(f => `<td>${r[f] != null ? r[f] : '—'}</td>`).join('');
+            const rowTotal = dayFields.reduce((s, f) => s + (r[f] || 0), 0);
+            return `
+                <tr>
+                    <td>${esc(r.wpId || '')}${r.wpName ? ' - ' + esc(r.wpName) : ''}</td>
+                    <td>${esc(r.laborGradeCode || '')}</td>
+                    ${dayValues}
+                    <td class="fw-semibold">${rowTotal.toFixed(1)}</td>
+                </tr>
+            `;
+        }).join('');
+
+        return `
+            <div class="bg-light border-top">
+                <table class="table table-sm mb-0">
+                    <thead>
+                        <tr class="small text-muted">
+                            <th>Work Package</th>
+                            <th>Grade</th>
+                            ${dayHeaders.map(d => `<th style="width:70px;">${d}</th>`).join('')}
+                            <th style="width:70px;">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rowsHtml}</tbody>
+                </table>
+            </div>
+        `;
+    }
+
+    function toggleDetail(tsId) {
+        const row = document.getElementById(`detail-${tsId}`);
+        if (!row) return;
+        row.style.display = row.style.display === 'none' ? '' : 'none';
+    }
+</script>
+}

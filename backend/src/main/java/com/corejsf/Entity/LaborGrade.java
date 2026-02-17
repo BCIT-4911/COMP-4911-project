@@ -8,6 +8,7 @@ import jakarta.persistence.*;
 public class LaborGrade {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "labor_grade_id", nullable = false)
     private Integer laborGradeId;
 

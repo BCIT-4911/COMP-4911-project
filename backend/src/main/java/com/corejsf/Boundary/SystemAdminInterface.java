@@ -1,6 +1,6 @@
-package com.corejsf.Boundary;
+package com.corejsf.boundary;
 
-import com.corejsf.Entity.Timesheet;
+import com.corejsf.entity.Timesheet;
 import jakarta.inject.Named;
 import jakarta.faces.view.ViewScoped;
 import java.io.Serializable;

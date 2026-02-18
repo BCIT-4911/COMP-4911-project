@@ -38,82 +38,158 @@ Instructor/Sponsor: Bruce Link
 ```
 
 
-## Rest Endpoint
+## REST Endpoints
 
-- `GET /api/greet`
+- `GET /api/greet` — health check
+- `GET /api/projects` — list all projects
+- `POST /api/projects` — create a project
+- `GET /api/projects/{id}/workpackages` — list work packages for a project
+- `GET /api/workpackages` — list all work packages
+- `POST /api/workpackages` — create a work package
+- `GET /api/earned-value` — earned value report data
 
 
-## Development Setup
+## Local Development Setup
 
 ### Prerequisites
-Install the following tools:
 
-- .NET SDK 8.0+
-- Java JDK 17+
-- Maven
-- WildFly
-- Git
+Install the following tools before proceeding:
 
+| Tool | Version | Purpose |
+|------|---------|---------|
+| Java JDK | 21+ | Backend compilation and WildFly runtime |
+| Maven | 3.9+ | Backend build and WildFly provisioning |
+| Docker Desktop | Latest | Runs the MySQL database container |
+| .NET SDK | 10.0+ | Frontend (Razor Pages) |
+| Git | Latest | Version control |
 
-## Frontend Setup (.NET Razor Pages)
-
-Run the frontend locally:
-
-`cd frontend`
-`dotnet watch`
-
-Frontend runs at:
-
-http://localhost:3000
+> WildFly does **not** need to be installed separately — Maven downloads and provisions it automatically via the `wildfly-maven-plugin` in `backend/pom.xml`.
 
 
-## Backend Setup (Jakarta REST)
+### Step 1: Clone the Repository
 
-Build the backend:
-
-`cd backend`
-`mvn clean wildfly:dev`
-
-Test endpoint:
-
-http://localhost:8080/Project/api/greet
+```bash
+git clone <repo-url>
+cd COMP-4911-project
+```
 
 
-## Database Setup
+### Step 2: Configure the Database Environment
 
-Installation of the DB using docker:
-1. Please ensure that a .env file exists within the sql directory with MYSQL_ROOT_PASSWORD, MYSQL_DATABASE, MYSQL_USER & MYSQL_PASSWORD
-2. Ensure that docker is running.
-3. Navigate to the directory with the docker-compose.yml file
-4. Run: docker-compose up -d
-5. Check if the sql scripts ran properly by checking the logs: docker logs project_manager_mysql
+The `sql/.env.example` file contains the shared credentials used by **all squads**. These values must stay in sync with the `<env>` block in `backend/pom.xml`.
 
-If the DDL scripts are ever updated, the persisted volume must be deleted 1st before re-running the yaml file:
-1. Navigate to the directory with the docker-compose.yml file
-2. Run the command to delete the volume: docker-compose down -v
-3. Re-run: docker-compose up -d
+```bash
+cd sql
+cp .env.example .env
+```
 
-*NOTE: Running "docker-compose down -v" will DELETE ANY EXISTING  DATA
+**Do not change the values.** They are pre-configured:
+
+| Variable | Value | Used By |
+|----------|-------|---------|
+| `MYSQL_ROOT_PASSWORD` | `root` | Docker (root account) |
+| `MYSQL_DATABASE` | `Project_Management` | Docker, WildFly, Frontend |
+| `MYSQL_USER` | `project_user` | Docker, WildFly |
+| `MYSQL_PASSWORD` | `password` | Docker, WildFly |
+| `MYSQL_HOST` | `127.0.0.1` | WildFly, Frontend |
+| `MYSQL_PORT` | `3307` | WildFly, Frontend (host-side, mapped to 3306 in container) |
+
+These same values appear in `backend/pom.xml` under the `<env>` block (lines 53-59). If the two ever diverge, WildFly will fail to connect to MySQL.
 
 
-## Running Both Together
+### Step 3: Start the MySQL Database
 
-1. Run the backend:
+Make sure Docker Desktop is running, then:
+
+```bash
+cd sql
+docker compose up -d
+```
+
+Verify the container started and DDL scripts executed:
+
+```bash
+docker logs project_manager_mysql
+```
+
+You should see `ready for connections` and no SQL errors.
+
+> **If DDL scripts are updated:** the Docker volume must be destroyed first so the database is re-initialized from scratch:
+> ```bash
+> docker compose down -v
+> docker compose up -d
+> ```
+> This **deletes all existing data** in the local database.
+
+
+### Step 4: Build and Run the Backend
+
+```bash
 cd backend
-mvn clean wildfly:dev
+mvn clean package wildfly:dev
+```
 
-2. Confirm `/api/greet` works in browser or Postman 
+Maven will:
+1. Compile the Jakarta EE application
+2. Download and provision a WildFly server with the `mysql` add-on
+3. Deploy `Project.war` and start the server on port `8080`
 
-3. Start Razor frontend:
+Verify the backend is running:
 
+```
+http://localhost:8080/Project/api/greet
+```
+
+You should see a greeting response.
+
+
+### Step 5: Start the Frontend
+
+In a **separate terminal**:
+
+```bash
 cd frontend
 dotnet watch
+```
 
-4. open:
+The frontend runs at:
 
+```
 http://localhost:3000
+```
 
-Frontend should display the backend response.
+It connects to the backend at the URL configured in `frontend/appsettings.json` (`http://localhost:8080/Project`).
+
+
+### Running Everything Together (Quick Reference)
+
+```bash
+# Terminal 1 — Database (run once, stays running)
+cd sql
+docker compose up -d
+
+# Terminal 2 — Backend
+cd backend
+mvn clean package wildfly:dev
+
+# Terminal 3 — Frontend
+cd frontend
+dotnet watch
+```
+
+Open http://localhost:3000 — the frontend should display data from the backend.
+
+
+### Troubleshooting
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `Unable to acquire JDBC Connection` | Wrong credentials or MySQL not running | Verify `sql/.env` matches `pom.xml` `<env>` block; run `docker compose up -d` |
+| `Unable to determine Dialect without JDBC metadata` | WildFly can't reach MySQL at all | Ensure the `<env>` block in `pom.xml` has all 5 variables (`MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD`) |
+| `WFLYCTL0211: Cannot resolve expression` | `<env>` block missing from `pom.xml` | Add the `<env>` block inside the `wildfly-maven-plugin` `<configuration>` section |
+| `Required services not installed: MySQLDS` | `persistence.xml` references wrong datasource name | Ensure `persistence.xml` uses `java:jboss/datasources/MySQLDS` |
+| `Schema-validation: missing column` | Docker volume has stale DDL | Run `docker compose down -v && docker compose up -d` in `sql/` |
+| `Cross-Origin Request Blocked` | CORS filter issue | Verify `CorsFilter.java` handles OPTIONS preflight and doesn't duplicate headers |
 
 
 ## Team Rules and Standards

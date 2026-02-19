@@ -121,8 +121,7 @@ public class ProjectController {
 
             return Response.status(Response.Status.CREATED).entity(project).build();
         } catch (IllegalArgumentException e) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .build();
+            return Response.status(Response.Status.BAD_REQUEST).build();
         }
     }
 
@@ -159,8 +158,7 @@ public class ProjectController {
 
             return Response.ok(existing).build();
         } catch (IllegalArgumentException e) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .build();
+            return Response.status(Response.Status.BAD_REQUEST).build();
         }
     }
 
@@ -243,8 +241,7 @@ public class ProjectController {
 
             return Response.status(Response.Status.CREATED).entity(wp).build();
         } catch (IllegalArgumentException e) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .build();
+            return Response.status(Response.Status.BAD_REQUEST).build();
         }
     }
 

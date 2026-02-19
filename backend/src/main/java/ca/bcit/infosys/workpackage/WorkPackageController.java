@@ -145,8 +145,7 @@ public class WorkPackageController {
             em.persist(wp);
             return Response.status(Response.Status.CREATED).entity(wp).build();
         } catch (IllegalArgumentException e) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .build();
+            return Response.status(Response.Status.BAD_REQUEST).build();
         }
     }
 
@@ -207,10 +206,7 @@ public class WorkPackageController {
             return Response.ok(existing).build();
 
         } catch (IllegalArgumentException e) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity(e.getMessage())
-                    .type(MediaType.TEXT_PLAIN)
-                    .build();
+            return Response.status(Response.Status.BAD_REQUEST).build();
         }
     }
 
@@ -314,7 +310,7 @@ public class WorkPackageController {
             WorkPackageAssignment assignment = query.getSingleResult();
             em.remove(assignment);
         } catch (NoResultException e) {
-            // nothing to remove
+            // there is no employe to remove
         }
     }
 

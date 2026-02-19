@@ -43,6 +43,11 @@ public class WorkPackageController {
 
     /**
      * Looks up a work package by ID, throws 404 if not found.
+     * 
+     * @param id The ID of the work package to look up.
+     * @return The work package with the specified ID.
+     * @throws NotFoundException if the work package with the specified ID is not
+     *                           found.
      */
     private WorkPackage findWorkPackage(String id) {
         WorkPackage wp = em.find(WorkPackage.class, id);
@@ -54,6 +59,10 @@ public class WorkPackageController {
 
     /**
      * Looks up an employee by ID, throws 404 if not found.
+     * 
+     * @param id The ID of the employee to look up.
+     * @return The employee with the specified ID.
+     * @throws NotFoundException if the employee with the specified ID is not found.
      */
     private Employee findEmployee(int id) {
         Employee emp = em.find(Employee.class, id);
@@ -65,6 +74,8 @@ public class WorkPackageController {
 
     /**
      * Gets all work packages.
+     * 
+     * @return A list of all work packages.
      */
     @GET
     public List<WorkPackage> getAllWorkPackages() {
@@ -73,6 +84,11 @@ public class WorkPackageController {
 
     /**
      * Gets a single work package by ID.
+     * 
+     * @param id The ID of the work package to get.
+     * @return The work package with the specified ID.
+     * @throws NotFoundException if the work package with the specified ID is not
+     *                           found.
      */
     @GET
     @Path("/{id}")
@@ -83,75 +99,128 @@ public class WorkPackageController {
     /**
      * Creates a new work package.
      * Validates the WP and makes sure the project and parent WP exist.
+     * 
+     * @param wp The work package to create.
+     * @return The created work package.
+     * @throws IllegalArgumentException if the work package is invalid.
+     * @throws NotFoundException        if the project or parent work package with
+     *                                  the specified ID is not found.
      */
     @POST
     @Transactional
     public Response createWorkPackage(WorkPackage wp) {
-        WorkPackageValidation.validate(wp);
+        try {
+            WorkPackageValidation.validate(wp);
 
-        String projId = wp.getProjId();
-        if (projId == null) {
-            throw new IllegalArgumentException("projId is required.");
-        }
-        Project project = em.find(Project.class, projId);
-        if (project == null) {
-            throw new NotFoundException("Project with id " + projId + " not found.");
-        }
-        wp.setProject(project);
-
-        Integer reEmpId = wp.getReEmployeeId();
-        if (reEmpId != null) {
-            wp.setResponsibleEmployee(findEmployee(reEmpId));
-        }
-
-        String parentWpId = wp.getParentWpId();
-        if (parentWpId != null) {
-            WorkPackage parent = em.find(WorkPackage.class, parentWpId);
-            if (parent == null) {
-                throw new NotFoundException("Parent WorkPackage with id " + parentWpId + " not found.");
+            if (em.find(WorkPackage.class, wp.getWpId()) != null) {
+                throw new IllegalArgumentException("WorkPackage with id " + wp.getWpId() + " already exists.");
             }
-            wp.setParentWorkPackage(parent);
-        }
 
-        wp.setCreatedDate(LocalDateTime.now());
-        wp.setModifiedDate(LocalDateTime.now());
-        em.persist(wp);
-        return Response.status(Response.Status.CREATED).entity(wp).build();
+            String projId = wp.getProjId();
+            if (projId == null) {
+                throw new IllegalArgumentException("projId is required.");
+            }
+            Project project = em.find(Project.class, projId);
+            if (project == null) {
+                throw new NotFoundException("Project with id " + projId + " not found.");
+            }
+            wp.setProject(project);
+
+            Integer reEmpId = wp.getReEmployeeId();
+            if (reEmpId != null) {
+                wp.setResponsibleEmployee(findEmployee(reEmpId));
+            }
+
+            String parentWpId = wp.getParentWpId();
+            if (parentWpId != null) {
+                WorkPackage parent = em.find(WorkPackage.class, parentWpId);
+                if (parent == null) {
+                    throw new NotFoundException("Parent WorkPackage with id " + parentWpId + " not found.");
+                }
+                wp.setParentWorkPackage(parent);
+            }
+
+            wp.setCreatedDate(LocalDateTime.now());
+            wp.setModifiedDate(LocalDateTime.now());
+            em.persist(wp);
+            return Response.status(Response.Status.CREATED).entity(wp).build();
+        } catch (IllegalArgumentException e) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .build();
+        }
     }
 
     /**
-     * Updates an existing work package.
-     * Only updates name, description, and parent.
+     * Updates an existing work package Name, Description, Parent, Responsible
+     * Employee, startDate, EndDate, Budget
+     * 
+     * @param id The ID of the work package to update.
+     * @param wp The work package to update.
+     * @return The updated work package.
+     * @throws IllegalArgumentException if the work package is invalid.
+     * @throws NotFoundException        if the work package with the specified ID is
+     *                                  not found.
      */
     @PUT
     @Path("/{id}")
     @Transactional
-    public void updateWorkPackage(@PathParam("id") String id, WorkPackage wp) {
-        WorkPackage existing = findWorkPackage(id);
+    public Response updateWorkPackage(@PathParam("id") String id, WorkPackage wp) {
+        try {
+            WorkPackage existing = findWorkPackage(id);
+            String parentWpId = wp.getParentWpId();
+            Integer responsibleEmployeeId = wp.getReEmployeeId();
 
-        WorkPackageValidation.validateName(wp.getWpName());
+            WorkPackageValidation.validateName(wp.getWpName());
+            WorkPackageValidation.validateDates(wp.getPlanStartDate(), wp.getPlanEndDate());
+            WorkPackageValidation.validateBudget(wp.getBudgetedEffort());
 
-        // Resolve transient parentWpId to a JPA WorkPackage entity
-        String parentWpId = wp.getParentWpId();
-        if (parentWpId != null) {
-            WorkPackage parent = em.find(WorkPackage.class, parentWpId);
-            if (parent == null) {
-                throw new NotFoundException("Parent WorkPackage with id " + parentWpId + " not found.");
+            if (parentWpId != null) {
+                WorkPackage parent = em.find(WorkPackage.class, parentWpId);
+
+                if (parent == null) {
+                    throw new NotFoundException("Parent WorkPackage with id " + parentWpId + " not found.");
+                }
+
+                existing.setParentWorkPackage(parent);
+            } else {
+                existing.setParentWorkPackage(null);
             }
-            existing.setParentWorkPackage(parent);
-        } else {
-            existing.setParentWorkPackage(null);
-        }
 
-        existing.setWpName(wp.getWpName());
-        existing.setDescription(wp.getDescription());
-        existing.setModifiedDate(LocalDateTime.now());
-        em.merge(existing);
+            if (responsibleEmployeeId != null) {
+                existing.setResponsibleEmployee(findEmployee(responsibleEmployeeId));
+            }
+
+            existing.setWpName(wp.getWpName());
+            existing.setDescription(wp.getDescription());
+            existing.setPlanStartDate(wp.getPlanStartDate());
+            existing.setPlanEndDate(wp.getPlanEndDate());
+            existing.setBudgetedEffort(wp.getBudgetedEffort());
+
+            if (wp.getStatus() != null)
+                existing.setStatus(wp.getStatus());
+            if (wp.getWpType() != null)
+                existing.setWpType(wp.getWpType());
+
+            existing.setModifiedDate(LocalDateTime.now());
+            em.merge(existing);
+
+            return Response.ok(existing).build();
+
+        } catch (IllegalArgumentException e) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(e.getMessage())
+                    .type(MediaType.TEXT_PLAIN)
+                    .build();
+        }
     }
 
     /**
      * Deletes a work package and all its children recursively.
      * Also removes any assignments tied to each deleted WP.
+     * 
+     * @param id The ID of the work package to delete.
+     * @throws NotFoundException if the work package with the specified ID is not
+     *                           found.
      */
     @DELETE
     @Path("/{id}")
@@ -164,6 +233,8 @@ public class WorkPackageController {
     /**
      * Recursive helper that deletes children first, then assignments, then the WP
      * itself.
+     * 
+     * @param wpId The ID of the work package to delete.
      */
     private void deleteWorkPackageRecursive(String wpId) {
         List<String> childIds = em.createQuery(
@@ -188,6 +259,11 @@ public class WorkPackageController {
     /**
      * Assigns an employee to a work package.
      * Skips if the assignment already exists.
+     * 
+     * @param wpId  The ID of the work package to assign the employee to.
+     * @param empId The ID of the employee to assign to the work package.
+     * @throws NotFoundException if the work package or employee with the specified
+     *                           ID is not found.
      */
     @POST
     @Path("/{id}/employees/{empId}")
@@ -217,6 +293,13 @@ public class WorkPackageController {
 
     /**
      * Removes an employee's assignment from a work package.
+     * 
+     * @param wpId  The ID of the work package to remove the employee's assignment
+     *              from.
+     * @param empId The ID of the employee to remove the assignment from the work
+     *              package.
+     * @throws NotFoundException if the work package or employee with the specified
+     *                           ID is not found.
      */
     @DELETE
     @Path("/{id}/employees/{empId}")
@@ -238,6 +321,11 @@ public class WorkPackageController {
     /**
      * Gets all employees assigned to a work package.
      * Uses a direct JPQL join to avoid proxy issues.
+     * 
+     * @param id The ID of the work package to get the assigned employees for.
+     * @return A list of all employees assigned to the work package.
+     * @throws NotFoundException if the work package with the specified ID is not
+     *                           found.
      */
     @GET
     @Path("/{id}/employees")
@@ -252,6 +340,10 @@ public class WorkPackageController {
 
     /**
      * Closes a work package for charges.
+     * 
+     * @param id The ID of the work package to close.
+     * @throws NotFoundException if the work package with the specified ID is not
+     *                           found.
      */
     @PUT
     @Path("/{id}/close")
@@ -264,6 +356,10 @@ public class WorkPackageController {
 
     /**
      * Opens a work package for charges.
+     * 
+     * @param id The ID of the work package to open.
+     * @throws NotFoundException if the work package with the specified ID is not
+     *                           found.
      */
     @PUT
     @Path("/{id}/open")
@@ -277,6 +373,11 @@ public class WorkPackageController {
     /**
      * Gets all direct children of a work package.
      * Uses a direct JPQL query to avoid proxy issues.
+     * 
+     * @param id The ID of the work package to get the children for.
+     * @return A list of all direct children of the work package.
+     * @throws NotFoundException if the work package with the specified ID is not
+     *                           found.
      */
     @GET
     @Path("/{id}/children")
@@ -291,6 +392,11 @@ public class WorkPackageController {
     /**
      * Gets the parent work package.
      * Returns 404 if the WP has no parent.
+     * 
+     * @param id The ID of the work package to get the parent for.
+     * @return The parent work package.
+     * @throws NotFoundException if the work package with the specified ID is not
+     *                           found.
      */
     @GET
     @Path("/{id}/parent")
@@ -304,6 +410,11 @@ public class WorkPackageController {
 
     /**
      * Generates a plain text report for a work package.
+     * 
+     * @param id The ID of the work package to generate the report for.
+     * @return A plain text report for the specified work package.
+     * @throws NotFoundException if the work package with the specified ID is not
+     *                           found.
      */
     @GET
     @Path("/{id}/report")

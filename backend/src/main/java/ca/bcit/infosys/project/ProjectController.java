@@ -26,6 +26,7 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 
 /**
  * REST controller for projects.
@@ -41,7 +42,11 @@ public class ProjectController {
     private EntityManager em;
 
     /**
-     * Looks up a project by ID, throws 404 if not found.
+     * Finds a project by ID.
+     * 
+     * @param id The ID of the project to find.
+     * @return The project with the specified ID.
+     * @throws NotFoundException if the project with the specified ID is not found.
      */
     private Project findProject(String id) {
         Project project = em.find(Project.class, id);
@@ -52,7 +57,11 @@ public class ProjectController {
     }
 
     /**
-     * Looks up an employee by ID, throws 404 if not found.
+     * Finds an employee by ID.
+     * 
+     * @param id The ID of the employee to find.
+     * @return The employee with the specified ID.
+     * @throws NotFoundException if the employee with the specified ID is not found.
      */
     private Employee findEmployee(int id) {
         Employee employee = em.find(Employee.class, id);
@@ -64,6 +73,8 @@ public class ProjectController {
 
     /**
      * Gets all projects.
+     * 
+     * @return A list of all projects.
      */
     @GET
     public List<Project> getAllProjects() {
@@ -72,6 +83,10 @@ public class ProjectController {
 
     /**
      * Gets a single project by ID.
+     * 
+     * @param id The ID of the project to get.
+     * @return The project with the specified ID.
+     * @throws NotFoundException if the project with the specified ID is not found.
      */
     @GET
     @Path("/{id}")
@@ -82,52 +97,75 @@ public class ProjectController {
     /**
      * Creates a new project.
      * Validates all required fields before persisting.
+     * 
+     * @param project The project to create.
+     * @return The created project.
+     * @throws IllegalArgumentException if the project is invalid.
      */
     @POST
     @Transactional
-    public void createProject(Project project) {
-        ProjectValidation.validateId(project.getProjId());
-        ProjectValidation.validateName(project.getProjName());
-        ProjectValidation.validateDescription(project.getDescription());
-        ProjectValidation.validateStartDate(project.getStartDate());
-        ProjectValidation.validateEndDate(project.getEndDate(), project.getStartDate());
-        ProjectValidation.validateMarkup(project.getMarkupRate());
-        ProjectValidation.validateProjectManagerId(project.getProjectManagerId());
+    public Response createProject(Project project) {
+        try {
+            ProjectValidation.validateId(project.getProjId());
+            ProjectValidation.validateName(project.getProjName());
+            ProjectValidation.validateDescription(project.getDescription());
+            ProjectValidation.validateStartDate(project.getStartDate());
+            ProjectValidation.validateEndDate(project.getEndDate(), project.getStartDate());
+            ProjectValidation.validateMarkup(project.getMarkupRate());
+            ProjectValidation.validateProjectManagerId(project.getProjectManagerId());
 
-        project.setProjectManager(findEmployee(project.getProjectManagerId()));
-        project.setCreatedDate(LocalDateTime.now());
-        project.setModifiedDate(LocalDateTime.now());
-        em.persist(project);
+            project.setProjectManager(findEmployee(project.getProjectManagerId()));
+            project.setCreatedDate(LocalDateTime.now());
+            project.setModifiedDate(LocalDateTime.now());
+            em.persist(project);
+
+            return Response.status(Response.Status.CREATED).entity(project).build();
+        } catch (IllegalArgumentException e) {
+            return Response.status(Response.Status.BAD_REQUEST).build();
+        }
     }
 
     /**
      * Updates an existing project.
      * Validates updatable fields before applying changes.
+     * 
+     * @param id      The ID of the project to update.
+     * @param project The project to update.
+     * @return The updated project.
+     * @throws IllegalArgumentException if the project is invalid.
      */
     @PUT
     @Path("/{id}")
     @Transactional
-    public void updateProject(@PathParam("id") String id, Project project) {
-        Project existing = findProject(id);
+    public Response updateProject(@PathParam("id") String id, Project project) {
+        try {
+            Project existing = findProject(id);
 
-        ProjectValidation.validateName(project.getProjName());
-        ProjectValidation.validateDescription(project.getDescription());
-        ProjectValidation.validateDates(project.getStartDate(), project.getEndDate());
-        ProjectValidation.validateMarkup(project.getMarkupRate());
-        ProjectValidation.validateProjectManagerId(project.getProjectManagerId());
+            ProjectValidation.validateName(project.getProjName());
+            ProjectValidation.validateDescription(project.getDescription());
+            ProjectValidation.validateDates(project.getStartDate(), project.getEndDate());
+            ProjectValidation.validateMarkup(project.getMarkupRate());
+            ProjectValidation.validateProjectManagerId(project.getProjectManagerId());
 
-        existing.setProjName(project.getProjName());
-        existing.setDescription(project.getDescription());
-        existing.setStartDate(project.getStartDate());
-        existing.setEndDate(project.getEndDate());
-        existing.setMarkupRate(project.getMarkupRate());
-        existing.setProjectManager(findEmployee(project.getProjectManagerId()));
-        existing.setModifiedDate(LocalDateTime.now());
-        em.merge(existing);
+            existing.setProjName(project.getProjName());
+            existing.setDescription(project.getDescription());
+            existing.setStartDate(project.getStartDate());
+            existing.setEndDate(project.getEndDate());
+            existing.setMarkupRate(project.getMarkupRate());
+            existing.setProjectManager(findEmployee(project.getProjectManagerId()));
+            existing.setModifiedDate(LocalDateTime.now());
+            em.merge(existing);
+
+            return Response.ok(existing).build();
+        } catch (IllegalArgumentException e) {
+            return Response.status(Response.Status.BAD_REQUEST).build();
+        }
     }
 
     /**
      * Deletes a project and all its associated work packages and assignments.
+     * 
+     * @param id The ID of the project to delete.
      */
     @DELETE
     @Path("/{id}")
@@ -135,7 +173,6 @@ public class ProjectController {
     public void deleteProject(@PathParam("id") String id) {
         findProject(id);
 
-        // Delete work package assignments for all WPs in this project
         List<String> wpIds = em.createQuery(
                 "SELECT w.wpId FROM WorkPackage w WHERE w.project.projId = :projId", String.class)
                 .setParameter("projId", id)
@@ -146,23 +183,20 @@ public class ProjectController {
                     .executeUpdate();
         }
 
-        // Delete work packages
         em.createQuery("DELETE FROM WorkPackage w WHERE w.project.projId = :projId")
                 .setParameter("projId", id)
                 .executeUpdate();
-
-        // Delete project assignments
         em.createQuery("DELETE FROM ProjectAssignment pa WHERE pa.project.projId = :projId")
                 .setParameter("projId", id)
                 .executeUpdate();
-
-        // Delete the project
         Project project = em.find(Project.class, id);
         em.remove(project);
     }
 
     /**
      * Closes (archives) a project.
+     * 
+     * @param id The ID of the project to close.
      */
     @PUT
     @Path("/{id}/close")
@@ -175,6 +209,8 @@ public class ProjectController {
 
     /**
      * Opens a project.
+     * 
+     * @param id The ID of the project to open.
      */
     @PUT
     @Path("/{id}/open")
@@ -187,20 +223,34 @@ public class ProjectController {
 
     /**
      * Adds a new work package to a project.
+     * 
+     * @param id The ID of the project to add the work package to.
+     * @param wp The work package to add.
+     * @return The added work package.
+     * @throws IllegalArgumentException if the work package is invalid.
      */
     @POST
     @Path("/{id}/workpackages")
     @Transactional
-    public void addWorkPackage(@PathParam("id") String id, WorkPackage wp) {
-        findProject(id);
-        WorkPackageValidation.validate(wp);
-        wp.setProject(findProject(id));
-        em.persist(wp);
+    public Response addWorkPackage(@PathParam("id") String id, WorkPackage wp) {
+        try {
+            findProject(id);
+            WorkPackageValidation.validate(wp);
+            wp.setProject(findProject(id));
+            em.persist(wp);
+
+            return Response.status(Response.Status.CREATED).entity(wp).build();
+        } catch (IllegalArgumentException e) {
+            return Response.status(Response.Status.BAD_REQUEST).build();
+        }
     }
 
     /**
      * Assigns an employee to a project.
      * Skips if the assignment already exists.
+     * 
+     * @param id    The ID of the project to assign the employee to.
+     * @param empId The ID of the employee to assign.
      */
     @POST
     @Path("/{id}/employees/{empId}")
@@ -230,7 +280,9 @@ public class ProjectController {
 
     /**
      * Gets all work packages for a project.
-     * Uses a direct JPQL query to avoid proxy issues.
+     * 
+     * @param id The ID of the project to get the work packages for.
+     * @return A list of all work packages for the specified project.
      */
     @GET
     @Path("/{id}/workpackages")
@@ -244,7 +296,9 @@ public class ProjectController {
 
     /**
      * Gets all employees assigned to a project.
-     * Uses a direct JPQL join to avoid proxy issues.
+     * 
+     * @param id The ID of the project to get the assigned employees for.
+     * @return A list of all employees assigned to the specified project.
      */
     @GET
     @Path("/{id}/employees")
@@ -259,6 +313,9 @@ public class ProjectController {
 
     /**
      * Generates a plain text report for a project.
+     * 
+     * @param id The ID of the project to generate the report for.
+     * @return A plain text report for the specified project.
      */
     @GET
     @Path("/{id}/report")
@@ -266,7 +323,7 @@ public class ProjectController {
     public String generateReport(@PathParam("id") String id) {
         Project p = findProject(id);
         return "Project Report---------------------\n"
-                + "Project ID: " + p.getProjId() + "\n" 
+                + "Project ID: " + p.getProjId() + "\n"
                 + "Project Manager: " + p.getProjectManager().getEmpId() + "\n"
                 + "Type: " + p.getProjType() + "\n"
                 + "Name: " + p.getProjName() + "\n"

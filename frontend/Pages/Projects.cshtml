@@ -1,0 +1,259 @@
+@page
+@model ProjectsModel
+@{
+    ViewData["Title"] = "Projects";
+}
+
+<div class="crud-page-container">
+    <div class="crud-header">
+        <div>
+            <h1 class="crud-title">Projects</h1>
+            <p class="crud-subtitle">Manage all your projects in one place</p>
+        </div>
+        <button class="btn-primary-crud" onclick="openCreateModal()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New Project
+        </button>
+    </div>
+
+    <div class="crud-table-wrapper">
+        <table class="crud-table" id="projectsTable">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Markup</th>
+                    <th>PM ID</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="projectsBody">
+                <tr><td colspan="9" class="loading-cell">Loading projects...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Create / Edit Modal -->
+<div class="modal-overlay" id="projectModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="modalTitle">New Project</h2>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <form id="projectForm" onsubmit="handleSubmit(event)">
+            <input type="hidden" id="editMode" value="false" />
+            <input type="hidden" id="originalId" />
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="projId">Project ID *</label>
+                    <input type="text" id="projId" required placeholder="e.g. P001" />
+                </div>
+                <div class="form-group">
+                    <label for="projName">Project Name *</label>
+                    <input type="text" id="projName" required placeholder="e.g. Website Redesign" />
+                </div>
+                <div class="form-group">
+                    <label for="projType">Type</label>
+                    <select id="projType">
+                        <option value="INTERNAL">Internal</option>
+                        <option value="EXTERNAL">External</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="projStatus">Status</label>
+                    <select id="projStatus">
+                        <option value="OPEN">Open</option>
+                        <option value="ARCHIVED">Archived</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="startDate">Start Date *</label>
+                    <input type="date" id="startDate" required />
+                </div>
+                <div class="form-group">
+                    <label for="endDate">End Date</label>
+                    <input type="date" id="endDate" />
+                </div>
+                <div class="form-group">
+                    <label for="markupRate">Markup Rate</label>
+                    <input type="number" id="markupRate" step="0.01" min="0" value="0" />
+                </div>
+                <div class="form-group">
+                    <label for="pmId">PM Employee ID *</label>
+                    <input type="number" id="pmId" required min="1" placeholder="e.g. 1" />
+                </div>
+            </div>
+
+            <div class="form-group" style="grid-column: 1/-1;">
+                <label for="projDesc">Description *</label>
+                <textarea id="projDesc" rows="3" required placeholder="Describe the project..."></textarea>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary-crud" onclick="closeModal()">Cancel</button>
+                <button type="submit" class="btn-primary-crud" id="submitBtn">Create Project</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="toast-container" id="toastContainer"></div>
+
+@section Scripts {
+<script>
+    const API = '@Model.ApiBaseUrl';
+
+    // ---- Load Projects ----
+    async function loadProjects() {
+        try {
+            const res = await fetch(`${API}/api/projects`);
+            if (!res.ok) throw new Error('Failed to load projects');
+            const projects = await res.json();
+            renderTable(projects);
+        } catch (err) {
+            document.getElementById('projectsBody').innerHTML =
+                `<tr><td colspan="9" class="error-cell">Error loading projects: ${err.message}</td></tr>`;
+        }
+    }
+
+    function renderTable(projects) {
+        const tbody = document.getElementById('projectsBody');
+        if (projects.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="9" class="empty-cell">No projects found. Click "New Project" to create one.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = projects.map(p => `
+            <tr>
+                <td><code>${esc(p.project_id)}</code></td>
+                <td class="name-cell">${esc(p.project_name || '')}</td>
+                <td><span class="badge badge-type">${esc(p.project_type || 'N/A')}</span></td>
+                <td><span class="badge ${p.project_status === 'OPEN' ? 'badge-open' : 'badge-archived'}">${esc(p.project_status || 'N/A')}</span></td>
+                <td>${formatDate(p.start_date)}</td>
+                <td>${formatDate(p.end_date)}</td>
+                <td>${p.markup_rate != null ? p.markup_rate.toFixed(2) : '0.00'}</td>
+                <td>${p.project_manager_id || 'N/A'}</td>
+                <td class="actions-cell">
+                    <a class="btn-action btn-wp" href="/WorkPackages?projectId=${encodeURIComponent(p.project_id)}" title="Work Packages">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                    </a>
+                    <button class="btn-action btn-edit" onclick='openEditModal(${JSON.stringify(p)})' title="Edit">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
+                    <button class="btn-action btn-delete" onclick="deleteProject('${esc(p.project_id)}')" title="Delete">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    // ---- Create ----
+    function openCreateModal() {
+        document.getElementById('editMode').value = 'false';
+        document.getElementById('modalTitle').textContent = 'New Project';
+        document.getElementById('submitBtn').textContent = 'Create Project';
+        document.getElementById('projId').disabled = false;
+        document.getElementById('projectForm').reset();
+        document.getElementById('projectModal').classList.add('active');
+    }
+
+    // ---- Edit ----
+    function openEditModal(p) {
+        document.getElementById('editMode').value = 'true';
+        document.getElementById('originalId').value = p.project_id;
+        document.getElementById('modalTitle').textContent = 'Edit Project';
+        document.getElementById('submitBtn').textContent = 'Save Changes';
+        document.getElementById('projId').value = p.project_id;
+        document.getElementById('projId').disabled = true;
+        document.getElementById('projName').value = p.project_name || '';
+        document.getElementById('projType').value = p.project_type || 'INTERNAL';
+        document.getElementById('projStatus').value = p.project_status || 'OPEN';
+        document.getElementById('startDate').value = p.start_date || '';
+        document.getElementById('endDate').value = p.end_date || '';
+        document.getElementById('markupRate').value = p.markup_rate != null ? p.markup_rate : 0;
+        document.getElementById('pmId').value = p.project_manager_id || '';
+        document.getElementById('projDesc').value = p.project_desc || '';
+        document.getElementById('projectModal').classList.add('active');
+    }
+
+    function closeModal() {
+        document.getElementById('projectModal').classList.remove('active');
+    }
+
+    // ---- Submit (Create or Update) ----
+    async function handleSubmit(e) {
+        e.preventDefault();
+        const isEdit = document.getElementById('editMode').value === 'true';
+        const id = isEdit ? document.getElementById('originalId').value : document.getElementById('projId').value;
+
+        const body = {
+            project_id: document.getElementById('projId').disabled ? id : document.getElementById('projId').value,
+            project_name: document.getElementById('projName').value,
+            project_type: document.getElementById('projType').value,
+            project_status: document.getElementById('projStatus').value,
+            project_desc: document.getElementById('projDesc').value,
+            start_date: document.getElementById('startDate').value || null,
+            end_date: document.getElementById('endDate').value || null,
+            markup_rate: parseFloat(document.getElementById('markupRate').value) || 0,
+            project_manager_id: parseInt(document.getElementById('pmId').value) || 0
+        };
+
+        try {
+            const url = isEdit ? `${API}/api/projects/${encodeURIComponent(id)}` : `${API}/api/projects`;
+            const res = await fetch(url, {
+                method: isEdit ? 'PUT' : 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            if (!res.ok) {
+                const text = await res.text();
+                throw new Error(text || res.statusText);
+            }
+            closeModal();
+            showToast(isEdit ? 'Project updated!' : 'Project created!', 'success');
+            loadProjects();
+        } catch (err) {
+            showToast('Error: ' + err.message, 'error');
+        }
+    }
+
+    // ---- Delete ----
+    async function deleteProject(id) {
+        if (!confirm(`Delete project "${id}" and all its work packages? This cannot be undone.`)) return;
+        try {
+            const res = await fetch(`${API}/api/projects/${encodeURIComponent(id)}`, { method: 'DELETE' });
+            if (!res.ok) throw new Error(await res.text());
+            showToast('Project deleted!', 'success');
+            loadProjects();
+        } catch (err) {
+            showToast('Error: ' + err.message, 'error');
+        }
+    }
+
+    // ---- Helpers ----
+    function esc(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+    function formatDate(d) { return d ? d : '—'; }
+    function showToast(msg, type) {
+        const c = document.getElementById('toastContainer');
+        const t = document.createElement('div');
+        t.className = `toast toast-${type}`;
+        t.textContent = msg;
+        c.appendChild(t);
+        setTimeout(() => { t.classList.add('fade-out'); setTimeout(() => t.remove(), 300); }, 3000);
+    }
+
+    // ---- Init ----
+    document.addEventListener('DOMContentLoaded', loadProjects);
+</script>
+}

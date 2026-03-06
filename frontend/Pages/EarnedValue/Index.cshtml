@@ -1,0 +1,179 @@
+@page
+@model frontend.Pages.EarnedValue.IndexModel
+@{
+    ViewData["Title"] = "Earned Value Report";
+}
+
+<div class="container py-4">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+            <h1 class="display-6 mb-0">Earned Value Report</h1>
+            <div class="text-muted">BCWS / BCWP planned vs earned by month</div>
+        </div>
+
+        <form method="get" class="d-flex gap-2 align-items-end">
+            <div>
+                <label class="form-label">Project</label>
+                <select class="form-select" asp-for="SelectedProjectId">
+                    @foreach (var p in Model.Projects)
+                    {
+                        <option value="@p.Id">@p.Name</option>
+                    }
+                </select>
+            </div>
+
+            <div>
+                <label class="form-label">Control Account</label>
+                <select class="form-select" asp-for="SelectedControlAccountId">
+                    @foreach (var ca in Model.ControlAccounts)
+                    {
+                        <option value="@ca.Id">@ca.Name</option>
+                    }
+                </select>
+            </div>
+
+            <button class="btn btn-primary" type="submit">View</button>
+        </form>
+    </div>
+
+    <div class="card shadow-sm mb-3">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="fw-semibold">Control Account Title</div>
+                    <div>@Model.ControlAccountTitle</div>
+                </div>
+                <div class="col-md-6">
+                    <div class="fw-semibold">Control Account Manager</div>
+                    <div>@Model.ControlAccountManager</div>
+                </div>
+                <div class="col-md-6">
+                    <div class="fw-semibold">Budget (BAC)</div>
+                    <div>$@Model.BAC.ToString("0,0")</div>
+                </div>
+                <div class="col-md-6">
+                    <div class="fw-semibold">EV Techniques</div>
+                    <div class="text-muted">0/100, 50/50, Units Complete, % Complete, Milestones</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered align-middle small">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width:60px;">WP#</th>
+                            <th style="min-width:220px;">Work Description</th>
+                            <th style="width:120px;">EV Method</th>
+                            <th style="width:90px;">Type</th>
+                            @for (int m = 1; m <= Model.MonthCount; m++)
+                            {
+                                <th class="text-center" style="width:90px;">Month @m</th>
+                            }
+                            <th class="text-end" style="width:110px;">Total (BAC)</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        @foreach (var wp in Model.WorkPackages)
+                        {
+                            <!-- BCWS row -->
+                            <tr>
+                                <td rowspan="2" class="text-center fw-semibold">@wp.Number</td>
+                                <td rowspan="2">@wp.Description</td>
+                                <td rowspan="2">@wp.EvMethod</td>
+
+                                <td class="fw-semibold">BCWS</td>
+
+                                @for (int m = 1; m <= Model.MonthCount; m++)
+                                {
+                                    <td class="text-end">
+                                        @(wp.BCWS.TryGetValue(m, out var v) ? v.ToString("0,0") : "")
+                                    </td>
+                                }
+
+                                <td class="text-end fw-semibold">
+                                    @wp.BCWS.Values.Sum().ToString("0,0")
+                                </td>
+                            </tr>
+
+                            <!-- BCWP row -->
+                            <tr>
+                                <td class="fw-semibold">BCWP</td>
+
+                                @for (int m = 1; m <= Model.MonthCount; m++)
+                                {
+                                    <td class="text-end">
+                                        @(wp.BCWP.TryGetValue(m, out var v) ? v.ToString("0,0") : "")
+                                    </td>
+                                }
+
+                                <td class="text-end fw-semibold">
+                                    @wp.BCWP.Values.Sum().ToString("0,0")
+                                </td>
+                            </tr>
+                        }
+
+                        <!-- Totals -->
+                        <tr class="table-light">
+                            <td colspan="4" class="fw-semibold">TOTAL CONTROL ACCOUNT PLAN (BCWS)</td>
+                            @for (int m = 1; m <= Model.MonthCount; m++)
+                            {
+                                <td class="text-end fw-semibold">
+                                    @Model.TotalBCWSByMonth[m].ToString("0,0")
+                                </td>
+                            }
+                            <td class="text-end fw-semibold">@Model.TotalBCWSByMonth.Values.Sum().ToString("0,0")</td>
+                        </tr>
+
+                        <tr class="table-light">
+                            <td colspan="4" class="fw-semibold">TOTAL EARNED (BCWP)</td>
+                            @for (int m = 1; m <= Model.MonthCount; m++)
+                            {
+                                <td class="text-end fw-semibold">
+                                    @Model.TotalBCWPByMonth[m].ToString("0,0")
+                                </td>
+                            }
+                            <td class="text-end fw-semibold">@Model.TotalBCWPByMonth.Values.Sum().ToString("0,0")</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <hr />
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="fw-semibold mb-1">Schedule Variance (SV = BCWP − BCWS)</div>
+                    <div class="d-flex flex-wrap gap-2">
+                        @for (int m = 1; m <= Model.MonthCount; m++)
+                        {
+                            <span class="badge bg-secondary">
+                                M@m: @Model.SVByMonth[m].ToString("0,0")
+                            </span>
+                        }
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="fw-semibold mb-1">Cost Variance (CV = BCWP − ACWP)</div>
+                    <div class="text-muted small">
+                        (ACWP would come from timesheets; placeholder values for now.)
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        @for (int m = 1; m <= Model.MonthCount; m++)
+                        {
+                            <span class="badge bg-secondary">
+                                M@m: @Model.CVByMonth[m].ToString("0,0")
+                            </span>
+                        }
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>

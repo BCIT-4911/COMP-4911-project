@@ -63,7 +63,7 @@ public class EmptyDbSeeder {
             admin.setEmpLastName("Coyote");
             admin.setEmpPassword("password");
 
-            admin.setSystemRole(SystemRole.ADMIN); // enum
+            admin.setSystemRole(SystemRole.OPERATIONS_MANAGER); // enum
             admin.setESignature(sig);
             admin.setLaborGrade(lg);
 

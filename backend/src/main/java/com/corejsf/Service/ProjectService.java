@@ -7,6 +7,7 @@ import java.util.List;
 import com.corejsf.Entity.Employee;
 import com.corejsf.Entity.Project;
 import com.corejsf.Entity.ProjectAssignment;
+import com.corejsf.Entity.ProjectRole;
 import com.corejsf.Entity.ProjectStatus;
 import com.corejsf.Entity.WorkPackage;
 
@@ -129,7 +130,10 @@ public class ProjectService {
      * Assigns an employee to a project. Skips if the assignment already exists.
      * Uses AUTO_INCREMENT for ID generation instead of manual MAX query.
      */
-    public void assignEmployee(String projId, int empId) {
+    public void assignEmployee(String projId, int empId, ProjectRole role) {
+        if (role == null) {
+            throw new IllegalArgumentException("Project role is required.");
+        }
         Project project = findProject(projId);
         Employee employee = findEmployee(empId);
 
@@ -146,6 +150,7 @@ public class ProjectService {
         assignment.setProject(project);
         assignment.setEmployee(employee);
         assignment.setAssignmentDate(LocalDate.now());
+        assignment.setProjectRole(role);
         em.persist(assignment);
     }
 

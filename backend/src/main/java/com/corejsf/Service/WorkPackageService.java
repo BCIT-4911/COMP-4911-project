@@ -9,6 +9,7 @@ import com.corejsf.Entity.Project;
 import com.corejsf.Entity.WorkPackage;
 import com.corejsf.Entity.WorkPackageAssignment;
 import com.corejsf.Entity.WorkPackageStatus;
+import com.corejsf.Entity.WpRole;
 
 import jakarta.ejb.Stateless;
 import jakarta.persistence.EntityManager;
@@ -132,7 +133,10 @@ public class WorkPackageService {
      * Assigns an employee to a work package. Skips if already assigned.
      * Uses AUTO_INCREMENT for ID generation instead of manual MAX query.
      */
-    public void assignEmployee(String wpId, int empId) {
+    public void assignEmployee(String wpId, int empId, WpRole role) {
+        if (role == null) {
+            throw new IllegalArgumentException("Work package role is required.");
+        }
         WorkPackage workPackage = findWorkPackage(wpId);
         Employee employee = findEmployee(empId);
 
@@ -149,6 +153,7 @@ public class WorkPackageService {
         assignment.setWorkPackage(workPackage);
         assignment.setEmployee(employee);
         assignment.setAssignmentDate(LocalDate.now());
+        assignment.setWpRole(role);
         em.persist(assignment);
     }
 

@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.corejsf.Entity.Employee;
 import com.corejsf.Entity.Project;
+import com.corejsf.Entity.ProjectRole;
 import com.corejsf.Entity.WorkPackage;
 import com.corejsf.Service.ProjectService;
 
@@ -16,6 +17,7 @@ import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 
 @Path("/projects")
@@ -74,8 +76,9 @@ public class ProjectResource {
 
     @POST
     @Path("/{id}/employees/{empId}")
-    public void assignEmployee(@PathParam("id") String id, @PathParam("empId") int empId) {
-        projectService.assignEmployee(id, empId);
+    public void assignEmployee(@PathParam("id") String id, @PathParam("empId") int empId,
+            @QueryParam("role") ProjectRole role) {
+        projectService.assignEmployee(id, empId, role);
     }
 
     @GET

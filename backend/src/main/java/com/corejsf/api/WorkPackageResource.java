@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.corejsf.Entity.Employee;
 import com.corejsf.Entity.WorkPackage;
+import com.corejsf.Entity.WpRole;
 import com.corejsf.Service.WorkPackageService;
 
 import jakarta.inject.Inject;
@@ -15,6 +16,7 @@ import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
@@ -57,8 +59,9 @@ public class WorkPackageResource {
 
     @POST
     @Path("/{id}/employees/{empId}")
-    public void assignEmployee(@PathParam("id") String id, @PathParam("empId") int empId) {
-        workPackageService.assignEmployee(id, empId);
+    public void assignEmployee(@PathParam("id") String id, @PathParam("empId") int empId,
+            @QueryParam("role") WpRole role) {
+        workPackageService.assignEmployee(id, empId, role);
     }
 
     @DELETE

@@ -27,6 +27,10 @@ public class ProjectAssignment {
     @Column(name = "assignment_date", nullable = false)
     private LocalDate assignmentDate;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "project_role", nullable = false)
+    private ProjectRole projectRole;
+
     public ProjectAssignment() {
     }
 
@@ -60,5 +64,13 @@ public class ProjectAssignment {
 
     public void setAssignmentDate(LocalDate assignmentDate) {
         this.assignmentDate = assignmentDate;
+    }
+
+    public ProjectRole getProjectRole() {
+        return projectRole;
+    }
+
+    public void setProjectRole(ProjectRole projectRole) {
+        this.projectRole = projectRole;
     }
 }

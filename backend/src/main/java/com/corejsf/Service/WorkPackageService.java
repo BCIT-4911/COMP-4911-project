@@ -10,7 +10,6 @@ import com.corejsf.Entity.WorkPackage;
 import com.corejsf.Entity.WorkPackageAssignment;
 import com.corejsf.Entity.WorkPackageStatus;
 
-import ca.bcit.infosys.workpackage.WorkPackageValidation;
 import jakarta.ejb.Stateless;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;

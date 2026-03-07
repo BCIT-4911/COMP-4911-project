@@ -19,7 +19,6 @@ import com.corejsf.Entity.Timesheet;
 import com.corejsf.Entity.TimesheetRow;
 import com.corejsf.Entity.WorkPackage;
 
-import ca.bcit.infosys.timesheet.TimesheetValidation;
 
 @Stateless
 public class TimesheetService {

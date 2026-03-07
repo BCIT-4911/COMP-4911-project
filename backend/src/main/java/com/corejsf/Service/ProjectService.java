@@ -10,8 +10,6 @@ import com.corejsf.Entity.ProjectAssignment;
 import com.corejsf.Entity.ProjectStatus;
 import com.corejsf.Entity.WorkPackage;
 
-import ca.bcit.infosys.project.ProjectValidation;
-import ca.bcit.infosys.workpackage.WorkPackageValidation;
 import jakarta.ejb.Stateless;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;

@@ -80,6 +80,32 @@ public class LoginModel : PageModel
 
         HttpContext.Session.SetString("JWT", result.Token);
 
+        var parts = result.Token.Split('.');
+        if (parts.Length >= 2)
+        {
+            var payloadBase64 = parts[1].Replace('-', '+').Replace('_', '/');
+            switch (payloadBase64.Length % 4)
+            {
+                case 2: payloadBase64 += "=="; break;
+                case 3: payloadBase64 += "="; break;
+            }
+            try
+            {
+                var payloadBytes = Convert.FromBase64String(payloadBase64);
+                var payload = JsonSerializer.Deserialize<JsonElement>(
+                    Encoding.UTF8.GetString(payloadBytes));
+                var role = payload.TryGetProperty("systemRole", out var roleProp)
+                    ? roleProp.GetString() ?? "EMPLOYEE"
+                    : "EMPLOYEE";
+                var empId = payload.TryGetProperty("empId", out var empIdProp)
+                    ? empIdProp.GetRawText()
+                    : "";
+                HttpContext.Session.SetString("SystemRole", role);
+                HttpContext.Session.SetString("EmpId", empId);
+            }
+            catch { /* ignore decode errors, role/nav will fallback */ }
+        }
+
         return RedirectToPage("/Index");
     }
 

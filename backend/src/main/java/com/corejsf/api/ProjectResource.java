@@ -5,8 +5,10 @@ import java.util.List;
 import com.corejsf.Entity.Employee;
 import com.corejsf.Entity.Project;
 import com.corejsf.Entity.ProjectRole;
+import com.corejsf.Entity.SystemRole;
 import com.corejsf.Entity.WorkPackage;
 import com.corejsf.Service.ProjectService;
+import com.corejsf.Service.RebacService;
 
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
@@ -18,8 +20,10 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.container.ContainerRequestContext;
 
 @Path("/projects")
 @Consumes(MediaType.APPLICATION_JSON)
@@ -28,6 +32,24 @@ public class ProjectResource {
 
     @Inject
     private ProjectService projectService;
+
+    @Inject
+    private RebacService rebacService;
+
+    @Context
+    private ContainerRequestContext requestContext;
+
+    private int getAuthEmpId() {
+        return (Integer) requestContext.getProperty(JwtAuthFilter.AUTHENTICATED_EMP_ID);
+    }
+
+    private SystemRole getAuthRole() {
+        return (SystemRole) requestContext.getProperty(JwtAuthFilter.AUTHENTICATED_SYSTEM_ROLE);
+    }
+
+    private Response forbidden() {
+        return Response.status(Response.Status.FORBIDDEN).entity("Access denied").build();
+    }
 
     @GET
     public List<Project> getAll() {
@@ -41,38 +63,62 @@ public class ProjectResource {
     }
 
     @POST
-    public void create(Project project) {
+    public Response create(Project project) {
+        if (!rebacService.canCreateProject(getAuthRole())) {
+            return forbidden();
+        }
         projectService.createProject(project);
+        return Response.status(Response.Status.CREATED).build();
     }
 
     @PUT
     @Path("/{id}")
-    public void update(@PathParam("id") String id, Project project) {
+    public Response update(@PathParam("id") String id, Project project) {
+        if (!rebacService.canCreateProject(getAuthRole()) && !rebacService.canManageProject(getAuthEmpId(), id)) {
+            return forbidden();
+        }
         projectService.updateProject(id, project);
+        return Response.ok().build();
     }
 
     @DELETE
     @Path("/{id}")
-    public void delete(@PathParam("id") String id) {
+    public Response delete(@PathParam("id") String id) {
+        if (!rebacService.canCreateProject(getAuthRole())) {
+            return forbidden();
+        }
         projectService.deleteProject(id);
+        return Response.ok().build();
     }
 
     @PUT
     @Path("/{id}/close")
-    public void close(@PathParam("id") String id) {
+    public Response close(@PathParam("id") String id) {
+        if (!rebacService.canCreateProject(getAuthRole()) && !rebacService.canManageProject(getAuthEmpId(), id)) {
+            return forbidden();
+        }
         projectService.closeProject(id);
+        return Response.ok().build();
     }
 
     @PUT
     @Path("/{id}/open")
-    public void open(@PathParam("id") String id) {
+    public Response open(@PathParam("id") String id) {
+        if (!rebacService.canCreateProject(getAuthRole()) && !rebacService.canManageProject(getAuthEmpId(), id)) {
+            return forbidden();
+        }
         projectService.openProject(id);
+        return Response.ok().build();
     }
 
     @POST
     @Path("/{id}/workpackages")
-    public void addWorkPackage(@PathParam("id") String id, WorkPackage wp) {
+    public Response addWorkPackage(@PathParam("id") String id, WorkPackage wp) {
+        if (!rebacService.canCreateProject(getAuthRole()) && !rebacService.canManageProject(getAuthEmpId(), id)) {
+            return forbidden();
+        }
         projectService.addWorkPackage(id, wp);
+        return Response.status(Response.Status.CREATED).build();
     }
 
     @POST
@@ -81,6 +127,9 @@ public class ProjectResource {
             @QueryParam("role") ProjectRole role) {
         if (role == null) {
             return Response.status(Response.Status.BAD_REQUEST).entity("role query parameter is required").build();
+        }
+        if (!rebacService.canCreateProject(getAuthRole()) && !rebacService.canManageProject(getAuthEmpId(), id)) {
+            return forbidden();
         }
         projectService.assignEmployee(id, empId, role);
         return Response.ok().build();

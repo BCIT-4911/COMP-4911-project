@@ -1,6 +1,7 @@
 package com.corejsf.Service;
 
 import com.corejsf.Entity.Employee;
+import com.corejsf.Entity.Project;
 import com.corejsf.Entity.SystemRole;
 import com.corejsf.Entity.Timesheet;
 import com.corejsf.Entity.WorkPackage;
@@ -24,6 +25,28 @@ public class RebacService {
 
     public boolean canManageEmployees(SystemRole role) {
         return role == SystemRole.HR;
+    }
+
+    /**
+     * Returns true if empId is the project manager of the given project.
+     */
+    public boolean canManageProject(int empId, String projId) {
+        Project project = em.find(Project.class, projId);
+        if (project == null || project.getProjectManager() == null) {
+            return false;
+        }
+        return Integer.valueOf(empId).equals(project.getProjectManager().getEmpId());
+    }
+
+    /**
+     * Returns true if empId is PM of the work package's project.
+     */
+    public boolean canManageWorkPackage(int empId, String wpId) {
+        WorkPackage wp = em.find(WorkPackage.class, wpId);
+        if (wp == null || wp.getProject() == null) {
+            return false;
+        }
+        return canManageProject(empId, wp.getProject().getProjId());
     }
 
     /*

@@ -2,12 +2,9 @@ package com.corejsf.api;
 
 import java.io.IOException;
 
-import com.corejsf.Entity.Employee;
 import com.corejsf.Service.JwtUtil;
 
 import jakarta.annotation.Priority;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerRequestFilter;
 import jakarta.ws.rs.core.Response;
@@ -18,72 +15,50 @@ import jakarta.ws.rs.ext.Provider;
  * under /api other then the login page.
  * Returns 401 unauthorized if the token is invalid or there is something wrong
  * with it.
- * sets the authenticated employee in the request so that other controllers can
- * use it after.
- * 
+ * Sets the authenticated empId and systemRole in the request so that other
+ * controllers can use them.
+ *
  * NOTE for controllers:
- * to get the authenticated employee from a request you can do this:
- * Employee employee = (Employee)
- * requestContext.getProperty(JwtAuthFilter.AUTHENTICATED_EMPLOYEE);
- * 
+ * To get the authenticated empId: (Integer) requestContext.getProperty(JwtAuthFilter.AUTHENTICATED_EMP_ID)
+ * To get the authenticated systemRole: (SystemRole) requestContext.getProperty(JwtAuthFilter.AUTHENTICATED_SYSTEM_ROLE)
+ *
  * @Author Russell
- * @verson 1.0
+ * @version 1.0
  */
 @Provider
 @Priority(1000) // Authentication priority to make sure it runs before other things
 public class JwtAuthFilter implements ContainerRequestFilter {
 
-    
-    @PersistenceContext(unitName = "project-management-pu")
-    private EntityManager em;
+    public static final String AUTHENTICATED_EMP_ID = "authenticatedEmpId";
+    public static final String AUTHENTICATED_SYSTEM_ROLE = "authenticatedSystemRole";
 
-    public static final String AUTHENTICATED_EMPLOYEE = "authenticatedEmployee";
+    private static final String AUTH_LOGIN_PATH = "auth/login";
 
     @Override
     public void filter(ContainerRequestContext requestContext) throws IOException {
-        String requestPath = requestContext.getUriInfo().getPath();
-        //added filter so that login page can be access without token
-        if (requestPath.equals("auth/login") || requestPath.endsWith("/auth/login")) {
+        if ("OPTIONS".equals(requestContext.getMethod())) {
             return;
         }
-        System.out.println("Filter path: " + requestPath);
 
-        // If the request is for the login page for not for an api/* page then return and let the request carry on
-        if (requestPath.startsWith("auth/login")) {
-         return;
+        String requestPath = requestContext.getUriInfo().getPath();
+        if (requestPath != null && requestPath.contains(AUTH_LOGIN_PATH)) {
+            return;
         }
 
-    
-        // Get the auth header from the request and then get the token from it.
         String authHeader = requestContext.getHeaderString("Authorization");
-        String token;
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            token = authHeader.substring("Bearer ".length());
-        } else {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
             return;
         }
 
-        // Get the empId from the token
-        Integer empId;
+        String token = authHeader.substring("Bearer ".length()).trim();
+
         try {
             JwtUtil.JwtClaims claims = JwtUtil.validateToken(token);
-            empId = claims.empId();
+            requestContext.setProperty(AUTHENTICATED_EMP_ID, claims.empId());
+            requestContext.setProperty(AUTHENTICATED_SYSTEM_ROLE, claims.systemRole());
         } catch (IllegalArgumentException e) {
             requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
-            return;
         }
-
-        // fetch the employee from the empId.
-        Employee employee = em.find(Employee.class, empId);
-        if (employee == null) {
-            requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
-            return;
-        }
-
-        // set the employee in the request
-        requestContext.setProperty(AUTHENTICATED_EMPLOYEE, employee);
-
     }
-
 }

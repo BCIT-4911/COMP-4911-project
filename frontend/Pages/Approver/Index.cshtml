@@ -1,0 +1,157 @@
+@page
+@model frontend.Pages.Approver.IndexModel
+@{
+    ViewData["Title"] = "Approver Dashboard";
+}
+
+<div class="container py-4">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+            <h1 class="display-6 mb-0">Approver Dashboard</h1>
+            <div class="text-muted">Review submitted timesheets for an approver</div>
+        </div>
+    </div>
+
+    <div id="alertArea"></div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label">Approver ID</label>
+                    <input type="number" class="form-control" id="approverIdInput" min="1"
+                           value="@(Model.ApproverId ?? 1)" />
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-primary" onclick="loadDashboard()">Load Dashboard</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header">
+            <h5 class="mb-0">Submitted Timesheets Awaiting Review</h5>
+        </div>
+        <div class="card-body">
+            <div id="dashboardArea">
+                <p class="text-muted mb-0">Enter an approver ID and click "Load Dashboard".</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+            const API = '@Model.ApiBaseUrl';
+
+            async function loadDashboard() {
+                const approverId = parseInt(document.getElementById('approverIdInput').value);
+
+                if (!approverId || approverId <= 0) {
+                    showAlert('Please enter a valid Approver ID.', 'warning');
+                    return;
+                }
+
+                const area = document.getElementById('dashboardArea');
+                area.innerHTML = '<p class="text-muted mb-0">Loading...</p>';
+
+                try {
+                    const res = await fetch(`${API}/api/timesheets`);
+                    if (!res.ok) throw new Error(await res.text());
+
+                    const allTimesheets = await res.json();
+
+                    // Current backend uses approved=true to mean submitted.
+                    // If merges status enum later, update this filter.
+                    const reviewItems = allTimesheets.filter(ts =>
+                        ts.approverId === approverId && ts.approved === true
+                    );
+
+                    if (reviewItems.length === 0) {
+                        area.innerHTML = '<p class="text-muted mb-0">No submitted timesheets found for this approver.</p>';
+                        return;
+                    }
+
+                    renderDashboard(reviewItems, approverId);
+                } catch (err) {
+                    area.innerHTML = `<p class="text-danger mb-0">Error: ${esc(err.message)}</p>`;
+                }
+            }
+
+            function renderDashboard(timesheets, approverId) {
+                const area = document.getElementById('dashboardArea');
+
+                area.innerHTML = `
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Timesheet ID</th>
+                                    <th>Employee</th>
+                                    <th>Week Ending</th>
+                                    <th>Status</th>
+                                    <th>Total Hours</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${timesheets.map(ts => renderRow(ts, approverId)).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            }
+
+            function renderRow(ts, approverId) {
+                const totalHours = (ts.rows || []).reduce((sum, r) => {
+                    return sum
+                        + (r.monday || 0)
+                        + (r.tuesday || 0)
+                        + (r.wednesday || 0)
+                        + (r.thursday || 0)
+                        + (r.friday || 0)
+                        + (r.saturday || 0)
+                        + (r.sunday || 0);
+                }, 0);
+
+                return `
+                    <tr>
+                        <td>${ts.tsId}</td>
+                        <td>${esc(ts.empName || ('Emp #' + ts.empId))}</td>
+                        <td>${esc(ts.weekEnding || '')}</td>
+                        <td><span class="badge bg-success">Submitted</span></td>
+                        <td>${totalHours.toFixed(1)}</td>
+                        <td>
+                            <a class="btn btn-outline-primary btn-sm"
+                               href="/Approver/Review?id=${ts.tsId}&approverId=${approverId}">
+                                View Details
+                            </a>
+                        </td>
+                    </tr>
+                `;
+            }
+
+            function showAlert(msg, type) {
+                const area = document.getElementById('alertArea');
+                area.innerHTML = `
+                    <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                        ${esc(msg)}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                `;
+            }
+
+            function esc(str) {
+                const div = document.createElement('div');
+                div.textContent = str ?? '';
+                return div.innerHTML;
+            }
+
+            document.addEventListener('DOMContentLoaded', () => {
+                if (document.getElementById('approverIdInput').value) {
+                    loadDashboard();
+                }
+            });
+    </script>
+}

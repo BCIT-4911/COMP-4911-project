@@ -1,0 +1,233 @@
+@page
+@model frontend.Pages.Approver.ReviewModel
+@{
+    ViewData["Title"] = "Review Timesheet";
+}
+
+<div class="container py-4">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+            <h1 class="display-6 mb-0">Review Timesheet</h1>
+            <div class="text-muted">Read-only review with approve or return actions</div>
+        </div>
+        <a class="btn btn-outline-secondary" href="/Approver/Index?approverId=@(Model.ApproverId)">
+            Back to Dashboard
+        </a>
+    </div>
+
+    <div id="alertArea"></div>
+
+    <div id="loadingArea" class="text-muted">Loading timesheet...</div>
+
+    <div id="contentArea" style="display:none;">
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">Timesheet ID</label>
+                        <div id="tsIdDisplay"></div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">Employee</label>
+                        <div id="empDisplay"></div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">Approver</label>
+                        <div id="approverDisplay"></div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">Week Ending</label>
+                        <div id="weekEndingDisplay"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Timesheet Rows</h5>
+            </div>
+            <div class="card-body">
+                <div id="rowsArea"></div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0">Review Action</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Return Comment</label>
+                    <textarea id="returnCommentInput" class="form-control" rows="4"
+                              placeholder="Required when returning a timesheet"></textarea>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button class="btn btn-success" onclick="approveTimesheet()">Approve</button>
+                    <button class="btn btn-warning" onclick="returnTimesheet()">Return</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+            const API = '@Model.ApiBaseUrl';
+            const TIMESHEET_ID = @Model.Id;
+            const APPROVER_ID = @(Model.ApproverId ?? 0);
+
+            let currentTimesheet = null;
+
+            document.addEventListener('DOMContentLoaded', loadTimesheet);
+
+            async function loadTimesheet() {
+                try {
+                    const res = await fetch(`${API}/api/timesheets/${TIMESHEET_ID}`);
+                    if (!res.ok) throw new Error(await res.text());
+
+                    const ts = await res.json();
+                    currentTimesheet = ts;
+
+                    if (APPROVER_ID && ts.approverId !== APPROVER_ID) {
+                        throw new Error('This timesheet is not assigned to the selected approver.');
+                    }
+
+                    if (ts.approved !== true) {
+                        throw new Error('This timesheet is not currently in submitted/review state.');
+                    }
+
+                    renderTimesheet(ts);
+
+                    document.getElementById('loadingArea').style.display = 'none';
+                    document.getElementById('contentArea').style.display = '';
+                } catch (err) {
+                    document.getElementById('loadingArea').innerHTML =
+                        `<span class="text-danger">Error: ${esc(err.message)}</span>`;
+                }
+            }
+
+            function renderTimesheet(ts) {
+                document.getElementById('tsIdDisplay').textContent = ts.tsId;
+                document.getElementById('empDisplay').textContent = ts.empName || `Emp #${ts.empId}`;
+                document.getElementById('approverDisplay').textContent =
+                    ts.approverName || (ts.approverId ? `Emp #${ts.approverId}` : '—');
+                document.getElementById('weekEndingDisplay').textContent = ts.weekEnding || '';
+
+                const rows = ts.rows || [];
+                if (rows.length === 0) {
+                    document.getElementById('rowsArea').innerHTML = '<p class="text-muted mb-0">No rows found.</p>';
+                    return;
+                }
+
+                const rowsHtml = rows.map(r => {
+                    const total =
+                        (r.monday || 0) +
+                        (r.tuesday || 0) +
+                        (r.wednesday || 0) +
+                        (r.thursday || 0) +
+                        (r.friday || 0) +
+                        (r.saturday || 0) +
+                        (r.sunday || 0);
+
+                    return `
+                        <tr>
+                            <td>${esc(r.wpId || '')}${r.wpName ? ' - ' + esc(r.wpName) : ''}</td>
+                            <td>${esc(r.laborGradeCode || '')}</td>
+                            <td>${r.monday ?? 0}</td>
+                            <td>${r.tuesday ?? 0}</td>
+                            <td>${r.wednesday ?? 0}</td>
+                            <td>${r.thursday ?? 0}</td>
+                            <td>${r.friday ?? 0}</td>
+                            <td>${r.saturday ?? 0}</td>
+                            <td>${r.sunday ?? 0}</td>
+                            <td class="fw-semibold">${total.toFixed(1)}</td>
+                        </tr>
+                    `;
+                }).join('');
+
+                document.getElementById('rowsArea').innerHTML = `
+                    <div class="table-responsive">
+                        <table class="table table-bordered align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Work Package</th>
+                                    <th>Grade</th>
+                                    <th>Mon</th>
+                                    <th>Tue</th>
+                                    <th>Wed</th>
+                                    <th>Thu</th>
+                                    <th>Fri</th>
+                                    <th>Sat</th>
+                                    <th>Sun</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>${rowsHtml}</tbody>
+                        </table>
+                    </div>
+                `;
+            }
+
+            async function approveTimesheet() {
+                clearAlert();
+
+                try {
+                    const res = await fetch(`${API}/api/timesheets/${TIMESHEET_ID}/approve`, {
+                        method: 'PUT'
+                    });
+
+                    if (!res.ok) throw new Error(await res.text());
+
+                    window.location.href = `/Approver/Index?approverId=${APPROVER_ID}`;
+                } catch (err) {
+                    showAlert('Approve failed: ' + err.message, 'danger');
+                }
+            }
+
+            async function returnTimesheet() {
+                clearAlert();
+
+                const comment = document.getElementById('returnCommentInput').value.trim();
+                if (!comment) {
+                    showAlert('Return comment is required.', 'warning');
+                    return;
+                }
+
+                try {
+                    const res = await fetch(`${API}/api/timesheets/${TIMESHEET_ID}/return`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ returnComment: comment })
+                    });
+
+                    if (!res.ok) throw new Error(await res.text());
+
+                    window.location.href = `/Approver/Index?approverId=${APPROVER_ID}`;
+                } catch (err) {
+                    showAlert('Return failed: ' + err.message, 'danger');
+                }
+            }
+
+            function showAlert(msg, type) {
+                const area = document.getElementById('alertArea');
+                area.innerHTML = `
+                    <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                        ${esc(msg)}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                `;
+            }
+
+            function clearAlert() {
+                document.getElementById('alertArea').innerHTML = '';
+            }
+
+            function esc(str) {
+                const div = document.createElement('div');
+                div.textContent = str ?? '';
+                return div.innerHTML;
+            }
+    </script>
+}

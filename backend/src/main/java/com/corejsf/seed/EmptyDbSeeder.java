@@ -17,6 +17,7 @@ import com.corejsf.Entity.WorkPackageStatus;
 import com.corejsf.Entity.WorkPackageType;
 
 import jakarta.annotation.PostConstruct;
+import org.mindrot.jbcrypt.BCrypt;
 import jakarta.ejb.Singleton;
 import jakarta.ejb.Startup;
 import jakarta.persistence.EntityManager;
@@ -61,7 +62,7 @@ public class EmptyDbSeeder {
             admin = new Employee();
             admin.setEmpFirstName("Wile");
             admin.setEmpLastName("Coyote");
-            admin.setEmpPassword("password");
+            admin.setEmpPassword(BCrypt.hashpw("password", BCrypt.gensalt()));
 
             admin.setSystemRole(SystemRole.OPERATIONS_MANAGER); // enum
             admin.setESignature(sig);

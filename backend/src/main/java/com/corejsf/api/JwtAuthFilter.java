@@ -26,7 +26,7 @@ import jakarta.ws.rs.ext.Provider;
  * @version 1.0
  */
 @Provider
-@Priority(1000) // Authentication priority to make sure it runs before other things
+@Priority(1000)
 public class JwtAuthFilter implements ContainerRequestFilter {
 
     public static final String AUTHENTICATED_EMP_ID = "authenticatedEmpId";
@@ -57,7 +57,7 @@ public class JwtAuthFilter implements ContainerRequestFilter {
             JwtUtil.JwtClaims claims = JwtUtil.validateToken(token);
             requestContext.setProperty(AUTHENTICATED_EMP_ID, claims.empId());
             requestContext.setProperty(AUTHENTICATED_SYSTEM_ROLE, claims.systemRole());
-        } catch (IllegalArgumentException e) {
+        } catch (Exception e) {
             requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
         }
     }

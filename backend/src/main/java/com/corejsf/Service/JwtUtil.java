@@ -10,6 +10,7 @@ import com.corejsf.Entity.SystemRole;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
+import jakarta.json.JsonReader;
 
 /**
  * Utility class for creating and validating JSON Web Tokens (JWT) using
@@ -117,8 +118,10 @@ public final class JwtUtil {
         String payloadJson = new String(Base64.getUrlDecoder()
                                               .decode(payload),
                                         StandardCharsets.UTF_8);
-        JsonObject json = Json.createReader(new java.io.StringReader(payloadJson))
-                                 .readObject();
+        JsonObject json;
+        try (JsonReader reader = Json.createReader(new java.io.StringReader(payloadJson))) {
+            json = reader.readObject();
+        }
 
         // Check if the token is expired (expiration in the past)
         long exp = json.getJsonNumber("exp").longValue();

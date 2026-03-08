@@ -105,6 +105,12 @@
 @section Scripts {
 <script>
     const API = '@Model.ApiBaseUrl';
+    const TOKEN = '@Model.JwtToken';
+
+    function authFetch(url, options = {}) {
+        options.headers = { ...options.headers, 'Authorization': `Bearer ${TOKEN}` };
+        return fetch(url, options);
+    }
 
     let workPackages = [];
     let laborGrades = [];
@@ -133,7 +139,7 @@
 
     async function loadWorkPackages() {
         try {
-            const res = await fetch(`${API}/api/workpackages`);
+            const res = await authFetch(`${API}/api/workpackages`);
             if (!res.ok) throw new Error('Failed to load work packages');
             workPackages = await res.json();
         } catch (err) {
@@ -143,7 +149,7 @@
 
     async function loadLaborGrades() {
         try {
-            const res = await fetch(`${API}/api/labor-grades`);
+            const res = await authFetch(`${API}/api/labor-grades`);
             if (!res.ok) throw new Error('Failed to load labor grades');
             laborGrades = await res.json();
         } catch (err) {
@@ -243,7 +249,7 @@
 
         try {
             // Step 1: Create the timesheet via POST
-            const createRes = await fetch(`${API}/api/timesheets`, {
+            const createRes = await authFetch(`${API}/api/timesheets`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(dto)
@@ -258,7 +264,7 @@
             const tsId = created.tsId;
 
             // Step 2: Immediately submit via PUT /submit
-            const submitRes = await fetch(`${API}/api/timesheets/${tsId}/submit`, {
+            const submitRes = await authFetch(`${API}/api/timesheets/${tsId}/submit`, {
                 method: 'PUT'
             });
 
@@ -408,7 +414,7 @@
         area.innerHTML = '<p class="text-muted">Loading...</p>';
 
         try {
-            const res = await fetch(`${API}/api/timesheets?empId=${empId}`);
+            const res = await authFetch(`${API}/api/timesheets?empId=${empId}`);
             if (!res.ok) throw new Error(await res.text());
             const list = await res.json();
 

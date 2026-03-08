@@ -119,6 +119,12 @@
 <script>
     const API = '@Model.ApiBaseUrl';
     const PROJECT_ID = '@Model.ProjectId';
+    const TOKEN = '@Model.JwtToken';
+
+    function authFetch(url, options = {}) {
+        options.headers = { ...options.headers, 'Authorization': `Bearer ${TOKEN}` };
+        return fetch(url, options);
+    }
 
     // ---- Load Work Packages ----
     async function loadWorkPackages() {
@@ -129,7 +135,7 @@
         }
         document.getElementById('newWpBtn').disabled = false;
         try {
-            const res = await fetch(`${API}/api/projects/${encodeURIComponent(PROJECT_ID)}/workpackages`);
+            const res = await authFetch(`${API}/api/projects/${encodeURIComponent(PROJECT_ID)}/workpackages`);
             if (!res.ok) throw new Error('Failed to load work packages');
             const wps = await res.json();
             renderTable(wps);
@@ -250,7 +256,7 @@
                 url = `${API}/api/workpackages`;
                 method = 'POST';
             }
-            const res = await fetch(url, {
+            const res = await authFetch(url, {
                 method: method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body)
@@ -271,7 +277,7 @@
     async function deleteWP(id) {
         if (!confirm(`Delete work package "${id}" and all its children? This cannot be undone.`)) return;
         try {
-            const res = await fetch(`${API}/api/workpackages/${encodeURIComponent(id)}`, { method: 'DELETE' });
+            const res = await authFetch(`${API}/api/workpackages/${encodeURIComponent(id)}`, { method: 'DELETE' });
             if (!res.ok) throw new Error(await res.text());
             showToast('Work package deleted!', 'success');
             loadWorkPackages();

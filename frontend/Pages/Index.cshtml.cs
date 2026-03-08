@@ -6,12 +6,14 @@ namespace frontend.Pages;
 public class IndexModel : PageModel
 {
     private readonly IConfiguration _config;
+    private readonly IHttpClientFactory _httpClientFactory;
 
     public string? HelloFromApi { get; private set; }
 
-    public IndexModel(IConfiguration config)
+    public IndexModel(IConfiguration config, IHttpClientFactory httpClientFactory)
     {
         _config = config;
+        _httpClientFactory = httpClientFactory;
     }
 
     public async Task<IActionResult> OnGetAsync()
@@ -25,8 +27,7 @@ public class IndexModel : PageModel
 
         var apiBaseUrl = _config["ApiBaseUrl"];
 
-        using var client = new HttpClient();
-
+        var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization =
             new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 

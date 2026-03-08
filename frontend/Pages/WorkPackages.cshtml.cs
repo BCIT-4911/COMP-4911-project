@@ -8,6 +8,7 @@ public class WorkPackagesModel : PageModel
     private readonly IConfiguration _config;
 
     public string ApiBaseUrl { get; private set; } = "";
+    public string JwtToken { get; private set; } = "";
 
     [BindProperty(SupportsGet = true)]
     public string ProjectId { get; set; } = "";
@@ -17,8 +18,14 @@ public class WorkPackagesModel : PageModel
         _config = config;
     }
 
-    public void OnGet()
+    public IActionResult OnGet()
     {
+        var token = HttpContext.Session.GetString("JWT");
+        if (string.IsNullOrWhiteSpace(token))
+            return RedirectToPage("/Login");
+
         ApiBaseUrl = _config["ApiBaseUrl"] ?? "";
+        JwtToken = token;
+        return Page();
     }
 }

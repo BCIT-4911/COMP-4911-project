@@ -9,10 +9,12 @@ namespace frontend.Pages;
 public class LoginModel : PageModel
 {
     private readonly IConfiguration _config;
+    private readonly IHttpClientFactory _httpClientFactory;
 
-    public LoginModel(IConfiguration config)
+    public LoginModel(IConfiguration config, IHttpClientFactory httpClientFactory)
     {
         _config = config;
+        _httpClientFactory = httpClientFactory;
     }
 
     [BindProperty]
@@ -27,7 +29,7 @@ public class LoginModel : PageModel
 
         var apiBaseUrl = _config["ApiBaseUrl"];
 
-        using var client = new HttpClient();
+        var client = _httpClientFactory.CreateClient();
 
         var loginData = new
         {

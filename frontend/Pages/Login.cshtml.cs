@@ -118,6 +118,12 @@ public class LoginModel : PageModel
         public string Password { get; set; } = "";
     }
 
+    public IActionResult OnGetLogout()
+    {
+        HttpContext.Session.Clear();
+        return RedirectToPage("/Login");
+    }
+
     public class LoginResponseDto
     {
         public string Token { get; set; } = "";

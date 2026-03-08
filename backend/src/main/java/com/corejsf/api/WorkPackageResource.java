@@ -59,9 +59,13 @@ public class WorkPackageResource {
 
     @POST
     @Path("/{id}/employees/{empId}")
-    public void assignEmployee(@PathParam("id") String id, @PathParam("empId") int empId,
+    public Response assignEmployee(@PathParam("id") String id, @PathParam("empId") int empId,
             @QueryParam("role") WpRole role) {
+        if (role == null) {
+            return Response.status(Response.Status.BAD_REQUEST).entity("role query parameter is required").build();
+        }
         workPackageService.assignEmployee(id, empId, role);
+        return Response.ok().build();
     }
 
     @DELETE

@@ -19,6 +19,7 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 
 @Path("/projects")
 @Consumes(MediaType.APPLICATION_JSON)
@@ -76,9 +77,13 @@ public class ProjectResource {
 
     @POST
     @Path("/{id}/employees/{empId}")
-    public void assignEmployee(@PathParam("id") String id, @PathParam("empId") int empId,
+    public Response assignEmployee(@PathParam("id") String id, @PathParam("empId") int empId,
             @QueryParam("role") ProjectRole role) {
+        if (role == null) {
+            return Response.status(Response.Status.BAD_REQUEST).entity("role query parameter is required").build();
+        }
         projectService.assignEmployee(id, empId, role);
+        return Response.ok().build();
     }
 
     @GET

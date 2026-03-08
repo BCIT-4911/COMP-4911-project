@@ -19,11 +19,11 @@ public class RebacService {
     * Role checks
     */
     public boolean isOperationsManager(Employee employee) {
-        return employee.getSystemRole() == SystemRole.OPERATIONS_MANAGER;
+        return employee != null && employee.getSystemRole() == SystemRole.OPERATIONS_MANAGER;
     }
 
     public boolean isHr(Employee employee) {
-        return employee.getSystemRole() == SystemRole.HR;
+        return employee != null && employee.getSystemRole() == SystemRole.HR;
     }
 
 

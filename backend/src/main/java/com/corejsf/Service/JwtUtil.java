@@ -22,7 +22,6 @@ import jakarta.json.JsonObject;
  * </ul>
  * Tokens follow RFC 7519 and use a secret key from the JWT_SECRET environment variable.
  *
- * 
  * @author Nathan O.
  * @version 1.0
  */
@@ -31,6 +30,7 @@ public final class JwtUtil {
     private static final String ALGORITHM = "HmacSHA256";
     private static final int SECONDS_PER_MINUTE = 60;
     private static final int MINUTES_PER_HOUR = 60;
+    private static final int    MILLIS_PER_SECOND  = 1000;
     private static final int HOURS_PER_TOKEN = 8;
     private static final long EXPIRATION_SECONDS = HOURS_PER_TOKEN * MINUTES_PER_HOUR * SECONDS_PER_MINUTE; // 8 hours
 
@@ -41,7 +41,10 @@ public final class JwtUtil {
     
     private static final int JWT_PARTS_COUNT = 3;
     private static final String JWT_HEADER_JSON = "{\"alg\":\"HS256\",\"typ\":\"JWT\"}";
-    private static final int MILLIS_PER_SECOND = 1000;
+    
+    private static final int HEADER_INDEX = 0;
+    private static final int PAYLOAD_INDEX = 0;
+    private static final int SIGNATURE_INDEX = 0;
 
     private JwtUtil() {
     }
@@ -97,9 +100,9 @@ public final class JwtUtil {
             throw new IllegalArgumentException("Invalid JWT format");
         }
 
-        String header = parts[0];
-        String payload = parts[1];
-        String signature = parts[2];
+        String header = parts[HEADER_INDEX];
+        String payload = parts[PAYLOAD_INDEX];
+        String signature = parts[SIGNATURE_INDEX];
 
         // Re-create the part of the JWT that was signed to verify its authenticity
         String signatureInput = header + "." + payload;

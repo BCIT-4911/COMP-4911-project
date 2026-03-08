@@ -14,12 +14,32 @@ public class IndexModel : PageModel
         _config = config;
     }
 
-    public async Task OnGetAsync()
+    public async Task<IActionResult> OnGetAsync()
     {
+        var token = HttpContext.Session.GetString("JWT");
+
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            return RedirectToPage("/Login");
+        }
+
         var apiBaseUrl = _config["ApiBaseUrl"];
 
         using var client = new HttpClient();
 
-        HelloFromApi = await client.GetStringAsync(apiBaseUrl + "/api/greet");
+        client.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+        var response = await client.GetAsync(apiBaseUrl + "/api/greet");
+
+        if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            HttpContext.Session.Clear();
+            return RedirectToPage("/Login");
+        }
+
+        HelloFromApi = await response.Content.ReadAsStringAsync();
+
+        return Page();
     }
 }

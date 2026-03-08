@@ -42,6 +42,10 @@ public class JwtAuthFilter implements ContainerRequestFilter {
     @Override
     public void filter(ContainerRequestContext requestContext) throws IOException {
         String requestPath = requestContext.getUriInfo().getPath();
+        //added filter so that login page can be access without token
+        if (requestPath.equals("auth/login") || requestPath.endsWith("/auth/login")) {
+            return;
+        }
         System.out.println("Filter path: " + requestPath);
 
         // If the request is for the login page for not for an api/* page then return and let the request carry on

@@ -1,0 +1,36 @@
+﻿@page
+@model frontend.Pages.LoginModel
+@{
+    ViewData["Title"] = "Login";
+}
+
+<div class="container py-5" style="max-width:400px">
+
+    <h2 class="mb-4">Login</h2>
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger">
+            @Model.ErrorMessage
+        </div>
+    }
+
+    <form method="post">
+
+        <div class="mb-3">
+            <label>Employee ID</label>
+            <input asp-for="Input.EmpId" class="form-control" />
+        </div>
+
+        <div class="mb-3">
+            <label>Password</label>
+            <input asp-for="Input.Password" type="password" class="form-control" />
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100">
+            Login
+        </button>
+
+    </form>
+
+</div>

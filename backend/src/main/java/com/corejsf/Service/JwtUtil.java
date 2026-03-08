@@ -43,8 +43,8 @@ public final class JwtUtil {
     private static final String JWT_HEADER_JSON = "{\"alg\":\"HS256\",\"typ\":\"JWT\"}";
     
     private static final int HEADER_INDEX = 0;
-    private static final int PAYLOAD_INDEX = 0;
-    private static final int SIGNATURE_INDEX = 0;
+    private static final int PAYLOAD_INDEX = 1;
+    private static final int SIGNATURE_INDEX = 2;
 
     private JwtUtil() {
     }

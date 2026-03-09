@@ -24,9 +24,9 @@ import jakarta.ws.rs.ext.Provider;
  * @Author Russell M.
  * @Author Nathan O.
  * @Author Lucas L.
+ * 
  * @version 1.1
  */
-
 @Provider
 @Priority(1000)
 public class JwtAuthFilter implements ContainerRequestFilter {

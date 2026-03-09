@@ -39,7 +39,7 @@ CREATE TABLE Employee(
     emp_first_name VARCHAR(255) NOT NULL,
     emp_last_name VARCHAR(255) NOT NULL,
     emp_password VARCHAR(255) NOT NULL,
-    system_role ENUM('HR', 'ADMIN', 'EMPLOYEE'),
+    system_role ENUM('HR', 'OPERATIONS_MANAGER', 'EMPLOYEE'),
     emp_e_sig_id INT NOT NULL,
     labor_grade_id INT NOT NULL,
     supervisor_id INT,
@@ -105,6 +105,7 @@ CREATE TABLE Project_Assignment(
     emp_id INT NOT NULL,
     proj_id VARCHAR(255) NOT NULL,
     assignment_date DATE NOT NULL,
+    project_role ENUM('PM', 'MEMBER') NOT NULL,
     FOREIGN KEY (emp_id) REFERENCES Employee(emp_id),
     FOREIGN KEY (proj_id) REFERENCES Project(proj_id)
 );
@@ -114,6 +115,7 @@ CREATE TABLE Work_Package_Assignment(
     emp_id INT NOT NULL,
     wp_id VARCHAR(255) NOT NULL,
     assignment_date DATE NOT NULL,
+    wp_role ENUM('RE', 'MEMBER') NOT NULL,
     FOREIGN KEY (emp_id) REFERENCES Employee(emp_id),
     FOREIGN KEY (wp_id) REFERENCES Work_Package(wp_id)
 );

@@ -180,6 +180,21 @@ dotnet watch
 Open http://localhost:3000 — the frontend should display data from the backend.
 
 
+### Seeded users
+
+After the database and backend are running, the following users are seeded (passwords are BCrypt-hashed; **all passwords are `password`**):
+
+| emp_id | First name | Last name  | System role        | Supervisor   |
+|--------|------------|------------|--------------------|--------------|
+| 1      | Wile       | Coyote     | OPERATIONS_MANAGER | —            |
+| 2      | Road       | Runner     | HR                 | Wile Coyote  |
+| 3      | Bugs       | Bunny      | EMPLOYEE           | Wile Coyote  |
+| 4      | Daffy      | Duck       | EMPLOYEE           | Bugs Bunny   |
+| 5      | Tweety     | Bird       | EMPLOYEE           | Bugs Bunny   |
+
+Use **emp_id** and **password** to log in (e.g. `empId: 1`, `password: password` via API or the Login page).
+
+
 ### Troubleshooting
 
 | Error | Cause | Fix |

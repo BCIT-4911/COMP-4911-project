@@ -123,7 +123,7 @@
                             @for (int m = 1; m <= Model.MonthCount; m++)
                             {
                                 <td class="text-end fw-semibold">
-                                    @Model.TotalBCWSByMonth[m].ToString("0,0")
+                                     @(Model.TotalBCWSByMonth.TryGetValue(m, out var totalBcws) ? totalBcws.ToString("0,0") : "0")
                                 </td>
                             }
                             <td class="text-end fw-semibold">@Model.TotalBCWSByMonth.Values.Sum().ToString("0,0")</td>
@@ -134,7 +134,7 @@
                             @for (int m = 1; m <= Model.MonthCount; m++)
                             {
                                 <td class="text-end fw-semibold">
-                                    @Model.TotalBCWPByMonth[m].ToString("0,0")
+                                    @(Model.TotalBCWPByMonth.TryGetValue(m, out var totalBcwp) ? totalBcwp.ToString("0,0") : "0")
                                 </td>
                             }
                             <td class="text-end fw-semibold">@Model.TotalBCWPByMonth.Values.Sum().ToString("0,0")</td>
@@ -152,7 +152,7 @@
                         @for (int m = 1; m <= Model.MonthCount; m++)
                         {
                             <span class="badge bg-secondary">
-                                M@m: @Model.SVByMonth[m].ToString("0,0")
+                                M@m: @(Model.SVByMonth.TryGetValue(m, out var sv) ? sv.ToString("0,0") : "0")
                             </span>
                         }
                     </div>
@@ -167,7 +167,7 @@
                         @for (int m = 1; m <= Model.MonthCount; m++)
                         {
                             <span class="badge bg-secondary">
-                                M@m: @Model.CVByMonth[m].ToString("0,0")
+                                M@m: @(Model.CVByMonth.TryGetValue(m, out var cv) ? cv.ToString("0,0") : "0")
                             </span>
                         }
                     </div>

@@ -109,11 +109,20 @@
 @section Scripts {
 <script>
     const API = '@Model.ApiBaseUrl';
+    const TOKEN = '@Model.JwtToken';
+
+    function authFetch(url, options = {}) {
+        options.headers = { ...options.headers, 'Authorization': `Bearer ${TOKEN}` };
+        return fetch(url, options).then(res => {
+            if (res.status === 401) window.location.href = '/Login';
+            return res;
+        });
+    }
 
     // ---- Load Projects ----
     async function loadProjects() {
         try {
-            const res = await fetch(`${API}/api/projects`);
+            const res = await authFetch(`${API}/api/projects`);
             if (!res.ok) throw new Error('Failed to load projects');
             const projects = await res.json();
             renderTable(projects);
@@ -207,7 +216,7 @@
 
         try {
             const url = isEdit ? `${API}/api/projects/${encodeURIComponent(id)}` : `${API}/api/projects`;
-            const res = await fetch(url, {
+            const res = await authFetch(url, {
                 method: isEdit ? 'PUT' : 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body)
@@ -228,7 +237,7 @@
     async function deleteProject(id) {
         if (!confirm(`Delete project "${id}" and all its work packages? This cannot be undone.`)) return;
         try {
-            const res = await fetch(`${API}/api/projects/${encodeURIComponent(id)}`, { method: 'DELETE' });
+            const res = await authFetch(`${API}/api/projects/${encodeURIComponent(id)}`, { method: 'DELETE' });
             if (!res.ok) throw new Error(await res.text());
             showToast('Project deleted!', 'success');
             loadProjects();

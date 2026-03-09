@@ -29,6 +29,7 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
@@ -198,33 +199,58 @@ public class TimesheetController {
         return timesheetService.toResponseDTO(ts, rows);
     }
 
-    // -------------------------------------------------------------------------
-    // PUT /submit - Submit timesheet
-    // -------------------------------------------------------------------------
+   // -------------------------------------------------------------------------
+// PUT /submit - Submit timesheet
+// -------------------------------------------------------------------------
 
-    /**
-     * Submits a draft timesheet: validates submission rules, sets approved = true.
-     * Rejects if already approved.
-     */
-    @PUT
-    @Path("/{id}/submit")
-    @Transactional
-    public TimesheetResponseDTO submitTimesheet(@PathParam("id") int id) {
-        Timesheet ts = findTimesheet(id);
-        TimesheetValidation.validateNotApproved(ts.getApprovalStatus());
+/**
+ * Submits a timesheet.
+ * Valid transitions:
+ * DRAFT -> SUBMITTED
+ * RETURNED -> SUBMITTED
+ */
+@PUT
+@Path("/{id}/submit")
+@Transactional
+public TimesheetResponseDTO submitTimesheet(@PathParam("id") int id) {
 
-        // Load existing rows and convert to request DTOs for validation
-        List<TimesheetRow> rows = findRows(id);
-        List<TimesheetRowRequestDTO> rowDTOs = toRowRequestDTOs(rows);
+    Timesheet ts = findTimesheet(id);
 
-        TimesheetValidation.validateForSubmission(rowDTOs);
-
-        // Transition state
-        ts.setApprovalStatus(true);
-        em.merge(ts);
-
-        return timesheetService.toResponseDTO(ts, rows);
+    // Reject if already approved
+    if (Boolean.TRUE.equals(ts.getApprovalStatus())) {
+        throw new WebApplicationException(
+            "Approved timesheets cannot be submitted again.",
+            Response.Status.BAD_REQUEST
+        );
     }
+
+    // Load rows
+    List<TimesheetRow> rows = findRows(id);
+    List<TimesheetRowRequestDTO> rowDTOs = toRowRequestDTOs(rows);
+
+    // Validate submission rules
+    TimesheetValidation.validateForSubmission(rowDTOs);
+
+    // Automatically assign supervisor as approver
+    Employee employee = ts.getEmployee();
+    Employee supervisor = employee.getSupervisor();
+
+    if (supervisor == null) {
+        throw new WebApplicationException(
+            "Employee does not have a supervisor assigned.",
+            Response.Status.BAD_REQUEST
+        );
+    }
+
+    ts.setApprover(supervisor);
+
+    // Mark as submitted (waiting for approval)
+    ts.setApprovalStatus(false);
+
+    em.merge(ts);
+
+    return timesheetService.toResponseDTO(ts, rows);
+}
 
     // -------------------------------------------------------------------------
     // DELETE - Delete draft
@@ -248,7 +274,9 @@ public class TimesheetController {
         em.remove(ts);
     }
 
-    // -------------------------------------------------------------------------
+
+
+// -------------------------------------------------------------------------
     // Private helpers
     // -------------------------------------------------------------------------
 

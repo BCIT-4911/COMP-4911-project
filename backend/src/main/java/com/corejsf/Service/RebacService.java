@@ -68,6 +68,29 @@ public class RebacService {
         return isHr(employee);
     }
 
+    /**
+     * Returns true if authEmpId is the supervisor of targetEmpId.
+     */
+    public boolean isSupervisorOf(int authEmpId, int targetEmpId) {
+        Employee target = em.find(Employee.class, targetEmpId);
+        if (target == null || target.getSupervisor() == null) {
+            return false;
+        }
+        return Integer.valueOf(authEmpId).equals(target.getSupervisor().getEmpId());
+    }
+
+    /**
+     * Returns true if empId can view the timesheet (owner or approver).
+     */
+    public boolean canViewTimesheet(int empId, int timesheetId) {
+        Timesheet ts = em.find(Timesheet.class, timesheetId);
+        if (ts == null) return false;
+        Integer boxed = Integer.valueOf(empId);
+        if (ts.getEmployee() != null && boxed.equals(ts.getEmployee().getEmpId())) return true;
+        if (ts.getApprover() != null && boxed.equals(ts.getApprover().getEmpId())) return true;
+        return false;
+    }
+
     /*
      * Relationship-based checks (empId-based, preferred for Resources)
      */

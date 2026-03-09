@@ -17,10 +17,8 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
-import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import jakarta.ws.rs.container.ContainerRequestContext;
 
 @Path("/timesheets")
 @Consumes(MediaType.APPLICATION_JSON)
@@ -33,12 +31,8 @@ public class TimesheetResource {
     @Inject
     private RebacService rebacService;
 
-    @Context
-    private ContainerRequestContext requestContext;
-
-    private int getAuthEmpId() {
-        return (Integer) requestContext.getProperty(JwtAuthFilter.AUTHENTICATED_EMP_ID);
-    }
+    @Inject
+    private AuthContext authContext;
 
     private Response forbidden() {
         return Response.status(Response.Status.FORBIDDEN).entity("Access denied").build();
@@ -46,9 +40,9 @@ public class TimesheetResource {
 
     @GET
     public Response getAll(@QueryParam("empId") Integer empId) {
-        int authEmpId = getAuthEmpId();
+        int authEmpId = authContext.getEmpId();
         int targetEmpId = (empId != null) ? empId : authEmpId;
-        if (targetEmpId != authEmpId) {
+        if (targetEmpId != authEmpId && !rebacService.isSupervisorOf(authEmpId, targetEmpId)) {
             return forbidden();
         }
         List<TimesheetResponseDTO> list = timesheetService.getAllTimesheets(targetEmpId);
@@ -58,8 +52,8 @@ public class TimesheetResource {
     @GET
     @Path("/{id}")
     public Response get(@PathParam("id") int id) {
-        int authEmpId = getAuthEmpId();
-        if (!rebacService.canEditTimesheet(authEmpId, id) && !rebacService.canApproveTimesheet(authEmpId, id)) {
+        int authEmpId = authContext.getEmpId();
+        if (!rebacService.canViewTimesheet(authEmpId, id)) {
             return forbidden();
         }
         TimesheetResponseDTO dto = timesheetService.getTimesheet(id);
@@ -71,7 +65,7 @@ public class TimesheetResource {
         if (dto == null || dto.getEmpId() == null) {
             return Response.status(Response.Status.BAD_REQUEST).entity("empId is required").build();
         }
-        if (dto.getEmpId() != getAuthEmpId()) {
+        if (dto.getEmpId().intValue() != authContext.getEmpId()) {
             return forbidden();
         }
         TimesheetResponseDTO response = timesheetService.createTimesheet(dto);
@@ -81,7 +75,7 @@ public class TimesheetResource {
     @PUT
     @Path("/{id}")
     public Response update(@PathParam("id") int id, TimesheetRequestDTO dto) {
-        if (!rebacService.canEditTimesheet(getAuthEmpId(), id)) {
+        if (!rebacService.canEditTimesheet(authContext.getEmpId(), id)) {
             return forbidden();
         }
         TimesheetResponseDTO response = timesheetService.updateTimesheet(id, dto);
@@ -91,7 +85,7 @@ public class TimesheetResource {
     @PUT
     @Path("/{id}/submit")
     public Response submit(@PathParam("id") int id) {
-        if (!rebacService.canEditTimesheet(getAuthEmpId(), id)) {
+        if (!rebacService.canEditTimesheet(authContext.getEmpId(), id)) {
             return forbidden();
         }
         TimesheetResponseDTO response = timesheetService.submitTimesheet(id);
@@ -101,7 +95,7 @@ public class TimesheetResource {
     @DELETE
     @Path("/{id}")
     public Response delete(@PathParam("id") int id) {
-        if (!rebacService.canEditTimesheet(getAuthEmpId(), id)) {
+        if (!rebacService.canEditTimesheet(authContext.getEmpId(), id)) {
             return forbidden();
         }
         timesheetService.deleteTimesheet(id);

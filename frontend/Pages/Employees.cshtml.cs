@@ -6,15 +6,10 @@ namespace frontend.Pages;
 public class EmployeesModel : PageModel
 {
     private readonly IConfiguration _config;
-    private readonly IHttpClientFactory _httpClientFactory;
 
-    public string? ApiBaseUrl { get; private set; }
-    public string? JwtToken { get; private set; }
-
-    public EmployeesModel(IConfiguration config, IHttpClientFactory httpClientFactory)
+    public EmployeesModel(IConfiguration config)
     {
         _config = config;
-        _httpClientFactory = httpClientFactory;
     }
 
     public IActionResult OnGet()
@@ -27,8 +22,6 @@ public class EmployeesModel : PageModel
         if (role != "HR")
             return RedirectToPage("/Index");
 
-        ApiBaseUrl = _config["ApiBaseUrl"] ?? "";
-        JwtToken = token;
         return Page();
     }
 }

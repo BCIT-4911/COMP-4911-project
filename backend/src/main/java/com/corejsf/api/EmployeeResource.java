@@ -4,7 +4,6 @@ import java.util.List;
 
 import com.corejsf.DTO.EmployeeCreateDTO;
 import com.corejsf.Entity.Employee;
-import com.corejsf.Entity.SystemRole;
 import com.corejsf.Service.EmployeeService;
 import com.corejsf.Service.RebacService;
 
@@ -15,8 +14,6 @@ import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.container.ContainerRequestContext;
-import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
@@ -31,16 +28,8 @@ public class EmployeeResource {
     @Inject
     private RebacService rebacService;
 
-    @Context
-    private ContainerRequestContext requestContext;
-
-    private int getAuthEmpId() {
-        return (Integer) requestContext.getProperty(JwtAuthFilter.AUTHENTICATED_EMP_ID);
-    }
-
-    private SystemRole getAuthRole() {
-        return (SystemRole) requestContext.getProperty(JwtAuthFilter.AUTHENTICATED_SYSTEM_ROLE);
-    }
+    @Inject
+    private AuthContext authContext;
 
     private Response forbidden() {
         return Response.status(Response.Status.FORBIDDEN).entity("Access denied").build();
@@ -48,7 +37,7 @@ public class EmployeeResource {
 
     @GET
     public Response getAll() {
-        if (!rebacService.canManageEmployees(getAuthRole())) {
+        if (!rebacService.canManageEmployees(authContext.getSystemRole())) {
             return forbidden();
         }
         List<Employee> list = employeeService.getAllEmployees();
@@ -58,8 +47,8 @@ public class EmployeeResource {
     @GET
     @Path("/{id}")
     public Response get(@PathParam("id") int id) {
-        int authEmpId = getAuthEmpId();
-        if (id != authEmpId && !rebacService.canManageEmployees(getAuthRole())) {
+        int authEmpId = authContext.getEmpId();
+        if (id != authEmpId && !rebacService.canManageEmployees(authContext.getSystemRole())) {
             return forbidden();
         }
         Employee emp = employeeService.getEmployee(id);
@@ -68,7 +57,7 @@ public class EmployeeResource {
 
     @POST
     public Response create(EmployeeCreateDTO dto) {
-        if (!rebacService.canManageEmployees(getAuthRole())) {
+        if (!rebacService.canManageEmployees(authContext.getSystemRole())) {
             return forbidden();
         }
         Employee created = employeeService.createEmployee(dto);

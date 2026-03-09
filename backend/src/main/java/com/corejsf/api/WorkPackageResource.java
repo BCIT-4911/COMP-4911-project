@@ -19,10 +19,8 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
-import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import jakarta.ws.rs.container.ContainerRequestContext;
 
 @Path("/workpackages")
 @Consumes(MediaType.APPLICATION_JSON)
@@ -35,16 +33,8 @@ public class WorkPackageResource {
     @Inject
     private RebacService rebacService;
 
-    @Context
-    private ContainerRequestContext requestContext;
-
-    private int getAuthEmpId() {
-        return (Integer) requestContext.getProperty(JwtAuthFilter.AUTHENTICATED_EMP_ID);
-    }
-
-    private SystemRole getAuthRole() {
-        return (SystemRole) requestContext.getProperty(JwtAuthFilter.AUTHENTICATED_SYSTEM_ROLE);
-    }
+    @Inject
+    private AuthContext authContext;
 
     private Response forbidden() {
         return Response.status(Response.Status.FORBIDDEN).entity("Access denied").build();
@@ -66,7 +56,7 @@ public class WorkPackageResource {
         if (wp == null || wp.getProjId() == null) {
             return Response.status(Response.Status.BAD_REQUEST).entity("projId is required").build();
         }
-        if (!rebacService.canCreateProject(getAuthRole()) && !rebacService.canManageProject(getAuthEmpId(), wp.getProjId())) {
+        if (!rebacService.canCreateProject(authContext.getSystemRole()) && !rebacService.canManageProject(authContext.getEmpId(), wp.getProjId())) {
             return forbidden();
         }
         WorkPackage created = workPackageService.createWorkPackage(wp);
@@ -76,7 +66,7 @@ public class WorkPackageResource {
     @PUT
     @Path("/{id}")
     public Response update(@PathParam("id") String id, WorkPackage wp) {
-        if (!rebacService.canEditWorkPackage(getAuthEmpId(), id)) {
+        if (!rebacService.canEditWorkPackage(authContext.getEmpId(), id)) {
             return forbidden();
         }
         workPackageService.updateWorkPackage(id, wp);
@@ -86,7 +76,7 @@ public class WorkPackageResource {
     @DELETE
     @Path("/{id}")
     public Response delete(@PathParam("id") String id) {
-        if (!rebacService.canCreateProject(getAuthRole()) && !rebacService.canManageWorkPackage(getAuthEmpId(), id)) {
+        if (!rebacService.canCreateProject(authContext.getSystemRole()) && !rebacService.canManageWorkPackage(authContext.getEmpId(), id)) {
             return forbidden();
         }
         workPackageService.deleteWorkPackage(id);
@@ -100,7 +90,7 @@ public class WorkPackageResource {
         if (role == null) {
             return Response.status(Response.Status.BAD_REQUEST).entity("role query parameter is required").build();
         }
-        if (!rebacService.canManageWorkPackage(getAuthEmpId(), id)) {
+        if (!rebacService.canManageWorkPackage(authContext.getEmpId(), id)) {
             return forbidden();
         }
         workPackageService.assignEmployee(id, empId, role);
@@ -110,7 +100,7 @@ public class WorkPackageResource {
     @DELETE
     @Path("/{id}/employees/{empId}")
     public Response removeEmployee(@PathParam("id") String id, @PathParam("empId") int empId) {
-        if (!rebacService.canManageWorkPackage(getAuthEmpId(), id)) {
+        if (!rebacService.canManageWorkPackage(authContext.getEmpId(), id)) {
             return forbidden();
         }
         workPackageService.removeEmployee(id, empId);
@@ -126,7 +116,7 @@ public class WorkPackageResource {
     @PUT
     @Path("/{id}/close")
     public Response close(@PathParam("id") String id) {
-        if (!rebacService.canEditWorkPackage(getAuthEmpId(), id)) {
+        if (!rebacService.canEditWorkPackage(authContext.getEmpId(), id)) {
             return forbidden();
         }
         workPackageService.close(id);
@@ -136,7 +126,7 @@ public class WorkPackageResource {
     @PUT
     @Path("/{id}/open")
     public Response open(@PathParam("id") String id) {
-        if (!rebacService.canEditWorkPackage(getAuthEmpId(), id)) {
+        if (!rebacService.canEditWorkPackage(authContext.getEmpId(), id)) {
             return forbidden();
         }
         workPackageService.open(id);

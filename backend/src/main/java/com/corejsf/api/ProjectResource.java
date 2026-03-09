@@ -20,10 +20,8 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
-import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import jakarta.ws.rs.container.ContainerRequestContext;
 
 @Path("/projects")
 @Consumes(MediaType.APPLICATION_JSON)
@@ -36,16 +34,8 @@ public class ProjectResource {
     @Inject
     private RebacService rebacService;
 
-    @Context
-    private ContainerRequestContext requestContext;
-
-    private int getAuthEmpId() {
-        return (Integer) requestContext.getProperty(JwtAuthFilter.AUTHENTICATED_EMP_ID);
-    }
-
-    private SystemRole getAuthRole() {
-        return (SystemRole) requestContext.getProperty(JwtAuthFilter.AUTHENTICATED_SYSTEM_ROLE);
-    }
+    @Inject
+    private AuthContext authContext;
 
     private Response forbidden() {
         return Response.status(Response.Status.FORBIDDEN).entity("Access denied").build();
@@ -64,7 +54,7 @@ public class ProjectResource {
 
     @POST
     public Response create(Project project) {
-        if (!rebacService.canCreateProject(getAuthRole())) {
+        if (!rebacService.canCreateProject(authContext.getSystemRole())) {
             return forbidden();
         }
         projectService.createProject(project);
@@ -74,7 +64,7 @@ public class ProjectResource {
     @PUT
     @Path("/{id}")
     public Response update(@PathParam("id") String id, Project project) {
-        if (!rebacService.canCreateProject(getAuthRole()) && !rebacService.canManageProject(getAuthEmpId(), id)) {
+        if (!rebacService.canCreateProject(authContext.getSystemRole()) && !rebacService.canManageProject(authContext.getEmpId(), id)) {
             return forbidden();
         }
         projectService.updateProject(id, project);
@@ -84,7 +74,7 @@ public class ProjectResource {
     @DELETE
     @Path("/{id}")
     public Response delete(@PathParam("id") String id) {
-        if (!rebacService.canCreateProject(getAuthRole())) {
+        if (!rebacService.canCreateProject(authContext.getSystemRole())) {
             return forbidden();
         }
         projectService.deleteProject(id);
@@ -94,7 +84,7 @@ public class ProjectResource {
     @PUT
     @Path("/{id}/close")
     public Response close(@PathParam("id") String id) {
-        if (!rebacService.canCreateProject(getAuthRole()) && !rebacService.canManageProject(getAuthEmpId(), id)) {
+        if (!rebacService.canCreateProject(authContext.getSystemRole()) && !rebacService.canManageProject(authContext.getEmpId(), id)) {
             return forbidden();
         }
         projectService.closeProject(id);
@@ -104,7 +94,7 @@ public class ProjectResource {
     @PUT
     @Path("/{id}/open")
     public Response open(@PathParam("id") String id) {
-        if (!rebacService.canCreateProject(getAuthRole()) && !rebacService.canManageProject(getAuthEmpId(), id)) {
+        if (!rebacService.canCreateProject(authContext.getSystemRole()) && !rebacService.canManageProject(authContext.getEmpId(), id)) {
             return forbidden();
         }
         projectService.openProject(id);
@@ -114,7 +104,7 @@ public class ProjectResource {
     @POST
     @Path("/{id}/workpackages")
     public Response addWorkPackage(@PathParam("id") String id, WorkPackage wp) {
-        if (!rebacService.canCreateProject(getAuthRole()) && !rebacService.canManageProject(getAuthEmpId(), id)) {
+        if (!rebacService.canCreateProject(authContext.getSystemRole()) && !rebacService.canManageProject(authContext.getEmpId(), id)) {
             return forbidden();
         }
         projectService.addWorkPackage(id, wp);
@@ -128,7 +118,7 @@ public class ProjectResource {
         if (role == null) {
             return Response.status(Response.Status.BAD_REQUEST).entity("role query parameter is required").build();
         }
-        if (!rebacService.canCreateProject(getAuthRole()) && !rebacService.canManageProject(getAuthEmpId(), id)) {
+        if (!rebacService.canCreateProject(authContext.getSystemRole()) && !rebacService.canManageProject(authContext.getEmpId(), id)) {
             return forbidden();
         }
         projectService.assignEmployee(id, empId, role);

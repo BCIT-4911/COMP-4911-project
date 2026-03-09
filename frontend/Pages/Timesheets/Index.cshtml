@@ -295,8 +295,8 @@
     function buildRequestDTO() {
         const empId = parseInt(document.getElementById('empIdInput').value);
         const weekEnding = document.getElementById('weekEndingInput').value;
-        const approverIdVal = document.getElementById('approverIdInput').value;
-        const approverId = approverIdVal ? parseInt(approverIdVal) : null;
+        const approverEl = document.getElementById('approverIdInput');
+        const approverId = approverEl && approverEl.value ? parseInt(approverEl.value) : null;
 
         if (!empId || empId <= 0) {
             showAlert('Please enter a valid Employee ID.', 'warning');
@@ -349,7 +349,8 @@
 
     function resetForm() {
         document.getElementById('rowsBody').innerHTML = '';
-        document.getElementById('approverIdInput').value = '';
+        const approverInput = document.getElementById('approverIdInput');
+        if (approverInput) approverInput.value = '';
         addRow();
     }
 

@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.corejsf.DTO.ReturnTimesheetRequestDTO;
 import com.corejsf.DTO.TimesheetRequestDTO;
 import com.corejsf.DTO.TimesheetResponseDTO;
 import com.corejsf.DTO.TimesheetRowRequestDTO;
@@ -11,6 +12,7 @@ import com.corejsf.Entity.Employee;
 import com.corejsf.Entity.LaborGrade;
 import com.corejsf.Entity.Timesheet;
 import com.corejsf.Entity.TimesheetRow;
+import com.corejsf.Entity.TimesheetStatus;
 import com.corejsf.Entity.WorkPackage;
 import com.corejsf.Service.TimesheetService;
 
@@ -224,6 +226,119 @@ public class TimesheetController {
         em.merge(ts);
 
         return timesheetService.toResponseDTO(ts, rows);
+    }
+
+    // -------------------------------------------------------------------------
+    // PUT /approve - Approve timesheet (approver only)
+    // -------------------------------------------------------------------------
+
+    /**
+     * Approves a submitted timesheet.
+     * Only the assigned approver may call this. Transitions SUBMITTED → APPROVED.
+     * Clears any previous return comment on success.
+     *
+     * @param id         the timesheet ID
+     * @param approverId temporary caller identity (placeholder until auth is wired)
+     */
+    @PUT
+    @Path("/{id}/approve")
+    @Transactional
+    public Response approveTimesheet(@PathParam("id") int id,
+                                     @QueryParam("approverId") Integer approverId) {
+        if (approverId == null) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("approverId query parameter is required.")
+                    .build();
+        }
+
+        Timesheet ts = findTimesheet(id);
+
+        // Authorization: caller must be the assigned approver
+        try {
+            TimesheetValidation.validateIsApprover(ts, approverId);
+        } catch (SecurityException e) {
+            return Response.status(Response.Status.FORBIDDEN)
+                    .entity(e.getMessage())
+                    .build();
+        }
+
+        // State transition: only SUBMITTED → APPROVED
+        try {
+            TimesheetValidation.validateCanApprove(ts.getStatus());
+        } catch (IllegalArgumentException e) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(e.getMessage())
+                    .build();
+        }
+
+        ts.setStatus(TimesheetStatus.APPROVED);
+        ts.setReturnComment(null); // clear any previous return comment
+        em.merge(ts);
+
+        List<TimesheetRow> rows = findRows(id);
+        return Response.ok(timesheetService.toResponseDTO(ts, rows)).build();
+    }
+
+    // -------------------------------------------------------------------------
+    // PUT /return - Return timesheet (approver only)
+    // -------------------------------------------------------------------------
+
+    /**
+     * Returns a submitted timesheet to the employee with a required comment.
+     * Only the assigned approver may call this. Transitions SUBMITTED → RETURNED.
+     *
+     * @param id         the timesheet ID
+     * @param approverId temporary caller identity (placeholder until auth is wired)
+     * @param dto        body containing the required returnComment
+     */
+    @PUT
+    @Path("/{id}/return")
+    @Transactional
+    public Response returnTimesheet(@PathParam("id") int id,
+                                    @QueryParam("approverId") Integer approverId,
+                                    ReturnTimesheetRequestDTO dto) {
+        if (approverId == null) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("approverId query parameter is required.")
+                    .build();
+        }
+
+        Timesheet ts = findTimesheet(id);
+
+        // Authorization: caller must be the assigned approver
+        try {
+            TimesheetValidation.validateIsApprover(ts, approverId);
+        } catch (SecurityException e) {
+            return Response.status(Response.Status.FORBIDDEN)
+                    .entity(e.getMessage())
+                    .build();
+        }
+
+        // State transition: only SUBMITTED → RETURNED
+        try {
+            TimesheetValidation.validateCanReturn(ts.getStatus());
+        } catch (IllegalArgumentException e) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(e.getMessage())
+                    .build();
+        }
+
+        // Return comment is mandatory
+        try {
+            TimesheetValidation.validateReturnComment(
+                    dto != null ? dto.getReturnComment() : null);
+        } catch (IllegalArgumentException e) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(e.getMessage())
+                    .build();
+        }
+
+        ts.setStatus(TimesheetStatus.RETURNED);
+        ts.setReturnComment(dto.getReturnComment().trim());
+        em.merge(ts);
+
+        List<TimesheetRow> rows = findRows(id);
+        return Response.ok(timesheetService.toResponseDTO(ts, rows)).build();
     }
 
     // -------------------------------------------------------------------------

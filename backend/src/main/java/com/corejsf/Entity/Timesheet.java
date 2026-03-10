@@ -38,6 +38,9 @@ public class Timesheet {
     @Column(name = "return_comment", columnDefinition = "TEXT")
     private String returnComment;
 
+    @Column(name = "status", nullable = false)
+    private TimesheetStatus timesheetStatus;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "emp_e_sig_id")
     private EmployeeESignature signature;
@@ -94,6 +97,10 @@ public class Timesheet {
     public void setReturnComment(String returnComment) {
         this.returnComment = returnComment;
     }
+
+    public TimesheetStatus getStatus() { return timesheetStatus; }
+
+    public void setStatus(TimesheetStatus timesheetStatus) { this.timesheetStatus = timesheetStatus; }
 
     public EmployeeESignature getSignature() {
         return signature;

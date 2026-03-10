@@ -6,8 +6,6 @@ import java.util.List;
 
 import com.corejsf.DTO.TimesheetRequestDTO;
 import com.corejsf.DTO.TimesheetRowRequestDTO;
-import com.corejsf.Entity.Timesheet;
-import com.corejsf.Entity.TimesheetStatus;
 import com.corejsf.Entity.WorkPackage;
 import com.corejsf.Entity.WorkPackageStatus;
 import com.corejsf.Entity.WorkPackageType;
@@ -208,83 +206,6 @@ public final class TimesheetValidation {
         if (Boolean.TRUE.equals(approved)) {
             throw new IllegalArgumentException(
                     "Cannot modify an approved timesheet. Approved timesheets are immutable.");
-        }
-    }
-
-    // -------------------------------------------------------------------------
-    // Status-aware transition validation
-    // -------------------------------------------------------------------------
-
-    /**
-     * Only a SUBMITTED timesheet can be approved.
-     * Provides distinct error messages for each invalid source state.
-     */
-    public static void validateCanApprove(TimesheetStatus status) {
-        if (status == TimesheetStatus.SUBMITTED) {
-            return;
-        }
-        switch (status) {
-            case DRAFT:
-                throw new IllegalArgumentException(
-                        "Cannot approve a DRAFT timesheet. It must be submitted first.");
-            case RETURNED:
-                throw new IllegalArgumentException(
-                        "Cannot approve a RETURNED timesheet. It must be re-submitted first.");
-            case APPROVED:
-                throw new IllegalArgumentException(
-                        "Timesheet is already approved.");
-            default:
-                throw new IllegalArgumentException(
-                        "Cannot approve a timesheet with status: " + status + ".");
-        }
-    }
-
-    /**
-     * Only a SUBMITTED timesheet can be returned.
-     * Provides distinct error messages for each invalid source state.
-     */
-    public static void validateCanReturn(TimesheetStatus status) {
-        if (status == TimesheetStatus.SUBMITTED) {
-            return;
-        }
-        switch (status) {
-            case DRAFT:
-                throw new IllegalArgumentException(
-                        "Cannot return a DRAFT timesheet. It must be submitted first.");
-            case RETURNED:
-                throw new IllegalArgumentException(
-                        "Timesheet is already returned.");
-            case APPROVED:
-                throw new IllegalArgumentException(
-                        "Cannot return an APPROVED timesheet.");
-            default:
-                throw new IllegalArgumentException(
-                        "Cannot return a timesheet with status: " + status + ".");
-        }
-    }
-
-    /**
-     * Ensures the caller is the assigned approver for the timesheet.
-     * Throws a SecurityException (mapped to 403) if not.
-     */
-    public static void validateIsApprover(Timesheet ts, int callerId) {
-        if (ts.getApprover() == null) {
-            throw new SecurityException(
-                    "Timesheet has no assigned approver.");
-        }
-        if (ts.getApprover().getEmpId() != callerId) {
-            throw new SecurityException(
-                    "Only the assigned approver can perform this action.");
-        }
-    }
-
-    /**
-     * Validates that the return comment is present and non-blank.
-     */
-    public static void validateReturnComment(String comment) {
-        if (comment == null || comment.trim().isEmpty()) {
-            throw new IllegalArgumentException(
-                    "Return comment is required.");
         }
     }
 

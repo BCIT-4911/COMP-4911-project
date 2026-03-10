@@ -11,6 +11,8 @@ import jakarta.ws.rs.container.ContainerRequestFilter;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.Provider;
 
+// TODO update javadoc to reflect new implementation
+
 /**
  * A filter for JWT that will authenticate a request if it is going to anything
  * under /api other then the login page. Returns 401 unauthorized if the token

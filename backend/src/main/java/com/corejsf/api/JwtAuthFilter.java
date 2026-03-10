@@ -11,23 +11,30 @@ import jakarta.ws.rs.container.ContainerRequestFilter;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.Provider;
 
-// TODO update javadoc to reflect new implementation
-
 /**
- * A filter for JWT that will authenticate a request if it is going to anything
- * under /api other then the login page. Returns 401 unauthorized if the token
- * is invalid or there is something wrong with it. Sets the authenticated empId
- * and systemRole in the request so that other controllers can use them. NOTE
- * for controllers: To get the authenticated empId: (Integer)
- * requestContext.getProperty(JwtAuthFilter.AUTHENTICATED_EMP_ID) To get the
- * authenticated systemRole: (SystemRole)
- * requestContext.getProperty(JwtAuthFilter.AUTHENTICATED_SYSTEM_ROLE)
+ * JAX-RS request filter that validates JWT bearer tokens for protected API
+ * requests.
  *
- * @Author Russell M.
- * @Author Nathan O.
- * @Author Lucas L.
- * 
- * @version 1.1
+ * <p>
+ * This filter skips authentication for {@code OPTIONS} requests and the
+ * login endpoint ({@code auth/login}). For all other requests, it expects an
+ * {@code Authorization} header in the form {@code Bearer <token>}.
+ *
+ * <p>
+ * When the token is valid, the authenticated employee ID and system role
+ * are stored in the request-scoped {@link AuthContext}. If the token is
+ * missing, malformed, or invalid, the request is aborted with
+ * {@code 401 Unauthorized}.
+ *
+ * <p>
+ * {@link AuthContext} is used so resource classes can inject authentication
+ * data directly without relying on {@code @Context ContainerRequestContext},
+ * which can cause CDI/RESTEasy proxy issues in WildFly.
+ *
+ * @author Russell M.
+ * @author Nathan O.
+ * @author Lucas L.
+ * @version 2.1
  */
 @Provider
 @Priority(1000)

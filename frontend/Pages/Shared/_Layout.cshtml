@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -25,23 +25,6 @@
                         var isLoggedIn = !string.IsNullOrEmpty(role) || !string.IsNullOrEmpty(Context.Session.GetString("JWT"));
                     }
                     <ul class="navbar-nav flex-grow-1">
-<<<<<<< HEAD
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Projects">Projects</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Employees">Employees</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-page="/Timesheets/Index">Timesheet</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-page="/EarnedValue/Index">Earned Value</a>
-                        </li>
-=======
                         @if (isLoggedIn)
                         {
                             <li class="nav-item">
@@ -72,7 +55,6 @@
                                 <a class="nav-link text-dark" asp-area="" asp-page="/Login">Login</a>
                             </li>
                         }
->>>>>>> 4c14e097edde2f44752d0f5b5880dd18620fdc3c
                     </ul>
                     @if (isLoggedIn)
                     {

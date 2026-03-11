@@ -1,4 +1,4 @@
-package ca.bcit.infosys.workpackage;
+package com.corejsf.Service;
 
 import com.corejsf.Entity.WorkPackage;
 

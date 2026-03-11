@@ -1,4 +1,4 @@
-package ca.bcit.infosys.timesheet;
+package com.corejsf.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -18,7 +18,7 @@ public final class TimesheetValidation {
 
     private static final BigDecimal INCREMENT = new BigDecimal("0.1");
     private static final BigDecimal MAX_DAILY_HOURS = new BigDecimal("24.0");
-    private static final BigDecimal MAX_WEEKLY_HOURS = new BigDecimal("168.0"); 
+    private static final BigDecimal MAX_WEEKLY_HOURS = new BigDecimal("168.0");
 
     // -------------------------------------------------------------------------
     // Top-level validation entry points
@@ -60,7 +60,7 @@ public final class TimesheetValidation {
     public static void validateWeekEnding(LocalDate weekEnding) {
         if (weekEnding == null) {
             throw new IllegalArgumentException("Week ending date is required.");
-        }        
+        }
     }
 
     public static void validateRowsNotEmpty(List<TimesheetRowRequestDTO> rows) {

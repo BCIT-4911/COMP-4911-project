@@ -8,6 +8,7 @@ namespace frontend.Pages.Timesheets
         private readonly IConfiguration _config;
 
         public string ApiBaseUrl { get; private set; } = "";
+        public string JwtToken { get; private set; } = "";
 
         [BindProperty(SupportsGet = true)]
         public int? EmpId { get; set; }
@@ -17,9 +18,15 @@ namespace frontend.Pages.Timesheets
             _config = config;
         }
 
-        public void OnGet()
+        public IActionResult OnGet()
         {
+            var token = HttpContext.Session.GetString("JWT");
+            if (string.IsNullOrWhiteSpace(token))
+                return RedirectToPage("/Login");
+
             ApiBaseUrl = _config["ApiBaseUrl"] ?? "";
+            JwtToken = token;
+            return Page();
         }
     }
 }

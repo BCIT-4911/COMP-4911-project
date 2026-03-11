@@ -1,7 +1,8 @@
 package com.corejsf.Service;
 
 import com.corejsf.Entity.Employee;
-import com.corejsf.Entity.Project;
+import com.corejsf.Entity.ProjectAssignment;
+import com.corejsf.Entity.ProjectRole;
 import com.corejsf.Entity.SystemRole;
 import com.corejsf.Entity.Timesheet;
 import com.corejsf.Entity.WorkPackage;
@@ -28,14 +29,19 @@ public class RebacService {
     }
 
     /**
-     * Returns true if empId is the project manager of the given project.
+     * Returns true if empId has ProjectRole.PM on the given project (via ProjectAssignment).
      */
     public boolean canManageProject(int empId, String projId) {
-        Project project = em.find(Project.class, projId);
-        if (project == null || project.getProjectManager() == null) {
-            return false;
-        }
-        return Integer.valueOf(empId).equals(project.getProjectManager().getEmpId());
+        Long count = em.createQuery(
+                "SELECT COUNT(pa) FROM ProjectAssignment pa " +
+                "WHERE pa.employee.empId = :empId " +
+                "AND pa.project.projId = :projId " +
+                "AND pa.projectRole = :role", Long.class)
+                .setParameter("empId", empId)
+                .setParameter("projId", projId)
+                .setParameter("role", ProjectRole.PM)
+                .getSingleResult();
+        return count != null && count > 0;
     }
 
     /**

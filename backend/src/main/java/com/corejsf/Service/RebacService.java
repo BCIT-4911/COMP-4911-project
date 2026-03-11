@@ -6,6 +6,8 @@ import com.corejsf.Entity.ProjectRole;
 import com.corejsf.Entity.SystemRole;
 import com.corejsf.Entity.Timesheet;
 import com.corejsf.Entity.WorkPackage;
+import com.corejsf.Entity.WorkPackageAssignment;
+import com.corejsf.Entity.WpRole;
 
 import jakarta.ejb.Stateless;
 import jakarta.persistence.EntityManager;
@@ -45,7 +47,7 @@ public class RebacService {
     }
 
     /**
-     * Returns true if empId is PM of the work package's project.
+     * Returns true if empId has ProjectRole.PM on the work package's project (via canManageProject).
      */
     public boolean canManageWorkPackage(int empId, String wpId) {
         WorkPackage wp = em.find(WorkPackage.class, wpId);
@@ -116,22 +118,28 @@ public class RebacService {
         return Integer.valueOf(empId).equals(ts.getApprover().getEmpId());
     }
 
+    /**
+     * Returns true if empId has WpRole.RE on the work package (via WorkPackageAssignment)
+     * or is PM on the work package's project.
+     */
     public boolean canEditWorkPackage(int empId, String wpId) {
+        Long count = em.createQuery(
+                "SELECT COUNT(wpa) FROM WorkPackageAssignment wpa " +
+                "WHERE wpa.employee.empId = :empId " +
+                "AND wpa.workPackage.wpId = :wpId " +
+                "AND wpa.wpRole = :role", Long.class)
+                .setParameter("empId", empId)
+                .setParameter("wpId", wpId)
+                .setParameter("role", WpRole.RE)
+                .getSingleResult();
+        if (count != null && count > 0) {
+            return true;
+        }
         WorkPackage wp = em.find(WorkPackage.class, wpId);
-        if (wp == null) {
+        if (wp == null || wp.getProject() == null) {
             return false;
         }
-        Integer empIdBoxed = Integer.valueOf(empId);
-        if (wp.getResponsibleEmployee() != null &&
-                empIdBoxed.equals(wp.getResponsibleEmployee().getEmpId())) {
-            return true;
-        }
-        if (wp.getProject() != null &&
-                wp.getProject().getProjectManager() != null &&
-                empIdBoxed.equals(wp.getProject().getProjectManager().getEmpId())) {
-            return true;
-        }
-        return false;
+        return canManageProject(empId, wp.getProject().getProjId());
     }
 
     /*

@@ -82,14 +82,6 @@ public class Timesheet {
         this.approver = approver;
     }
 
-    public Boolean getApprovalStatus() {
-        return approvalStatus;
-    }
-
-    public void setApprovalStatus(Boolean approvalStatus) {
-        this.approvalStatus = approvalStatus;
-    }
-
     public String getReturnComment() {
         return returnComment;
     }

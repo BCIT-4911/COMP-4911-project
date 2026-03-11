@@ -15,7 +15,6 @@ public class TimesheetResponseDTO {
     private Integer empId;
     private String empName;
     private LocalDate weekEnding;
-    private Boolean approved;
     private Integer approverId;
     private String approverName;
     private String returnComment;
@@ -52,14 +51,6 @@ public class TimesheetResponseDTO {
 
     public void setWeekEnding(LocalDate weekEnding) {
         this.weekEnding = weekEnding;
-    }
-
-    public Boolean getApproved() {
-        return approved;
-    }
-
-    public void setApproved(Boolean approved) {
-        this.approved = approved;
     }
 
     public Integer getApproverId() {

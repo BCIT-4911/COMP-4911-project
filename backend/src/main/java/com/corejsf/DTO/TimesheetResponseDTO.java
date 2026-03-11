@@ -71,7 +71,7 @@ public class TimesheetResponseDTO {
 
     public TimesheetStatus getStatus() { return timesheetStatus; }
 
-    public void setTimesheetStatus(TimesheetStatus timesheetStatus) { this.timesheetStatus = timesheetStatus; }
+    public void setStatus(TimesheetStatus timesheetStatus) { this.timesheetStatus = timesheetStatus; }
 
     public String getReturnComment() {
         return returnComment;

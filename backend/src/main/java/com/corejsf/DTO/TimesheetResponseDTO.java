@@ -1,5 +1,7 @@
 package com.corejsf.DTO;
 
+import com.corejsf.Entity.TimesheetStatus;
+
 import java.time.LocalDate;
 import java.util.List;
 
@@ -17,6 +19,7 @@ public class TimesheetResponseDTO {
     private Integer approverId;
     private String approverName;
     private String returnComment;
+    private TimesheetStatus timesheetStatus;
     private List<TimesheetRowResponseDTO> rows;
 
     public Integer getTsId() {
@@ -74,6 +77,10 @@ public class TimesheetResponseDTO {
     public void setApproverName(String approverName) {
         this.approverName = approverName;
     }
+
+    public TimesheetStatus getStatus() { return timesheetStatus; }
+
+    public void setTimesheetStatus(TimesheetStatus timesheetStatus) { this.timesheetStatus = timesheetStatus; }
 
     public String getReturnComment() {
         return returnComment;

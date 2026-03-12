@@ -79,6 +79,8 @@ public class EmptyDbSeeder {
             em.persist(admin);
         }
 
+    
+
         Project proj = em.find(Project.class, "PROJ-1");
         if (proj == null) {
             proj = new Project();
@@ -97,6 +99,16 @@ public class EmptyDbSeeder {
             proj.setMarkupRate(new BigDecimal("10.00"));
 
             em.persist(proj);
+        }
+
+        // Project 2 for Seed cases
+        Project proj2 = em.find(Project.class, "Proj-2");
+        if(proj2 == null) {
+            proj2 = new Project();
+            proj2.setProjId("Proj-2");
+            proj2.setProjType(ProjectType.EXTERNAL);
+            proj.setProjectManager(marvinMartian);
+            
         }
 
         WorkPackage parent = new WorkPackage();
@@ -141,6 +153,7 @@ public class EmptyDbSeeder {
 
         Employee roadRunner = createEmployee("Road", "Runner", SystemRole.HR, admin, lg);
         Employee bugsBunny = createEmployee("Bugs", "Bunny", SystemRole.EMPLOYEE, admin, lg);
+        Employee marvinMartian = createEmployee("Marvin", "Martian", SystemRole.EMPLOYEE, admin, lg);
         Employee daffyDuck = createEmployee("Daffy", "Duck", SystemRole.EMPLOYEE, bugsBunny, lg);
         Employee tweetyBird = createEmployee("Tweety", "Bird", SystemRole.EMPLOYEE, bugsBunny, lg);
 
@@ -153,6 +166,10 @@ public class EmptyDbSeeder {
 
         proj.setProjectManager(bugsBunny);
         em.merge(proj);
+
+        ProjectAssignment paMarvin = new ProjectAssignment();
+        paMarvin.setEmployee(marvinMartian);
+        paMarvin.setProject(proj2);
 
         WorkPackage wp1 = em.find(WorkPackage.class, "WP-1");
         WorkPackage wp2 = em.find(WorkPackage.class, "WP-2");

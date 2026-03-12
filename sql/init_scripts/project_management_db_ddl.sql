@@ -120,6 +120,9 @@ CREATE TABLE Work_Package_Assignment(
     FOREIGN KEY (wp_id) REFERENCES Work_Package(wp_id)
 );
 
+CREATE INDEX idx_pa_emp_proj_role ON Project_Assignment(emp_id, proj_id, project_role);
+CREATE INDEX idx_wpa_emp_wp_role ON Work_Package_Assignment(emp_id, wp_id, wp_role);
+
 CREATE TABLE Timesheet(
     ts_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     emp_id INT NOT NULL,

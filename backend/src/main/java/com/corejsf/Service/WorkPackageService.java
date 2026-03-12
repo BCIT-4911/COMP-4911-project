@@ -79,6 +79,9 @@ public class WorkPackageService {
         wp.setCreatedDate(LocalDateTime.now());
         wp.setModifiedDate(LocalDateTime.now());
         em.persist(wp);
+        if (reEmpId != null) {
+            assignEmployee(wp.getWpId(), reEmpId, WpRole.RE);
+        }
         return wp;
     }
 
@@ -130,8 +133,8 @@ public class WorkPackageService {
     }
 
     /**
-     * Assigns an employee to a work package. Skips if already assigned.
-     * Uses AUTO_INCREMENT for ID generation instead of manual MAX query.
+     * Assigns an employee to a work package. Creates assignment if none exists; updates role if assignment exists.
+     * When role is RE, also syncs WorkPackage.responsibleEmployee.
      */
     public void assignEmployee(String wpId, int empId, WpRole role) {
         if (role == null) {
@@ -140,21 +143,32 @@ public class WorkPackageService {
         WorkPackage workPackage = findWorkPackage(wpId);
         Employee employee = findEmployee(empId);
 
-        TypedQuery<Long> query = em.createQuery(
-                "SELECT COUNT(wpa) FROM WorkPackageAssignment wpa WHERE wpa.workPackage.wpId = :wpId AND wpa.employee.empId = :empId",
-                Long.class);
-        query.setParameter("wpId", wpId);
-        query.setParameter("empId", empId);
-        if (query.getSingleResult() > 0) {
-            return;
+        TypedQuery<WorkPackageAssignment> existingQuery = em.createQuery(
+                "SELECT wpa FROM WorkPackageAssignment wpa WHERE wpa.workPackage.wpId = :wpId AND wpa.employee.empId = :empId",
+                WorkPackageAssignment.class);
+        existingQuery.setParameter("wpId", wpId);
+        existingQuery.setParameter("empId", empId);
+        List<WorkPackageAssignment> existing = existingQuery.getResultList();
+
+        if (!existing.isEmpty()) {
+            WorkPackageAssignment wpa = existing.get(0);
+            if (wpa.getWpRole() != role) {
+                wpa.setWpRole(role);
+                em.merge(wpa);
+            }
+        } else {
+            WorkPackageAssignment assignment = new WorkPackageAssignment();
+            assignment.setWorkPackage(workPackage);
+            assignment.setEmployee(employee);
+            assignment.setAssignmentDate(LocalDate.now());
+            assignment.setWpRole(role);
+            em.persist(assignment);
         }
 
-        WorkPackageAssignment assignment = new WorkPackageAssignment();
-        assignment.setWorkPackage(workPackage);
-        assignment.setEmployee(employee);
-        assignment.setAssignmentDate(LocalDate.now());
-        assignment.setWpRole(role);
-        em.persist(assignment);
+        if (role == WpRole.RE) {
+            workPackage.setResponsibleEmployee(employee);
+            em.merge(workPackage);
+        }
     }
 
     public void removeEmployee(String wpId, int empId) {

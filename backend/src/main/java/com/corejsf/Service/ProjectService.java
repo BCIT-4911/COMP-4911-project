@@ -61,6 +61,7 @@ public class ProjectService {
         project.setCreatedDate(LocalDateTime.now());
         project.setModifiedDate(LocalDateTime.now());
         em.persist(project);
+        assignEmployee(project.getProjId(), project.getProjectManagerId(), ProjectRole.PM);
     }
 
     public void updateProject(String id, Project project) {
@@ -80,6 +81,7 @@ public class ProjectService {
         existing.setProjectManager(findEmployee(project.getProjectManagerId()));
         existing.setModifiedDate(LocalDateTime.now());
         em.merge(existing);
+        assignEmployee(id, project.getProjectManagerId(), ProjectRole.PM);
     }
 
     public void deleteProject(String id) {
@@ -127,8 +129,8 @@ public class ProjectService {
     }
 
     /**
-     * Assigns an employee to a project. Skips if the assignment already exists.
-     * Uses AUTO_INCREMENT for ID generation instead of manual MAX query.
+     * Assigns an employee to a project. Creates assignment if none exists; updates role if assignment exists.
+     * When role is PM, also syncs Project.projectManager.
      */
     public void assignEmployee(String projId, int empId, ProjectRole role) {
         if (role == null) {
@@ -137,21 +139,32 @@ public class ProjectService {
         Project project = findProject(projId);
         Employee employee = findEmployee(empId);
 
-        TypedQuery<Long> query = em.createQuery(
-                "SELECT COUNT(pa) FROM ProjectAssignment pa WHERE pa.project = :project AND pa.employee = :employee",
-                Long.class);
-        query.setParameter("project", project);
-        query.setParameter("employee", employee);
-        if (query.getSingleResult() > 0) {
-            return;
+        TypedQuery<ProjectAssignment> existingQuery = em.createQuery(
+                "SELECT pa FROM ProjectAssignment pa WHERE pa.project = :project AND pa.employee = :employee",
+                ProjectAssignment.class);
+        existingQuery.setParameter("project", project);
+        existingQuery.setParameter("employee", employee);
+        List<ProjectAssignment> existing = existingQuery.getResultList();
+
+        if (!existing.isEmpty()) {
+            ProjectAssignment pa = existing.get(0);
+            if (pa.getProjectRole() != role) {
+                pa.setProjectRole(role);
+                em.merge(pa);
+            }
+        } else {
+            ProjectAssignment assignment = new ProjectAssignment();
+            assignment.setProject(project);
+            assignment.setEmployee(employee);
+            assignment.setAssignmentDate(LocalDate.now());
+            assignment.setProjectRole(role);
+            em.persist(assignment);
         }
 
-        ProjectAssignment assignment = new ProjectAssignment();
-        assignment.setProject(project);
-        assignment.setEmployee(employee);
-        assignment.setAssignmentDate(LocalDate.now());
-        assignment.setProjectRole(role);
-        em.persist(assignment);
+        if (role == ProjectRole.PM) {
+            project.setProjectManager(employee);
+            em.merge(project);
+        }
     }
 
     public List<WorkPackage> getWorkPackages(String projId) {

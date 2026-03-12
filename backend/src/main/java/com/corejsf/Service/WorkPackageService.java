@@ -89,7 +89,11 @@ public class WorkPackageService {
         } else {
             wp.setParentWorkPackage(null); 
         }
-        
+
+        wp.setCreatedDate(LocalDateTime.now());
+        wp.setModifiedDate(LocalDateTime.now());
+        em.persist(wp);
+
         List<WorkPackage> wpChildren = getChildren(wp.getWpId());
         if (!wpChildren.isEmpty()) {
             wp.setWpType(WorkPackageType.SUMMARY);
@@ -97,9 +101,6 @@ public class WorkPackageService {
             wp.setWpType(WorkPackageType.LOWEST_LEVEL);
         }
 
-        wp.setCreatedDate(LocalDateTime.now());
-        wp.setModifiedDate(LocalDateTime.now());
-        em.persist(wp);
         return wp;
     }
 

@@ -126,6 +126,12 @@ public class EmptyDbSeeder {
         parent.setModifiedBy(admin);
 
         em.persist(parent);
+        WorkPackageAssignment wpaAdminCa1 = new WorkPackageAssignment();
+        wpaAdminCa1.setEmployee(admin);
+        wpaAdminCa1.setWorkPackage(parent);
+        wpaAdminCa1.setAssignmentDate(LocalDate.now());
+        wpaAdminCa1.setWpRole(WpRole.RE);
+        em.persist(wpaAdminCa1);
 
         createChild("WP-1", "Procure Anvil", proj, parent, admin,
                 LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 31),
@@ -161,7 +167,7 @@ public class EmptyDbSeeder {
             wpaDaffy.setEmployee(daffyDuck);
             wpaDaffy.setWorkPackage(wp1);
             wpaDaffy.setAssignmentDate(LocalDate.now());
-            wpaDaffy.setWpRole(WpRole.RE);
+            wpaDaffy.setWpRole(WpRole.MEMBER);
             em.persist(wpaDaffy);
         }
         if (wp2 != null) {
@@ -234,5 +240,11 @@ public class EmptyDbSeeder {
         child.setModifiedBy(emp);
 
         em.persist(child);
+        WorkPackageAssignment wpa = new WorkPackageAssignment();
+        wpa.setEmployee(emp);
+        wpa.setWorkPackage(child);
+        wpa.setAssignmentDate(LocalDate.now());
+        wpa.setWpRole(WpRole.RE);
+        em.persist(wpa);
     }
 }

@@ -166,6 +166,17 @@ public class WorkPackageService {
         }
 
         if (role == WpRole.RE) {
+            List<WorkPackageAssignment> existingReAssignments = em.createQuery(
+                    "SELECT wpa FROM WorkPackageAssignment wpa WHERE wpa.workPackage.wpId = :wpId AND wpa.wpRole = :reRole AND wpa.employee.empId <> :empId",
+                    WorkPackageAssignment.class)
+                    .setParameter("wpId", wpId)
+                    .setParameter("reRole", WpRole.RE)
+                    .setParameter("empId", empId)
+                    .getResultList();
+            for (WorkPackageAssignment wpa : existingReAssignments) {
+                wpa.setWpRole(WpRole.MEMBER);
+                em.merge(wpa);
+            }
             workPackage.setResponsibleEmployee(employee);
             em.merge(workPackage);
         }
@@ -179,6 +190,9 @@ public class WorkPackageService {
         query.setParameter("empId", empId);
         try {
             WorkPackageAssignment assignment = query.getSingleResult();
+            if (assignment.getWpRole() == WpRole.RE) {
+                throw new IllegalArgumentException("Cannot remove RE; reassign another employee as RE first.");
+            }
             em.remove(assignment);
         } catch (NoResultException e) {
             // nothing to remove

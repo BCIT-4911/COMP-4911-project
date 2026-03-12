@@ -89,6 +89,7 @@ public class Employee {
         this.empLastName = empLastName;
     }
 
+    @JsonbTransient
     public String getEmpPassword() {
         return empPassword;
     }
@@ -105,6 +106,7 @@ public class Employee {
         this.systemRole = systemRole;
     }
 
+    @JsonbTransient
     public EmployeeESignature getESignature() {
         return eSignature;
     }
@@ -113,6 +115,7 @@ public class Employee {
         this.eSignature = eSignature;
     }
 
+    @JsonbTransient
     public LaborGrade getLaborGrade() {
         return laborGrade;
     }
@@ -121,6 +124,7 @@ public class Employee {
         this.laborGrade = laborGrade;
     }
 
+    @JsonbTransient
     public Employee getSupervisor() {
         return supervisor;
     }

@@ -361,6 +361,42 @@ body {
   color: #868e96;
 }
 
+.form-group .wp-id-input-group {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+}
+
+.parent-wp-id-select {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  border: 1.5px solid #dee2e6;
+  border-right: none;
+  border-radius: 0.4rem 0 0 0.4rem;
+  background: #f8f9fb;
+  color: #495057;
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+  max-width: 55%;
+}
+
+#parentWpIdSelect {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.wp-id-input-group #wpId {
+  flex: 1;
+  min-width: 0;
+  border-radius: 0 0.4rem 0.4rem 0;
+}
+
+.wp-id-input-group:focus-within .parent-wp-id-select {
+  border-color: #4361ee;
+}
+
 .modal-actions {
   display: flex;
   justify-content: flex-end;

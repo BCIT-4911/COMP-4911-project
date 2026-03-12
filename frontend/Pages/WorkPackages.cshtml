@@ -59,19 +59,15 @@
 
             <div class="form-grid">
                 <div class="form-group">
-                    <label for="wpId">Work Package ID *</label>
-                    <input type="text" id="wpId" required placeholder="e.g. P001-1.1" />
+                    <label for="wpId">Parent & Work Package ID *</label>
+                    <div class="wp-id-input-group">
+                        <select id="parentWpIdSelect" class="parent-wp-id-select"></select>
+                        <input type="text" id="wpId" required placeholder="e.g. 1, CA3, Z-1" />
+                    </div>
                 </div>
                 <div class="form-group">
                     <label for="wpName">Name *</label>
                     <input type="text" id="wpName" required placeholder="e.g. Requirements Gathering" />
-                </div>
-                <div class="form-group">
-                    <label for="wpType">Type</label>
-                    <select id="wpType">
-                        <option value="SUMMARY">Summary</option>
-                        <option value="LOWEST_LEVEL">Lowest-Level</option>
-                    </select>
                 </div>
                 <div class="form-group">
                     <label for="wpStatus">Status</label>
@@ -80,10 +76,6 @@
                         <option value="CLOSED_FOR_CHARGES">Closed for Charges</option>
                         <option value="COMPLETE">Complete</option>
                     </select>
-                </div>
-                <div class="form-group">
-                    <label for="parentWpId">Parent WP ID</label>
-                    <input type="text" id="parentWpId" placeholder="Optional" />
                 </div>
                 <div class="form-group">
                     <label for="reEmployeeId">RE Employee ID *</label>
@@ -141,11 +133,27 @@
             const res = await authFetch(`${API}/api/projects/${encodeURIComponent(PROJECT_ID)}/workpackages`);
             if (!res.ok) throw new Error('Failed to load work packages');
             const wps = await res.json();
+            populateWpPrefixOptions(wps);
             renderTable(wps);
         } catch (err) {
             document.getElementById('wpBody').innerHTML =
                 `<tr><td colspan="10" class="error-cell">Error: ${err.message}</td></tr>`;
         }
+    }
+
+    function populateWpPrefixOptions(wps) {
+        const select = document.getElementById('parentWpIdSelect');
+        if (!select) return;
+
+        const uniqueIds = [...new Set((wps || []).map(w => w.wpId).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+        if (uniqueIds.length === 0) {
+            select.innerHTML = '<option value="">No existing WPs</option>';
+            select.disabled = true;
+            return;
+        }
+
+        select.disabled = false;
+        select.innerHTML = uniqueIds.map(id => `<option value="${esc(id)}">${esc(id)}</option>`).join('');
     }
 
     function statusDisplay(s) {
@@ -203,6 +211,7 @@
         document.getElementById('modalTitle').textContent = 'New Work Package';
         document.getElementById('submitBtn').textContent = 'Create Work Package';
         document.getElementById('wpId').disabled = false;
+        document.getElementById('parentWpIdSelect').disabled = false;
         document.getElementById('wpForm').reset();
         document.getElementById('wpModal').classList.add('active');
     }
@@ -215,10 +224,9 @@
         document.getElementById('submitBtn').textContent = 'Save Changes';
         document.getElementById('wpId').value = w.wpId;
         document.getElementById('wpId').disabled = true;
+        document.getElementById('parentWpIdSelect').disabled = true;
         document.getElementById('wpName').value = w.wpName || '';
-        document.getElementById('wpType').value = w.wpType || 'SUMMARY';
         document.getElementById('wpStatus').value = w.status || 'OPEN_FOR_CHARGES';
-        document.getElementById('parentWpId').value = w.parentWpId || '';
         document.getElementById('reEmployeeId').value = w.reEmployeeId || '';
         document.getElementById('planStartDate').value = w.planStartDate || '';
         document.getElementById('planEndDate').value = w.planEndDate || '';
@@ -235,14 +243,15 @@
         e.preventDefault();
         const isEdit = document.getElementById('editMode').value === 'true';
         const id = isEdit ? document.getElementById('originalId').value : document.getElementById('wpId').value;
+        const parentWpId = document.getElementById('parentWpIdSelect').value || null;
+        const wpId = parentWpId + "." + (document.getElementById('wpId').disabled ? id : document.getElementById('wpId').value);
 
         const body = {
-            wpId: document.getElementById('wpId').disabled ? id : document.getElementById('wpId').value,
+            wpId: wpId,
             wpName: document.getElementById('wpName').value,
             projId: PROJECT_ID,
-            wpType: document.getElementById('wpType').value,
             status: document.getElementById('wpStatus').value,
-            parentWpId: document.getElementById('parentWpId').value || null,
+            parentWpId: parentWpId,
             reEmployeeId: parseInt(document.getElementById('reEmployeeId').value) || 0,
             planStartDate: document.getElementById('planStartDate').value || null,
             planEndDate: document.getElementById('planEndDate').value || null,

@@ -16,6 +16,10 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 
+/**
+ * Entity class representing an employee.
+ * Maps to the Employee table in the database.
+ */
 @Entity
 @Table(name = "Employee")
 public class Employee {

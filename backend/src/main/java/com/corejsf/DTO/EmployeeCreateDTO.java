@@ -1,5 +1,7 @@
 package com.corejsf.DTO;
 
+import com.corejsf.Entity.SystemRole;
+
 /**
  * Inbound DTO for creating an employee.
  * Team Onboarding implements the full registration flow.
@@ -11,7 +13,9 @@ public class EmployeeCreateDTO {
     private String password;
     private Integer laborGradeId;
     private Integer supervisorId;
+    private SystemRole systemRole;
 
+    //Getters and setters
     public String getFirstName() {
         return firstName;
     }
@@ -50,5 +54,13 @@ public class EmployeeCreateDTO {
 
     public void setSupervisorId(Integer supervisorId) {
         this.supervisorId = supervisorId;
+    }
+
+    public SystemRole getSystemRole() {
+        return systemRole;
+    }
+
+    public void setSystemRole(SystemRole systemRole) {
+        this.systemRole = systemRole;
     }
 }

@@ -7,6 +7,10 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace frontend.Pages;
 
+/**
+ * Page model for the Employees page.
+ * Provides methods for retrieving and creating employee records.
+ */
 public class EmployeesModel : PageModel
 {
     private readonly IConfiguration _config;
@@ -19,6 +23,11 @@ public class EmployeesModel : PageModel
         _config = config;
     }
 
+    /**
+     * Handles GET requests to the Employees page.
+     * Retrieves all employees and labor grades from the API.
+     * @return The page to display.
+     */
     public async Task<IActionResult> OnGetAsync()
     {
         var token = HttpContext.Session.GetString("JWT");
@@ -45,6 +54,11 @@ public class EmployeesModel : PageModel
         return Page();
     }
 
+    /**
+     * Handles POST requests to the Employees page.
+     * Creates a new employee using the provided data.
+     * Returns the page to display.
+     */
     public async Task<IActionResult> OnPostAsync()
     {
         var token = HttpContext.Session.GetString("JWT");

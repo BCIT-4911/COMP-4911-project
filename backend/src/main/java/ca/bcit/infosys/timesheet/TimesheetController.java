@@ -205,9 +205,9 @@ public class TimesheetController {
 
 /**
  * Submits a timesheet.
- * Valid transitions:
- * DRAFT -> SUBMITTED
- * RETURNED -> SUBMITTED
+ * Draft timesheets can be updated/deleted, but once submitted they become immutable and require approval.
+ * Validates submission rules, automatically assigns supervisor as approver, and marks as submitted.
+ * Rejects if already approved or if employee has no supervisor.
  */
 @PUT
 @Path("/{id}/submit")

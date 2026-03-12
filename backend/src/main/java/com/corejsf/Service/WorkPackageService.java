@@ -128,6 +128,13 @@ public class WorkPackageService {
 
     public void deleteWorkPackage(String id) {
         findWorkPackage(id);
+
+        WorkPackage parentWp = getParent(id);
+        List<WorkPackage> parentWpChildren = getChildren(parentWp.getWpId());
+        if (parentWpChildren.size() == 1) {
+            parentWp.setWpType(WorkPackageType.LOWEST_LEVEL);
+        }
+
         deleteWorkPackageRecursive(id);
     }
 

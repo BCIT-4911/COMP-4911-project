@@ -1,12 +1,10 @@
 package com.corejsf.Service;
 
 import com.corejsf.Entity.Employee;
-import com.corejsf.Entity.ProjectAssignment;
 import com.corejsf.Entity.ProjectRole;
 import com.corejsf.Entity.SystemRole;
 import com.corejsf.Entity.Timesheet;
 import com.corejsf.Entity.WorkPackage;
-import com.corejsf.Entity.WorkPackageAssignment;
 import com.corejsf.Entity.WpRole;
 
 import jakarta.ejb.Stateless;

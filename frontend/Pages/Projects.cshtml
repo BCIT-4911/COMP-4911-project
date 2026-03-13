@@ -537,7 +537,7 @@
             }
             // Formally assign PM as a project team member after creation
             if (!isEdit) {
-                await fetch(`${API}/api/projects/${encodeURIComponent(id)}/employees/${body.project_manager_id}`, {
+                await authFetch(`${API}/api/projects/${encodeURIComponent(id)}/employees/${body.project_manager_id}`, {
                     method: 'POST'
                 });
             }

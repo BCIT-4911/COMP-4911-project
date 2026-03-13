@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.corejsf.DTO.TimesheetRequestDTO;
+import com.corejsf.DTO.TimesheetReturnRequestDTO;
 import com.corejsf.DTO.TimesheetResponseDTO;
 import com.corejsf.DTO.TimesheetRowRequestDTO;
 import com.corejsf.Entity.Employee;
@@ -101,20 +102,26 @@ public class TimesheetController {
      * Gets all timesheets, optionally filtered by employee ID.
      */
     @GET
-    public List<TimesheetResponseDTO> getAllTimesheets(@QueryParam("empId") Integer empId) {
-        List<Timesheet> timesheets;
-        if (empId != null) {
-            timesheets = em.createQuery(
-                    "SELECT t FROM Timesheet t WHERE t.employee.empId = :empId", Timesheet.class)
-                    .setParameter("empId", empId)
-                    .getResultList();
-        } else {
-            timesheets = em.createQuery("SELECT t FROM Timesheet t", Timesheet.class)
-                    .getResultList();
-        }
+    public List<TimesheetResponseDTO> getAllTimesheets(
+            @QueryParam("empId") Integer empId,
+            @QueryParam("approverId") Integer approverId,
+            @QueryParam("status") TimesheetStatus status) {
+        List<Timesheet> timesheets = em.createQuery("SELECT t FROM Timesheet t", Timesheet.class)
+                .getResultList();
 
         List<TimesheetResponseDTO> result = new ArrayList<>();
         for (Timesheet ts : timesheets) {
+            if (empId != null && !empId.equals(ts.getEmployee().getEmpId())) {
+                continue;
+            }
+            if (approverId != null) {
+                if (ts.getApprover() == null || !approverId.equals(ts.getApprover().getEmpId())) {
+                    continue;
+                }
+            }
+            if (status != null && ts.getStatus() != status) {
+                continue;
+            }
             List<TimesheetRow> rows = findRows(ts.getTsId());
             result.add(timesheetService.toResponseDTO(ts, rows));
         }
@@ -143,7 +150,7 @@ public class TimesheetController {
     @POST
     @Transactional
     public Response createTimesheet(TimesheetRequestDTO dto) {
-        TimesheetValidation.validateRequest(dto);
+        runValidation(() -> TimesheetValidation.validateRequest(dto));
 
         Employee employee = findEmployee(dto.getEmpId());
 
@@ -152,10 +159,6 @@ public class TimesheetController {
         ts.setEmployee(employee);
         ts.setWeekEnding(dto.getWeekEnding());
         ts.setStatus(TimesheetStatus.DRAFT);
-
-        if (dto.getApproverId() != null) {
-            ts.setApprover(findEmployee(dto.getApproverId()));
-        }
 
         em.persist(ts);
         em.flush(); // ensure ts_id is generated before creating rows
@@ -179,16 +182,24 @@ public class TimesheetController {
     @PUT
     @Path("/{id}")
     @Transactional
-    public TimesheetResponseDTO updateTimesheet(@PathParam("id") int id, TimesheetRequestDTO dto) {
+    public TimesheetResponseDTO updateTimesheet(
+            @PathParam("id") int id,
+            @QueryParam("actorEmpId") Integer actorEmpId,
+            TimesheetRequestDTO dto) {
         Timesheet ts = findTimesheet(id);
-        TimesheetValidation.validateCanEdit(ts.getStatus());
-        TimesheetValidation.validateRequest(dto);
+        validateActorEmpId(actorEmpId);
+        assertOwner(ts, actorEmpId);
+        runValidation(() -> TimesheetValidation.validateCanEdit(ts.getStatus()));
+        runValidation(() -> TimesheetValidation.validateRequest(dto));
+
+        if (!ts.getEmployee().getEmpId().equals(dto.getEmpId())) {
+            throw new WebApplicationException(
+                    "Request empId must match the timesheet owner.",
+                    Response.Status.BAD_REQUEST);
+        }
 
         // Update timesheet fields
         ts.setWeekEnding(dto.getWeekEnding());
-        if (dto.getApproverId() != null) {
-            ts.setApprover(findEmployee(dto.getApproverId()));
-        }
 
         // Delete existing rows and replace
         em.createQuery("DELETE FROM TimesheetRow r WHERE r.timesheet.tsId = :tsId")
@@ -213,8 +224,12 @@ public class TimesheetController {
 @PUT
 @Path("/{id}/submit")
 @Transactional
-public TimesheetResponseDTO submitTimesheet(@PathParam("id") int id) {
+public TimesheetResponseDTO submitTimesheet(@PathParam("id") int id,
+                                            @QueryParam("actorEmpId") Integer actorEmpId) {
     Timesheet ts = findTimesheet(id);
+    validateActorEmpId(actorEmpId);
+    assertOwner(ts, actorEmpId);
+
     TimesheetStatus currentStatus = ts.getStatus();
     if (currentStatus == TimesheetStatus.SUBMITTED) {
         throw new WebApplicationException(
@@ -240,7 +255,7 @@ public TimesheetResponseDTO submitTimesheet(@PathParam("id") int id) {
     List<TimesheetRowRequestDTO> rowDTOs = toRowRequestDTOs(rows);
 
     // Validate submission rules
-    TimesheetValidation.validateForSubmission(rowDTOs);
+    runValidation(() -> TimesheetValidation.validateForSubmission(rowDTOs));
 
     // Automatically assign supervisor as approver
     Employee employee = ts.getEmployee();
@@ -253,6 +268,7 @@ public TimesheetResponseDTO submitTimesheet(@PathParam("id") int id) {
     }
 
     ts.setApprover(supervisor);
+    ts.setReturnComment(null);
 
     // Mark as submitted (waiting for approver action)
     ts.setStatus(TimesheetStatus.SUBMITTED);
@@ -260,6 +276,64 @@ public TimesheetResponseDTO submitTimesheet(@PathParam("id") int id) {
     em.merge(ts);
     return timesheetService.toResponseDTO(ts, rows);
 }
+
+    /**
+     * Approves a submitted timesheet.
+     * Only the assigned approver can approve.
+     */
+    @PUT
+    @Path("/{id}/approve")
+    @Transactional
+    public TimesheetResponseDTO approveTimesheet(@PathParam("id") int id,
+                                                 @QueryParam("actorEmpId") Integer actorEmpId) {
+        Timesheet ts = findTimesheet(id);
+        validateActorEmpId(actorEmpId);
+        assertApprover(ts, actorEmpId);
+
+        if (ts.getStatus() != TimesheetStatus.SUBMITTED) {
+            throw new WebApplicationException(
+                    "Only SUBMITTED timesheets can be approved.",
+                    Response.Status.BAD_REQUEST);
+        }
+
+        ts.setStatus(TimesheetStatus.APPROVED);
+        ts.setReturnComment(null);
+
+        em.merge(ts);
+        return timesheetService.toResponseDTO(ts, findRows(id));
+    }
+
+    /**
+     * Returns a submitted timesheet with a required return comment.
+     * Only the assigned approver can return.
+     */
+    @PUT
+    @Path("/{id}/return")
+    @Transactional
+    public TimesheetResponseDTO returnTimesheet(@PathParam("id") int id,
+                                                @QueryParam("actorEmpId") Integer actorEmpId,
+                                                TimesheetReturnRequestDTO dto) {
+        Timesheet ts = findTimesheet(id);
+        validateActorEmpId(actorEmpId);
+        assertApprover(ts, actorEmpId);
+
+        if (ts.getStatus() != TimesheetStatus.SUBMITTED) {
+            throw new WebApplicationException(
+                    "Only SUBMITTED timesheets can be returned.",
+                    Response.Status.BAD_REQUEST);
+        }
+        if (dto == null || dto.getReturnComment() == null || dto.getReturnComment().trim().isEmpty()) {
+            throw new WebApplicationException(
+                    "Return comment is required when returning a timesheet.",
+                    Response.Status.BAD_REQUEST);
+        }
+
+        ts.setStatus(TimesheetStatus.RETURNED);
+        ts.setReturnComment(dto.getReturnComment().trim());
+
+        em.merge(ts);
+        return timesheetService.toResponseDTO(ts, findRows(id));
+    }
 
     // -------------------------------------------------------------------------
     // DELETE - Delete draft or returned timesheet
@@ -273,9 +347,12 @@ public TimesheetResponseDTO submitTimesheet(@PathParam("id") int id) {
     @DELETE
     @Path("/{id}")
     @Transactional
-    public void deleteTimesheet(@PathParam("id") int id) {
+    public void deleteTimesheet(@PathParam("id") int id,
+                                @QueryParam("actorEmpId") Integer actorEmpId) {
         Timesheet ts = findTimesheet(id);
-        TimesheetValidation.validateCanDelete(ts.getStatus());
+        validateActorEmpId(actorEmpId);
+        assertOwner(ts, actorEmpId);
+        runValidation(() -> TimesheetValidation.validateCanDelete(ts.getStatus()));
 
         em.createQuery("DELETE FROM TimesheetRow r WHERE r.timesheet.tsId = :tsId")
                 .setParameter("tsId", id)
@@ -340,6 +417,38 @@ public TimesheetResponseDTO submitTimesheet(@PathParam("id") int id) {
             dtos.add(dto);
         }
         return dtos;
+    }
+
+    private void validateActorEmpId(Integer actorEmpId) {
+        if (actorEmpId == null || actorEmpId <= 0) {
+            throw new WebApplicationException(
+                    "actorEmpId query parameter is required and must be a positive integer.",
+                    Response.Status.BAD_REQUEST);
+        }
+    }
+
+    private void runValidation(Runnable validator) {
+        try {
+            validator.run();
+        } catch (IllegalArgumentException ex) {
+            throw new WebApplicationException(ex.getMessage(), Response.Status.BAD_REQUEST);
+        }
+    }
+
+    private void assertOwner(Timesheet ts, Integer actorEmpId) {
+        if (!ts.getEmployee().getEmpId().equals(actorEmpId)) {
+            throw new WebApplicationException(
+                    "Only the timesheet owner can perform this action.",
+                    Response.Status.FORBIDDEN);
+        }
+    }
+
+    private void assertApprover(Timesheet ts, Integer actorEmpId) {
+        if (ts.getApprover() == null || !ts.getApprover().getEmpId().equals(actorEmpId)) {
+            throw new WebApplicationException(
+                    "Only the assigned approver can perform this action.",
+                    Response.Status.FORBIDDEN);
+        }
     }
 
     private BigDecimal nz(BigDecimal value) {

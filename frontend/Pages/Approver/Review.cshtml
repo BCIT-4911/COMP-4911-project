@@ -39,6 +39,10 @@
                         <label class="form-label fw-semibold">Week Ending</label>
                         <div id="weekEndingDisplay"></div>
                     </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">Status</label>
+                        <div id="statusDisplay"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -94,7 +98,7 @@
                         throw new Error('This timesheet is not assigned to the selected approver.');
                     }
 
-                    if (ts.approved !== true) {
+                    if (ts.status !== 'SUBMITTED') {
                         throw new Error('This timesheet is not currently in submitted/review state.');
                     }
 
@@ -114,6 +118,7 @@
                 document.getElementById('approverDisplay').textContent =
                     ts.approverName || (ts.approverId ? `Emp #${ts.approverId}` : '—');
                 document.getElementById('weekEndingDisplay').textContent = ts.weekEnding || '';
+                document.getElementById('statusDisplay').innerHTML = renderStatusBadge(ts.status || 'DRAFT');
 
                 const rows = ts.rows || [];
                 if (rows.length === 0) {
@@ -174,7 +179,7 @@
                 clearAlert();
 
                 try {
-                    const res = await fetch(`${API}/api/timesheets/${TIMESHEET_ID}/approve`, {
+                    const res = await fetch(`${API}/api/timesheets/${TIMESHEET_ID}/approve?actorEmpId=${APPROVER_ID}`, {
                         method: 'PUT'
                     });
 
@@ -196,7 +201,7 @@
                 }
 
                 try {
-                    const res = await fetch(`${API}/api/timesheets/${TIMESHEET_ID}/return`, {
+                    const res = await fetch(`${API}/api/timesheets/${TIMESHEET_ID}/return?actorEmpId=${APPROVER_ID}`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ returnComment: comment })
@@ -228,6 +233,13 @@
                 const div = document.createElement('div');
                 div.textContent = str ?? '';
                 return div.innerHTML;
+            }
+
+            function renderStatusBadge(status) {
+                if (status === 'APPROVED') return '<span class="badge bg-success">Approved</span>';
+                if (status === 'RETURNED') return '<span class="badge bg-danger">Returned</span>';
+                if (status === 'SUBMITTED') return '<span class="badge bg-primary">Submitted</span>';
+                return '<span class="badge bg-secondary">Draft</span>';
             }
     </script>
 }

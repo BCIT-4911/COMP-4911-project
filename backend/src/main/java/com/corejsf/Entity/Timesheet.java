@@ -34,9 +34,6 @@ public class Timesheet {
     @JoinColumn(name = "approver_id", nullable = true)
     private Employee approver;
 
-    @Column(name = "approved", nullable = false)
-    private Boolean approvalStatus;
-
     @Column(name = "return_comment", columnDefinition = "TEXT")
     private String returnComment;
 

@@ -33,7 +33,7 @@
                     <label class="form-label">Week Ending</label>
                     <input type="date" class="form-control" id="weekEndingInput" />
                 </div>
-                <!-- OMIT FOR NOW, AUTO APPROVED FOR EAP -->
+                <!-- Approver is assigned automatically on submit based on employee supervisor -->
                 <!-- <div class="col-md-4">
                     <label class="form-label">Approver ID</label>
                     <input type="number" class="form-control" id="approverIdInput" min="1" />
@@ -86,14 +86,14 @@
     <!-- View Timesheets Section -->
     <div class="card shadow-sm mt-4">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Submitted Timesheets</h5>
+            <h5 class="mb-0">Timesheets</h5>
             <button class="btn btn-outline-secondary btn-sm" onclick="loadTimesheets()">
                 Load for Employee
             </button>
         </div>
         <div class="card-body">
             <div id="timesheetsListArea">
-                <p class="text-muted mb-0">Click "Load for Employee" to view submitted timesheets.</p>
+                <p class="text-muted mb-0">Click "Load for Employee" to view timesheets.</p>
             </div>
         </div>
     </div>
@@ -258,7 +258,7 @@
             const tsId = created.tsId;
 
             // Step 2: Immediately submit via PUT /submit
-            const submitRes = await fetch(`${API}/api/timesheets/${tsId}/submit`, {
+            const submitRes = await fetch(`${API}/api/timesheets/${tsId}/submit?actorEmpId=${dto.empId}`, {
                 method: 'PUT'
             });
 
@@ -286,8 +286,6 @@
     function buildRequestDTO() {
         const empId = parseInt(document.getElementById('empIdInput').value);
         const weekEnding = document.getElementById('weekEndingInput').value;
-        const approverIdVal = document.getElementById('approverIdInput').value;
-        const approverId = approverIdVal ? parseInt(approverIdVal) : null;
 
         if (!empId || empId <= 0) {
             showAlert('Please enter a valid Employee ID.', 'warning');
@@ -331,7 +329,7 @@
 
         if (!valid) return null;
 
-        return { empId, weekEnding, approverId, rows };
+        return { empId, weekEnding, rows };
     }
 
     // ========================================================================
@@ -340,7 +338,6 @@
 
     function resetForm() {
         document.getElementById('rowsBody').innerHTML = '';
-        document.getElementById('approverIdInput').value = '';
         addRow();
     }
 
@@ -455,10 +452,8 @@
                 + (r.sunday || 0);
         }, 0);
 
-        const status = ts.approved ? 'Submitted' : 'Draft';
-        const statusBadge = ts.approved
-            ? '<span class="badge bg-success">Submitted</span>'
-            : '<span class="badge bg-warning text-dark">Draft</span>';
+        const status = ts.status || 'DRAFT';
+        const statusBadge = renderStatusBadge(status);
 
         const detailId = `detail-${ts.tsId}`;
 
@@ -521,6 +516,19 @@
         const row = document.getElementById(`detail-${tsId}`);
         if (!row) return;
         row.style.display = row.style.display === 'none' ? '' : 'none';
+    }
+
+    function renderStatusBadge(status) {
+        if (status === 'APPROVED') {
+            return '<span class="badge bg-success">Approved</span>';
+        }
+        if (status === 'SUBMITTED') {
+            return '<span class="badge bg-primary">Submitted</span>';
+        }
+        if (status === 'RETURNED') {
+            return '<span class="badge bg-danger">Returned</span>';
+        }
+        return '<span class="badge bg-secondary">Draft</span>';
     }
 </script>
 }

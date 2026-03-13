@@ -57,16 +57,10 @@
                 area.innerHTML = '<p class="text-muted mb-0">Loading...</p>';
 
                 try {
-                    const res = await fetch(`${API}/api/timesheets`);
+                    const res = await fetch(`${API}/api/timesheets?approverId=${approverId}&status=SUBMITTED`);
                     if (!res.ok) throw new Error(await res.text());
 
-                    const allTimesheets = await res.json();
-
-                    // Current backend uses approved=true to mean submitted.
-                    // If merges status enum later, update this filter.
-                    const reviewItems = allTimesheets.filter(ts =>
-                        ts.approverId === approverId && ts.approved === true
-                    );
+                    const reviewItems = await res.json();
 
                     if (reviewItems.length === 0) {
                         area.innerHTML = '<p class="text-muted mb-0">No submitted timesheets found for this approver.</p>';
@@ -120,7 +114,7 @@
                         <td>${ts.tsId}</td>
                         <td>${esc(ts.empName || ('Emp #' + ts.empId))}</td>
                         <td>${esc(ts.weekEnding || '')}</td>
-                        <td><span class="badge bg-success">Submitted</span></td>
+                        <td>${renderStatusBadge(ts.status || 'SUBMITTED')}</td>
                         <td>${totalHours.toFixed(1)}</td>
                         <td>
                             <a class="btn btn-outline-primary btn-sm"
@@ -146,6 +140,13 @@
                 const div = document.createElement('div');
                 div.textContent = str ?? '';
                 return div.innerHTML;
+            }
+
+            function renderStatusBadge(status) {
+                if (status === 'APPROVED') return '<span class="badge bg-success">Approved</span>';
+                if (status === 'RETURNED') return '<span class="badge bg-danger">Returned</span>';
+                if (status === 'SUBMITTED') return '<span class="badge bg-primary">Submitted</span>';
+                return '<span class="badge bg-secondary">Draft</span>';
             }
 
             document.addEventListener('DOMContentLoaded', () => {

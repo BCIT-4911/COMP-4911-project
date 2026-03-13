@@ -1,4 +1,4 @@
-package ca.bcit.infosys.project;
+package com.corejsf.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 
 /**
  * Validation class for Project
- * 
+ *
  * @author Raymond
  * @version 1.0
  * @since 2026-02-15
@@ -50,7 +50,7 @@ public final class ProjectValidation {
         if (endDate != null && endDate.isBefore(LocalDate.now())) {
             throw new IllegalArgumentException("Project end date cannot be in the past");
         }
-        
+
         if (startDate != null && endDate != null && endDate.isBefore(startDate)) {
             throw new IllegalArgumentException("Project end date cannot be before project start date");
         }

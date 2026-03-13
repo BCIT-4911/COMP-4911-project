@@ -16,6 +16,10 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 
+/**
+ * Entity class representing an employee.
+ * Maps to the Employee table in the database.
+ */
 @Entity
 @Table(name = "Employee")
 public class Employee {
@@ -89,6 +93,7 @@ public class Employee {
         this.empLastName = empLastName;
     }
 
+    @JsonbTransient
     public String getEmpPassword() {
         return empPassword;
     }
@@ -105,6 +110,7 @@ public class Employee {
         this.systemRole = systemRole;
     }
 
+    @JsonbTransient
     public EmployeeESignature getESignature() {
         return eSignature;
     }
@@ -113,6 +119,7 @@ public class Employee {
         this.eSignature = eSignature;
     }
 
+    @JsonbTransient
     public LaborGrade getLaborGrade() {
         return laborGrade;
     }
@@ -121,6 +128,7 @@ public class Employee {
         this.laborGrade = laborGrade;
     }
 
+    @JsonbTransient
     public Employee getSupervisor() {
         return supervisor;
     }
@@ -145,5 +153,26 @@ public class Employee {
         this.expectedWeeklyHours = expectedWeeklyHours;
     }
 
+    // --- Transient field for UI display ---
+    @jakarta.persistence.Transient
+    private String projectRole;
 
+    public String getProjectRole() {
+        return projectRole;
+    }
+
+    public void setProjectRole(String projectRole) {
+        this.projectRole = projectRole;
+    }
+
+    @jakarta.persistence.Transient
+    private String wpRole;
+
+    public String getWpRole() { return wpRole; }
+    public void setWpRole(String wpRole) { this.wpRole = wpRole; }
+
+    @jakarta.json.bind.annotation.JsonbProperty("supervisor_id")
+    public Integer getSupervisorId() {
+        return supervisor != null ? supervisor.getEmpId() : null;
+    }
 }

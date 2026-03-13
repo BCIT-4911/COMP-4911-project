@@ -1,4 +1,4 @@
-package ca.bcit.infosys.project;
+package com.corejsf.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -7,42 +7,22 @@ import java.util.List;
 import com.corejsf.Entity.Employee;
 import com.corejsf.Entity.Project;
 import com.corejsf.Entity.ProjectAssignment;
+import com.corejsf.Entity.ProjectRole;
 import com.corejsf.Entity.ProjectStatus;
 import com.corejsf.Entity.WorkPackage;
 
-import ca.bcit.infosys.workpackage.WorkPackageValidation;
 import jakarta.ejb.Stateless;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;
-import jakarta.transaction.Transactional;
-import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.DELETE;
-import jakarta.ws.rs.GET;
 import jakarta.ws.rs.NotFoundException;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.PUT;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
-import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.core.MediaType;
 
-/**
- * REST controller for projects.
- * Handles CRUD, employee assignments, work packages, and status changes.
- */
 @Stateless
-@Path("/projects")
-@Consumes(MediaType.APPLICATION_JSON)
-@Produces(MediaType.APPLICATION_JSON)
-public class ProjectController {
+public class ProjectService {
 
     @PersistenceContext(unitName = "project-management-pu")
     private EntityManager em;
 
-    /**
-     * Looks up a project by ID, throws 404 if not found.
-     */
     private Project findProject(String id) {
         Project project = em.find(Project.class, id);
         if (project == null) {
@@ -51,9 +31,6 @@ public class ProjectController {
         return project;
     }
 
-    /**
-     * Looks up an employee by ID, throws 404 if not found.
-     */
     private Employee findEmployee(int id) {
         Employee employee = em.find(Employee.class, id);
         if (employee == null) {
@@ -62,29 +39,25 @@ public class ProjectController {
         return employee;
     }
 
-    /**
-     * Gets all projects.
-     */
-    @GET
     public List<Project> getAllProjects() {
-        return em.createQuery("SELECT p FROM Project p", Project.class).getResultList();
+        return em.createQuery("SELECT p FROM Project p", Project.class)
+                .getResultList();
     }
 
-    /**
-     * Gets a single project by ID.
-     */
-    @GET
-    @Path("/{id}")
-    public Project getProject(@PathParam("id") String id) {
+    public List<Project> getProjectsForEmployee(int empId) {
+        return em.createQuery(
+                "SELECT DISTINCT p FROM Project p " +
+                "WHERE (p.projectManager != null AND p.projectManager.empId = :empId) OR " +
+                "p.projId IN (SELECT pa.project.projId FROM ProjectAssignment pa WHERE pa.employee.empId = :empId)", 
+                Project.class)
+                .setParameter("empId", empId)
+                .getResultList();
+    }
+
+    public Project getProject(String id) {
         return findProject(id);
     }
 
-    /**
-     * Creates a new project.
-     * Validates all required fields before persisting.
-     */
-    @POST
-    @Transactional
     public void createProject(Project project) {
         ProjectValidation.validateId(project.getProjId());
         ProjectValidation.validateName(project.getProjName());
@@ -100,14 +73,7 @@ public class ProjectController {
         em.persist(project);
     }
 
-    /**
-     * Updates an existing project.
-     * Validates updatable fields before applying changes.
-     */
-    @PUT
-    @Path("/{id}")
-    @Transactional
-    public void updateProject(@PathParam("id") String id, Project project) {
+    public void updateProject(String id, Project project) {
         Project existing = findProject(id);
 
         ProjectValidation.validateName(project.getProjName());
@@ -126,16 +92,9 @@ public class ProjectController {
         em.merge(existing);
     }
 
-    /**
-     * Deletes a project and all its associated work packages and assignments.
-     */
-    @DELETE
-    @Path("/{id}")
-    @Transactional
-    public void deleteProject(@PathParam("id") String id) {
+    public void deleteProject(String id) {
         findProject(id);
 
-        // Delete work package assignments for all WPs in this project
         List<String> wpIds = em.createQuery(
                 "SELECT w.wpId FROM WorkPackage w WHERE w.project.projId = :projId", String.class)
                 .setParameter("projId", id)
@@ -146,67 +105,46 @@ public class ProjectController {
                     .executeUpdate();
         }
 
-        // Delete work packages
         em.createQuery("DELETE FROM WorkPackage w WHERE w.project.projId = :projId")
                 .setParameter("projId", id)
                 .executeUpdate();
 
-        // Delete project assignments
         em.createQuery("DELETE FROM ProjectAssignment pa WHERE pa.project.projId = :projId")
                 .setParameter("projId", id)
                 .executeUpdate();
 
-        // Delete the project
         Project project = em.find(Project.class, id);
         em.remove(project);
     }
 
-    /**
-     * Closes (archives) a project.
-     */
-    @PUT
-    @Path("/{id}/close")
-    @Transactional
-    public void closeProject(@PathParam("id") String id) {
+    public void closeProject(String id) {
         Project project = findProject(id);
         project.setStatus(ProjectStatus.ARCHIVED);
         em.merge(project);
     }
 
-    /**
-     * Opens a project.
-     */
-    @PUT
-    @Path("/{id}/open")
-    @Transactional
-    public void openProject(@PathParam("id") String id) {
+    public void openProject(String id) {
         Project project = findProject(id);
         project.setStatus(ProjectStatus.OPEN);
         em.merge(project);
     }
 
-    /**
-     * Adds a new work package to a project.
-     */
-    @POST
-    @Path("/{id}/workpackages")
-    @Transactional
-    public void addWorkPackage(@PathParam("id") String id, WorkPackage wp) {
-        findProject(id);
+    public void addWorkPackage(String projId, WorkPackage wp) {
+        Project project = findProject(projId);
         WorkPackageValidation.validate(wp);
-        wp.setProject(findProject(id));
+        wp.setProject(project);
         em.persist(wp);
     }
 
     /**
-     * Assigns an employee to a project.
-     * Skips if the assignment already exists.
+     * Assigns an employee to a project. Skips if the assignment already exists.
+     * Uses AUTO_INCREMENT for ID generation instead of manual MAX query.
      */
-    @POST
-    @Path("/{id}/employees/{empId}")
-    @Transactional
-    public void assignEmployee(@PathParam("id") String id, @PathParam("empId") int empId) {
-        Project project = findProject(id);
+    public void assignEmployee(String projId, int empId, ProjectRole role) {
+        if (role == null) {
+            throw new IllegalArgumentException("Project role is required.");
+        }
+        Project project = findProject(projId);
         Employee employee = findEmployee(empId);
 
         TypedQuery<Long> query = em.createQuery(
@@ -219,54 +157,76 @@ public class ProjectController {
         }
 
         ProjectAssignment assignment = new ProjectAssignment();
-        Integer maxId = em.createQuery("SELECT MAX(pa.paId) FROM ProjectAssignment pa", Integer.class)
-                .getSingleResult();
-        assignment.setPaId(maxId == null ? 1 : maxId + 1);
         assignment.setProject(project);
         assignment.setEmployee(employee);
         assignment.setAssignmentDate(LocalDate.now());
+        assignment.setProjectRole(role);
         em.persist(assignment);
     }
 
-    /**
-     * Gets all work packages for a project.
-     * Uses a direct JPQL query to avoid proxy issues.
-     */
-    @GET
-    @Path("/{id}/workpackages")
-    public List<WorkPackage> getWorkPackages(@PathParam("id") String id) {
-        findProject(id);
-        return em.createQuery(
-                "SELECT w FROM WorkPackage w WHERE w.project.projId = :projId", WorkPackage.class)
-                .setParameter("projId", id)
-                .getResultList();
+    public List<WorkPackage> getWorkPackages(String projId, int empId, boolean isOpsOrPm) {
+        findProject(projId);
+        
+        if (isOpsOrPm) {
+            // Ops Managers and the Project Manager get to see the whole tree
+            return em.createQuery(
+                    "SELECT w FROM WorkPackage w WHERE w.project.projId = :projId", WorkPackage.class)
+                    .setParameter("projId", projId)
+                    .getResultList();
+        } else {
+            // Normal employees only see the WPs they are actively assigned to
+            return em.createQuery(
+                    "SELECT DISTINCT w FROM WorkPackage w " +
+                    "JOIN WorkPackageAssignment wpa ON w.wpId = wpa.workPackage.wpId " +
+                    "WHERE w.project.projId = :projId AND wpa.employee.empId = :empId", WorkPackage.class)
+                    .setParameter("projId", projId)
+                    .setParameter("empId", empId)
+                    .getResultList();
+        }
     }
 
-    /**
-     * Gets all employees assigned to a project.
-     * Uses a direct JPQL join to avoid proxy issues.
-     */
-    @GET
-    @Path("/{id}/employees")
-    public List<Employee> getAssignedEmployees(@PathParam("id") String id) {
-        findProject(id);
-        return em.createQuery(
-                "SELECT e FROM Employee e JOIN ProjectAssignment pa ON e = pa.employee WHERE pa.project.projId = :projId",
-                Employee.class)
-                .setParameter("projId", id)
+    public List<Employee> getAssignedEmployees(String projId) {
+        findProject(projId);
+        
+        // Fetch the full assignments instead of just the employees
+        List<ProjectAssignment> assignments = em.createQuery(
+                "SELECT pa FROM ProjectAssignment pa WHERE pa.project.projId = :projId",
+                ProjectAssignment.class)
+                .setParameter("projId", projId)
                 .getResultList();
+
+        // Map to clean objects and inject the specific project role!
+        List<Employee> cleanEmployees = new java.util.ArrayList<>();
+        for (ProjectAssignment pa : assignments) {
+            Employee p = pa.getEmployee();
+            Employee clean = new Employee();
+            clean.setEmpId(p.getEmpId());
+            clean.setEmpFirstName(p.getEmpFirstName());
+            clean.setEmpLastName(p.getEmpLastName());
+            clean.setProjectRole(pa.getProjectRole().name()); // <-- Grabbing the role!
+            cleanEmployees.add(clean);
+        }
+        return cleanEmployees;
     }
 
-    /**
-     * Generates a plain text report for a project.
-     */
-    @GET
-    @Path("/{id}/report")
-    @Produces(MediaType.TEXT_PLAIN)
-    public String generateReport(@PathParam("id") String id) {
+    public void removeEmployee(String projId, int empId) {
+        jakarta.persistence.TypedQuery<ProjectAssignment> query = em.createQuery(
+                "SELECT pa FROM ProjectAssignment pa WHERE pa.project.projId = :projId AND pa.employee.empId = :empId",
+                ProjectAssignment.class);
+        query.setParameter("projId", projId);
+        query.setParameter("empId", empId);
+        try {
+            ProjectAssignment assignment = query.getSingleResult();
+            em.remove(assignment);
+        } catch (jakarta.persistence.NoResultException e) {
+            // Nothing to remove
+        }
+    }
+
+    public String generateReport(String id) {
         Project p = findProject(id);
         return "Project Report---------------------\n"
-                + "Project ID: " + p.getProjId() + "\n" 
+                + "Project ID: " + p.getProjId() + "\n"
                 + "Project Manager: " + p.getProjectManager().getEmpId() + "\n"
                 + "Type: " + p.getProjType() + "\n"
                 + "Name: " + p.getProjName() + "\n"

@@ -1,7 +1,8 @@
-package ca.bcit.infosys.workpackage;
+package com.corejsf.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 
 import com.corejsf.Entity.Employee;
@@ -9,41 +10,22 @@ import com.corejsf.Entity.Project;
 import com.corejsf.Entity.WorkPackage;
 import com.corejsf.Entity.WorkPackageAssignment;
 import com.corejsf.Entity.WorkPackageStatus;
+import com.corejsf.Entity.WorkPackageType;
+import com.corejsf.Entity.WpRole;
 
 import jakarta.ejb.Stateless;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;
-import jakarta.transaction.Transactional;
-import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.DELETE;
-import jakarta.ws.rs.GET;
 import jakarta.ws.rs.NotFoundException;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.PUT;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
-import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
 
-/**
- * REST controller for work packages.
- * Handles CRUD, employee assignments, and status changes.
- */
 @Stateless
-@Path("/workpackages")
-@Consumes(MediaType.APPLICATION_JSON)
-@Produces(MediaType.APPLICATION_JSON)
-public class WorkPackageController {
+public class WorkPackageService {
 
     @PersistenceContext(unitName = "project-management-pu")
     private EntityManager em;
 
-    /**
-     * Looks up a work package by ID, throws 404 if not found.
-     */
     private WorkPackage findWorkPackage(String id) {
         WorkPackage wp = em.find(WorkPackage.class, id);
         if (wp == null) {
@@ -52,9 +34,6 @@ public class WorkPackageController {
         return wp;
     }
 
-    /**
-     * Looks up an employee by ID, throws 404 if not found.
-     */
     private Employee findEmployee(int id) {
         Employee emp = em.find(Employee.class, id);
         if (emp == null) {
@@ -63,31 +42,22 @@ public class WorkPackageController {
         return emp;
     }
 
-    /**
-     * Gets all work packages.
-     */
-    @GET
     public List<WorkPackage> getAllWorkPackages() {
-        return em.createQuery("SELECT w FROM WorkPackage w", WorkPackage.class).getResultList();
+        return em.createQuery("SELECT w FROM WorkPackage w", WorkPackage.class)
+                .getResultList();
     }
 
-    /**
-     * Gets a single work package by ID.
-     */
-    @GET
-    @Path("/{id}")
-    public WorkPackage getWorkPackage(@PathParam("id") String id) {
+    public WorkPackage getWorkPackage(String id) {
         return findWorkPackage(id);
     }
 
-    /**
-     * Creates a new work package.
-     * Validates the WP and makes sure the project and parent WP exist.
-     */
-    @POST
-    @Transactional
-    public Response createWorkPackage(WorkPackage wp) {
+    public WorkPackage createWorkPackage(WorkPackage wp) {
         WorkPackageValidation.validate(wp);
+
+        WorkPackage existingWp = em.find(WorkPackage.class, wp.getWpId());
+        if (existingWp != null) {
+            throw new IllegalArgumentException("WorkPackage with id " + wp.getWpId() + " already exists.");
+        }
 
         String projId = wp.getProjId();
         if (projId == null) {
@@ -104,34 +74,41 @@ public class WorkPackageController {
             wp.setResponsibleEmployee(findEmployee(reEmpId));
         }
 
-        String parentWpId = wp.getParentWpId();
-        if (parentWpId != null) {
-            WorkPackage parent = em.find(WorkPackage.class, parentWpId);
-            if (parent == null) {
-                throw new NotFoundException("Parent WorkPackage with id " + parentWpId + " not found.");
+        String wpIds[] = wp.getWpId().split("\\.");
+        if (wpIds.length > 1) {
+            String parentWpId = String.join(".", Arrays.copyOfRange(wpIds, 0, wpIds.length - 1));
+            if (parentWpId != null) {
+                WorkPackage parent = em.find(WorkPackage.class, parentWpId);
+                if (parent == null) {
+                    throw new NotFoundException("Parent WorkPackage with id " + parentWpId + " not found.");
+                }
+
+                parent.setWpType(WorkPackageType.SUMMARY);
+                wp.setParentWorkPackage(parent);
             }
-            wp.setParentWorkPackage(parent);
+        } else {
+            wp.setParentWorkPackage(null); 
         }
 
         wp.setCreatedDate(LocalDateTime.now());
         wp.setModifiedDate(LocalDateTime.now());
         em.persist(wp);
-        return Response.status(Response.Status.CREATED).entity(wp).build();
+
+        List<WorkPackage> wpChildren = getChildren(wp.getWpId());
+        if (!wpChildren.isEmpty()) {
+            wp.setWpType(WorkPackageType.SUMMARY);
+        } else {
+            wp.setWpType(WorkPackageType.LOWEST_LEVEL);
+        }
+
+        return wp;
     }
 
-    /**
-     * Updates an existing work package.
-     * Only updates name, description, and parent.
-     */
-    @PUT
-    @Path("/{id}")
-    @Transactional
-    public void updateWorkPackage(@PathParam("id") String id, WorkPackage wp) {
+    public void updateWorkPackage(String id, WorkPackage wp) {
         WorkPackage existing = findWorkPackage(id);
 
         WorkPackageValidation.validateName(wp.getWpName());
 
-        // Resolve transient parentWpId to a JPA WorkPackage entity
         String parentWpId = wp.getParentWpId();
         if (parentWpId != null) {
             WorkPackage parent = em.find(WorkPackage.class, parentWpId);
@@ -143,28 +120,32 @@ public class WorkPackageController {
             existing.setParentWorkPackage(null);
         }
 
+        // Map the existing fields
         existing.setWpName(wp.getWpName());
         existing.setDescription(wp.getDescription());
+        
+        // Map the NEW Estimate Fields!
+        existing.setBac(wp.getBac());
+        existing.setEac(wp.getEac());
+        existing.setPercentComplete(wp.getPercentComplete());
+        existing.setBudgetedEffort(wp.getBudgetedEffort());
+
         existing.setModifiedDate(LocalDateTime.now());
         em.merge(existing);
     }
 
-    /**
-     * Deletes a work package and all its children recursively.
-     * Also removes any assignments tied to each deleted WP.
-     */
-    @DELETE
-    @Path("/{id}")
-    @Transactional
-    public void deleteWorkPackage(@PathParam("id") String id) {
+    public void deleteWorkPackage(String id) {
         findWorkPackage(id);
+
+        WorkPackage parentWp = getParent(id);
+        List<WorkPackage> parentWpChildren = getChildren(parentWp.getWpId());
+        if (parentWpChildren.size() == 1) {
+            parentWp.setWpType(WorkPackageType.LOWEST_LEVEL);
+        }
+
         deleteWorkPackageRecursive(id);
     }
 
-    /**
-     * Recursive helper that deletes children first, then assignments, then the WP
-     * itself.
-     */
     private void deleteWorkPackageRecursive(String wpId) {
         List<String> childIds = em.createQuery(
                 "SELECT w.wpId FROM WorkPackage w WHERE w.parentWorkPackage.wpId = :parentId", String.class)
@@ -186,15 +167,15 @@ public class WorkPackageController {
     }
 
     /**
-     * Assigns an employee to a work package.
-     * Skips if the assignment already exists.
+     * Assigns an employee to a work package. Skips if already assigned.
+     * Uses AUTO_INCREMENT for ID generation instead of manual MAX query.
      */
-    @POST
-    @Path("/{id}/employees/{empId}")
-    @Transactional
-    public void assignEmployee(@PathParam("id") String wpId, @PathParam("empId") int empId) {
-        findWorkPackage(wpId);
-        findEmployee(empId);
+    public void assignEmployee(String wpId, int empId, WpRole role) {
+        if (role == null) {
+            throw new IllegalArgumentException("Work package role is required.");
+        }
+        WorkPackage workPackage = findWorkPackage(wpId);
+        Employee employee = findEmployee(empId);
 
         TypedQuery<Long> query = em.createQuery(
                 "SELECT COUNT(wpa) FROM WorkPackageAssignment wpa WHERE wpa.workPackage.wpId = :wpId AND wpa.employee.empId = :empId",
@@ -206,22 +187,14 @@ public class WorkPackageController {
         }
 
         WorkPackageAssignment assignment = new WorkPackageAssignment();
-        Integer maxId = em.createQuery("SELECT MAX(wpa.wpaId) FROM WorkPackageAssignment wpa", Integer.class)
-                .getSingleResult();
-        assignment.setWpaId(maxId == null ? 1 : maxId + 1);
-        assignment.setWorkPackage(findWorkPackage(wpId));
-        assignment.setEmployee(findEmployee(empId));
+        assignment.setWorkPackage(workPackage);
+        assignment.setEmployee(employee);
         assignment.setAssignmentDate(LocalDate.now());
+        assignment.setWpRole(role);
         em.persist(assignment);
     }
 
-    /**
-     * Removes an employee's assignment from a work package.
-     */
-    @DELETE
-    @Path("/{id}/employees/{empId}")
-    @Transactional
-    public void removeEmployee(@PathParam("id") String wpId, @PathParam("empId") int empId) {
+    public void removeEmployee(String wpId, int empId) {
         TypedQuery<WorkPackageAssignment> query = em.createQuery(
                 "SELECT wpa FROM WorkPackageAssignment wpa WHERE wpa.workPackage.wpId = :wpId AND wpa.employee.empId = :empId",
                 WorkPackageAssignment.class);
@@ -235,52 +208,41 @@ public class WorkPackageController {
         }
     }
 
-    /**
-     * Gets all employees assigned to a work package.
-     * Uses a direct JPQL join to avoid proxy issues.
-     */
-    @GET
-    @Path("/{id}/employees")
-    public List<Employee> getAssignedEmployees(@PathParam("id") String id) {
-        findWorkPackage(id);
-        return em.createQuery(
-                "SELECT e FROM Employee e JOIN WorkPackageAssignment wpa ON e = wpa.employee WHERE wpa.workPackage.wpId = :wpId",
-                Employee.class)
-                .setParameter("wpId", id)
+    public List<Employee> getAssignedEmployees(String wpId) {
+        findWorkPackage(wpId);
+        
+        List<WorkPackageAssignment> assignments = em.createQuery(
+                "SELECT wpa FROM WorkPackageAssignment wpa WHERE wpa.workPackage.wpId = :wpId",
+                WorkPackageAssignment.class)
+                .setParameter("wpId", wpId)
                 .getResultList();
+
+        List<Employee> cleanEmployees = new java.util.ArrayList<>();
+        for (WorkPackageAssignment wpa : assignments) {
+            Employee p = wpa.getEmployee();
+            Employee clean = new Employee();
+            clean.setEmpId(p.getEmpId());
+            clean.setEmpFirstName(p.getEmpFirstName());
+            clean.setEmpLastName(p.getEmpLastName());
+            clean.setWpRole(wpa.getWpRole().name()); // <-- Grabbing the WP role!
+            cleanEmployees.add(clean);
+        }
+        return cleanEmployees;
     }
 
-    /**
-     * Closes a work package for charges.
-     */
-    @PUT
-    @Path("/{id}/close")
-    @Transactional
-    public void close(@PathParam("id") String id) {
+    public void close(String id) {
         WorkPackage wp = findWorkPackage(id);
         wp.setStatus(WorkPackageStatus.CLOSED_FOR_CHARGES);
         em.merge(wp);
     }
 
-    /**
-     * Opens a work package for charges.
-     */
-    @PUT
-    @Path("/{id}/open")
-    @Transactional
-    public void open(@PathParam("id") String id) {
+    public void open(String id) {
         WorkPackage wp = findWorkPackage(id);
         wp.setStatus(WorkPackageStatus.OPEN_FOR_CHARGES);
         em.merge(wp);
     }
 
-    /**
-     * Gets all direct children of a work package.
-     * Uses a direct JPQL query to avoid proxy issues.
-     */
-    @GET
-    @Path("/{id}/children")
-    public List<WorkPackage> getChildren(@PathParam("id") String id) {
+    public List<WorkPackage> getChildren(String id) {
         findWorkPackage(id);
         return em.createQuery(
                 "SELECT w FROM WorkPackage w WHERE w.parentWorkPackage.wpId = :parentId", WorkPackage.class)
@@ -288,13 +250,7 @@ public class WorkPackageController {
                 .getResultList();
     }
 
-    /**
-     * Gets the parent work package.
-     * Returns 404 if the WP has no parent.
-     */
-    @GET
-    @Path("/{id}/parent")
-    public WorkPackage getParent(@PathParam("id") String id) {
+    public WorkPackage getParent(String id) {
         WorkPackage wp = findWorkPackage(id);
         if (wp.getParentWorkPackage() == null) {
             throw new NotFoundException("Work package " + id + " has no parent.");
@@ -302,13 +258,7 @@ public class WorkPackageController {
         return findWorkPackage(wp.getParentWorkPackage().getWpId());
     }
 
-    /**
-     * Generates a plain text report for a work package.
-     */
-    @GET
-    @Path("/{id}/report")
-    @Produces(MediaType.TEXT_PLAIN)
-    public String generateReport(@PathParam("id") String id) {
+    public String generateReport(String id) {
         WorkPackage wp = findWorkPackage(id);
         return "Work Package Report---------------------\n"
                 + "ID: " + wp.getWpId() + "\n"

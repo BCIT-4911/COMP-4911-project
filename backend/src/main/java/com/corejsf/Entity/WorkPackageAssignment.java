@@ -27,6 +27,10 @@ public class WorkPackageAssignment {
     @Column(name = "assignment_date", nullable = false)
     private LocalDate assignmentDate;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "wp_role", nullable = false)
+    private WpRole wpRole;
+
     public WorkPackageAssignment() {
     }
 
@@ -60,5 +64,13 @@ public class WorkPackageAssignment {
 
     public void setAssignmentDate(LocalDate assignmentDate) {
         this.assignmentDate = assignmentDate;
+    }
+
+    public WpRole getWpRole() {
+        return wpRole;
+    }
+
+    public void setWpRole(WpRole wpRole) {
+        this.wpRole = wpRole;
     }
 }

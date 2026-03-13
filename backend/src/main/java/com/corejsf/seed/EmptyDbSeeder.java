@@ -37,8 +37,8 @@ public class EmptyDbSeeder {
     @PostConstruct
     public void seed() {
 
-        if (em.find(WorkPackage.class, "CA-1") != null) {
-            System.out.println("[Seeder] CA-1 exists, skipping.");
+        if (em.find(WorkPackage.class, "A") != null) {
+            System.out.println("[Seeder] A exists, skipping.");
             return;
         }
 
@@ -79,6 +79,12 @@ public class EmptyDbSeeder {
             em.persist(admin);
         }
 
+        Employee roadRunner = createEmployee("Road", "Runner", SystemRole.HR, admin, lg);
+        Employee bugsBunny = createEmployee("Bugs", "Bunny", SystemRole.EMPLOYEE, admin, lg);
+        Employee daffyDuck = createEmployee("Daffy", "Duck", SystemRole.EMPLOYEE, bugsBunny, lg);
+        Employee tweetyBird = createEmployee("Tweety", "Bird", SystemRole.EMPLOYEE, bugsBunny, lg);
+        Employee sylvesterCat = createEmployee("Sylvester", "Cat", SystemRole.EMPLOYEE, bugsBunny, lg);
+
     
 
         Project proj = em.find(Project.class, "PROJ-1");
@@ -101,20 +107,34 @@ public class EmptyDbSeeder {
             em.persist(proj);
         }
 
+
+        Employee marvinMartian = createEmployee("Marvin", "Martian", SystemRole.EMPLOYEE, admin, lg);
+
         // Project 2 for Seed cases
-        Project proj2 = em.find(Project.class, "Proj-2");
+        Project proj2 = em.find(Project.class, "PROJ-2");
         if(proj2 == null) {
             proj2 = new Project();
-            proj2.setProjId("Proj-2");
+            proj2.setProjId("PROJ-2");
             proj2.setProjType(ProjectType.EXTERNAL);
-            proj.setProjectManager(marvinMartian);
-            
+            proj2.setProjectManager(marvinMartian);
+            proj2.setProjName("Demo External Project");
+            proj2.setDescription("Seed Data for Earnved Value Report");
+            proj2.setStatus(ProjectStatus.OPEN);
+            proj2.setStartDate(LocalDate.of(2026, 1, 3));
+            proj2.setEndDate(LocalDate.of(2026, 3, 3));
+            proj2.setCreatedDate(LocalDateTime.now());
+            proj2.setModifiedDate(LocalDateTime.now());
+            proj2.setCreatedBy(admin);
+            proj2.setModifiedBy(admin);
+            proj2.setMarkupRate(new BigDecimal("10.00"));
+
+            em.persist(proj2);  
         }
 
         WorkPackage parent = new WorkPackage();
-        parent.setWpId("CA-1");
+        parent.setWpId("A");
         parent.setWpName("Control Account A");
-        parent.setDescription("Summary WP used as Control Account");
+        parent.setDescription(" Parent summary WP used as Control Account");
         parent.setProject(proj);
         parent.setParentWorkPackage(null);
 
@@ -129,8 +149,8 @@ public class EmptyDbSeeder {
         parent.setPlanEndDate(LocalDate.of(2026, 3, 31));
 
         parent.setResponsibleEmployee(admin); 
-        parent.setBac(new BigDecimal("0.00"));
-        parent.setPercentComplete(new BigDecimal("0.00"));
+        parent.setBac(new BigDecimal("5000.00"));
+        parent.setPercentComplete(new BigDecimal("25.00"));
 
         parent.setCreatedDate(LocalDateTime.now());
         parent.setModifiedDate(LocalDateTime.now());
@@ -139,23 +159,18 @@ public class EmptyDbSeeder {
 
         em.persist(parent);
 
-        createChild("WP-1", "Procure Anvil", proj, parent, admin,
+        createChild("A.1", "Procure Anvil", proj, parent, admin,
                 LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 31),
                 new BigDecimal("1500.00"), new BigDecimal("0.00"));
 
-        createChild("WP-2", "Paint Fake Tunnel", proj, parent, admin,
+        createChild("A.2", "Paint Fake Tunnel", proj, parent, sylvesterCat,
                 LocalDate.of(2026, 2, 1), LocalDate.of(2026, 2, 14),
                 new BigDecimal("1000.00"), new BigDecimal("50.00"));
 
-        createChild("WP-3", "Build Road", proj, parent, admin,
+        createChild("A.3", "Build Road", proj, parent, admin,
                 LocalDate.of(2026, 1, 15), LocalDate.of(2026, 3, 1),
                 new BigDecimal("3000.00"), new BigDecimal("35.00"));
 
-        Employee roadRunner = createEmployee("Road", "Runner", SystemRole.HR, admin, lg);
-        Employee bugsBunny = createEmployee("Bugs", "Bunny", SystemRole.EMPLOYEE, admin, lg);
-        Employee marvinMartian = createEmployee("Marvin", "Martian", SystemRole.EMPLOYEE, admin, lg);
-        Employee daffyDuck = createEmployee("Daffy", "Duck", SystemRole.EMPLOYEE, bugsBunny, lg);
-        Employee tweetyBird = createEmployee("Tweety", "Bird", SystemRole.EMPLOYEE, bugsBunny, lg);
 
         ProjectAssignment paBugs = new ProjectAssignment();
         paBugs.setEmployee(bugsBunny);
@@ -170,27 +185,42 @@ public class EmptyDbSeeder {
         ProjectAssignment paMarvin = new ProjectAssignment();
         paMarvin.setEmployee(marvinMartian);
         paMarvin.setProject(proj2);
+        paMarvin.setAssignmentDate(LocalDate.now());
+        paMarvin.setProjectRole(ProjectRole.PM);
+        em.persist(paMarvin);
 
-        WorkPackage wp1 = em.find(WorkPackage.class, "WP-1");
-        WorkPackage wp2 = em.find(WorkPackage.class, "WP-2");
-        if (wp1 != null) {
+        proj2.setProjectManager(marvinMartian);
+        em.merge(proj2);
+
+        WorkPackage wpParent = em.find(WorkPackage.class, "A");
+        WorkPackage wpChild = em.find(WorkPackage.class, "A.2");
+        WorkPackage wpA1Child = em.find(WorkPackage.class, "A.1");
+        if (wpParent != null) {
             WorkPackageAssignment wpaDaffy = new WorkPackageAssignment();
             wpaDaffy.setEmployee(daffyDuck);
-            wpaDaffy.setWorkPackage(wp1);
+            wpaDaffy.setWorkPackage(wpParent);
             wpaDaffy.setAssignmentDate(LocalDate.now());
             wpaDaffy.setWpRole(WpRole.RE);
             em.persist(wpaDaffy);
         }
-        if (wp2 != null) {
+        if (wpChild != null) {
+            WorkPackageAssignment wpaSylvester = new WorkPackageAssignment();
+            wpaSylvester.setEmployee(sylvesterCat);
+            wpaSylvester.setWorkPackage(wpChild);
+            wpaSylvester.setAssignmentDate(LocalDate.now());
+            wpaSylvester.setWpRole(WpRole.RE);
+            em.persist(wpaSylvester);
+        }
+        if (wpChild !=null) {
             WorkPackageAssignment wpaTweety = new WorkPackageAssignment();
             wpaTweety.setEmployee(tweetyBird);
-            wpaTweety.setWorkPackage(wp2);
+            wpaTweety.setWorkPackage(wpChild);
             wpaTweety.setAssignmentDate(LocalDate.now());
             wpaTweety.setWpRole(WpRole.MEMBER);
             em.persist(wpaTweety);
         }
 
-        System.out.println("[Seeder] Seed complete: LaborGrade + Signature + Employee + Project + CA-1 + children + HR/PM/RE/MEMBER.");
+        System.out.println("[Seeder] Seed complete: LaborGrade + Signature + Employee + Project + A + children + HR/PM/RE/MEMBER.");
     }
 
     private Employee createEmployee(String firstName, String lastName, SystemRole role, Employee supervisor, LaborGrade lg) {

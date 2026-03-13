@@ -149,7 +149,7 @@ public class TimesheetController {
         Timesheet ts = new Timesheet();
         ts.setEmployee(employee);
         ts.setWeekEnding(dto.getWeekEnding());
-        ts.setApprovalStatus(false);
+        ts.setStatus(TimesheetStatus.DRAFT);
 
         if (dto.getApproverId() != null) {
             ts.setApprover(findEmployee(dto.getApproverId()));
@@ -178,7 +178,7 @@ public class TimesheetController {
     @Transactional
     public TimesheetResponseDTO updateTimesheet(@PathParam("id") int id, TimesheetRequestDTO dto) {
         Timesheet ts = findTimesheet(id);
-        TimesheetValidation.validateNotApproved(ts.getApprovalStatus());
+        TimesheetValidation.validateNotApproved(ts.getStatus());
         TimesheetValidation.validateRequest(dto);
 
         // Update timesheet fields
@@ -211,7 +211,7 @@ public class TimesheetController {
     @Transactional
     public TimesheetResponseDTO submitTimesheet(@PathParam("id") int id) {
         Timesheet ts = findTimesheet(id);
-        TimesheetValidation.validateNotApproved(ts.getApprovalStatus());
+        TimesheetValidation.validateNotApproved(ts.getStatus());
 
         // Load existing rows and convert to request DTOs for validation
         List<TimesheetRow> rows = findRows(id);
@@ -220,7 +220,7 @@ public class TimesheetController {
         TimesheetValidation.validateForSubmission(rowDTOs);
 
         // Transition state
-        ts.setApprovalStatus(true);
+        ts.setStatus(TimesheetStatus.APPROVED);
         em.merge(ts);
 
         return timesheetService.toResponseDTO(ts, rows);
@@ -239,7 +239,7 @@ public class TimesheetController {
     @Transactional
     public void deleteTimesheet(@PathParam("id") int id) {
         Timesheet ts = findTimesheet(id);
-        TimesheetValidation.validateNotApproved(ts.getApprovalStatus());
+        TimesheetValidation.validateNotApproved(ts.getStatus());
 
         em.createQuery("DELETE FROM TimesheetRow r WHERE r.timesheet.tsId = :tsId")
                 .setParameter("tsId", id)

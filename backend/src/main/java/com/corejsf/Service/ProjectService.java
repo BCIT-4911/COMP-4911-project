@@ -44,6 +44,16 @@ public class ProjectService {
                 .getResultList();
     }
 
+    public List<Project> getProjectsForEmployee(int empId) {
+        return em.createQuery(
+                "SELECT DISTINCT p FROM Project p " +
+                "WHERE (p.projectManager != null AND p.projectManager.empId = :empId) OR " +
+                "p.projId IN (SELECT pa.project.projId FROM ProjectAssignment pa WHERE pa.employee.empId = :empId)", 
+                Project.class)
+                .setParameter("empId", empId)
+                .getResultList();
+    }
+
     public Project getProject(String id) {
         return findProject(id);
     }
@@ -154,21 +164,63 @@ public class ProjectService {
         em.persist(assignment);
     }
 
-    public List<WorkPackage> getWorkPackages(String projId) {
+    public List<WorkPackage> getWorkPackages(String projId, int empId, boolean isOpsOrPm) {
         findProject(projId);
-        return em.createQuery(
-                "SELECT w FROM WorkPackage w WHERE w.project.projId = :projId", WorkPackage.class)
-                .setParameter("projId", projId)
-                .getResultList();
+        
+        if (isOpsOrPm) {
+            // Ops Managers and the Project Manager get to see the whole tree
+            return em.createQuery(
+                    "SELECT w FROM WorkPackage w WHERE w.project.projId = :projId", WorkPackage.class)
+                    .setParameter("projId", projId)
+                    .getResultList();
+        } else {
+            // Normal employees only see the WPs they are actively assigned to
+            return em.createQuery(
+                    "SELECT DISTINCT w FROM WorkPackage w " +
+                    "JOIN WorkPackageAssignment wpa ON w.wpId = wpa.workPackage.wpId " +
+                    "WHERE w.project.projId = :projId AND wpa.employee.empId = :empId", WorkPackage.class)
+                    .setParameter("projId", projId)
+                    .setParameter("empId", empId)
+                    .getResultList();
+        }
     }
 
     public List<Employee> getAssignedEmployees(String projId) {
         findProject(projId);
-        return em.createQuery(
-                "SELECT e FROM Employee e JOIN ProjectAssignment pa ON e = pa.employee WHERE pa.project.projId = :projId",
-                Employee.class)
+        
+        // Fetch the full assignments instead of just the employees
+        List<ProjectAssignment> assignments = em.createQuery(
+                "SELECT pa FROM ProjectAssignment pa WHERE pa.project.projId = :projId",
+                ProjectAssignment.class)
                 .setParameter("projId", projId)
                 .getResultList();
+
+        // Map to clean objects and inject the specific project role!
+        List<Employee> cleanEmployees = new java.util.ArrayList<>();
+        for (ProjectAssignment pa : assignments) {
+            Employee p = pa.getEmployee();
+            Employee clean = new Employee();
+            clean.setEmpId(p.getEmpId());
+            clean.setEmpFirstName(p.getEmpFirstName());
+            clean.setEmpLastName(p.getEmpLastName());
+            clean.setProjectRole(pa.getProjectRole().name()); // <-- Grabbing the role!
+            cleanEmployees.add(clean);
+        }
+        return cleanEmployees;
+    }
+
+    public void removeEmployee(String projId, int empId) {
+        jakarta.persistence.TypedQuery<ProjectAssignment> query = em.createQuery(
+                "SELECT pa FROM ProjectAssignment pa WHERE pa.project.projId = :projId AND pa.employee.empId = :empId",
+                ProjectAssignment.class);
+        query.setParameter("projId", projId);
+        query.setParameter("empId", empId);
+        try {
+            ProjectAssignment assignment = query.getSingleResult();
+            em.remove(assignment);
+        } catch (jakarta.persistence.NoResultException e) {
+            // Nothing to remove
+        }
     }
 
     public String generateReport(String id) {

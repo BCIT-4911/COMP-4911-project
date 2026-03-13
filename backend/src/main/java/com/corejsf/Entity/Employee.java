@@ -153,5 +153,26 @@ public class Employee {
         this.expectedWeeklyHours = expectedWeeklyHours;
     }
 
+    // --- Transient field for UI display ---
+    @jakarta.persistence.Transient
+    private String projectRole;
 
+    public String getProjectRole() {
+        return projectRole;
+    }
+
+    public void setProjectRole(String projectRole) {
+        this.projectRole = projectRole;
+    }
+
+    @jakarta.persistence.Transient
+    private String wpRole;
+
+    public String getWpRole() { return wpRole; }
+    public void setWpRole(String wpRole) { this.wpRole = wpRole; }
+
+    @jakarta.json.bind.annotation.JsonbProperty("supervisor_id")
+    public Integer getSupervisorId() {
+        return supervisor != null ? supervisor.getEmpId() : null;
+    }
 }

@@ -4,7 +4,6 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.corejsf.DTO.ReturnTimesheetRequestDTO;
 import com.corejsf.DTO.TimesheetRequestDTO;
 import com.corejsf.DTO.TimesheetResponseDTO;
 import com.corejsf.DTO.TimesheetRowRequestDTO;
@@ -169,19 +168,20 @@ public class TimesheetController {
     }
 
     // -------------------------------------------------------------------------
-    // PUT - Update draft
+    // PUT - Update draft or returned timesheet
     // -------------------------------------------------------------------------
 
     /**
-     * Updates an existing draft timesheet. Replaces all rows.
-     * Rejects if the timesheet is already approved (immutability).
+     * Updates an existing timesheet. Replaces all rows.
+     * Only DRAFT and RETURNED timesheets can be edited.
+     * Rejects edits on SUBMITTED (pending review) and APPROVED (final).
      */
     @PUT
     @Path("/{id}")
     @Transactional
     public TimesheetResponseDTO updateTimesheet(@PathParam("id") int id, TimesheetRequestDTO dto) {
         Timesheet ts = findTimesheet(id);
-        TimesheetValidation.validateNotApproved(ts.getStatus());
+        TimesheetValidation.validateCanEdit(ts.getStatus());
         TimesheetValidation.validateRequest(dto);
 
         // Update timesheet fields
@@ -215,12 +215,16 @@ public class TimesheetController {
 @Transactional
 public TimesheetResponseDTO submitTimesheet(@PathParam("id") int id) {
     Timesheet ts = findTimesheet(id);
-    TimesheetValidation.validateNotApproved(ts.getStatus());
-
     TimesheetStatus currentStatus = ts.getStatus();
     if (currentStatus == TimesheetStatus.SUBMITTED) {
         throw new WebApplicationException(
                 "Cannot submit a SUBMITTED timesheet.",
+                Response.Status.BAD_REQUEST
+        );
+    }
+    if (currentStatus == TimesheetStatus.APPROVED) {
+        throw new WebApplicationException(
+                "Cannot submit an APPROVED timesheet.",
                 Response.Status.BAD_REQUEST
         );
     }
@@ -258,132 +262,20 @@ public TimesheetResponseDTO submitTimesheet(@PathParam("id") int id) {
 }
 
     // -------------------------------------------------------------------------
-    // PUT /approve - Approve timesheet (approver only)
+    // DELETE - Delete draft or returned timesheet
     // -------------------------------------------------------------------------
 
     /**
-     * Approves a submitted timesheet.
-     * Only the assigned approver may call this. Transitions SUBMITTED → APPROVED.
-     * Clears any previous return comment on success.
-     *
-     * @param id         the timesheet ID
-     * @param approverId temporary caller identity (placeholder until auth is wired)
-     */
-    @PUT
-    @Path("/{id}/approve")
-    @Transactional
-    public Response approveTimesheet(@PathParam("id") int id,
-                                     @QueryParam("approverId") Integer approverId) {
-        if (approverId == null) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("approverId query parameter is required.")
-                    .build();
-        }
-
-        Timesheet ts = findTimesheet(id);
-
-        // Authorization: caller must be the assigned approver
-        try {
-            TimesheetValidation.validateIsApprover(ts, approverId);
-        } catch (SecurityException e) {
-            return Response.status(Response.Status.FORBIDDEN)
-                    .entity(e.getMessage())
-                    .build();
-        }
-
-        // State transition: only SUBMITTED → APPROVED
-        try {
-            TimesheetValidation.validateCanApprove(ts.getStatus());
-        } catch (IllegalArgumentException e) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity(e.getMessage())
-                    .build();
-        }
-
-        ts.setStatus(TimesheetStatus.APPROVED);
-        ts.setReturnComment(null); // clear any previous return comment
-        em.merge(ts);
-
-        List<TimesheetRow> rows = findRows(id);
-        return Response.ok(timesheetService.toResponseDTO(ts, rows)).build();
-    }
-
-    // -------------------------------------------------------------------------
-    // PUT /return - Return timesheet (approver only)
-    // -------------------------------------------------------------------------
-
-    /**
-     * Returns a submitted timesheet to the employee with a required comment.
-     * Only the assigned approver may call this. Transitions SUBMITTED → RETURNED.
-     *
-     * @param id         the timesheet ID
-     * @param approverId temporary caller identity (placeholder until auth is wired)
-     * @param dto        body containing the required returnComment
-     */
-    @PUT
-    @Path("/{id}/return")
-    @Transactional
-    public Response returnTimesheet(@PathParam("id") int id,
-                                    @QueryParam("approverId") Integer approverId,
-                                    ReturnTimesheetRequestDTO dto) {
-        if (approverId == null) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("approverId query parameter is required.")
-                    .build();
-        }
-
-        Timesheet ts = findTimesheet(id);
-
-        // Authorization: caller must be the assigned approver
-        try {
-            TimesheetValidation.validateIsApprover(ts, approverId);
-        } catch (SecurityException e) {
-            return Response.status(Response.Status.FORBIDDEN)
-                    .entity(e.getMessage())
-                    .build();
-        }
-
-        // State transition: only SUBMITTED → RETURNED
-        try {
-            TimesheetValidation.validateCanReturn(ts.getStatus());
-        } catch (IllegalArgumentException e) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity(e.getMessage())
-                    .build();
-        }
-
-        // Return comment is mandatory
-        try {
-            TimesheetValidation.validateReturnComment(
-                    dto != null ? dto.getReturnComment() : null);
-        } catch (IllegalArgumentException e) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity(e.getMessage())
-                    .build();
-        }
-
-        ts.setStatus(TimesheetStatus.RETURNED);
-        ts.setReturnComment(dto.getReturnComment().trim());
-        em.merge(ts);
-
-        List<TimesheetRow> rows = findRows(id);
-        return Response.ok(timesheetService.toResponseDTO(ts, rows)).build();
-    }
-
-    // -------------------------------------------------------------------------
-    // DELETE - Delete draft
-    // -------------------------------------------------------------------------
-
-    /**
-     * Deletes a draft timesheet and all its rows.
-     * Rejects if the timesheet is approved (immutability).
+     * Deletes a timesheet and all its rows.
+     * Only DRAFT and RETURNED timesheets can be deleted.
+     * Rejects deletion of SUBMITTED (pending review) and APPROVED (final).
      */
     @DELETE
     @Path("/{id}")
     @Transactional
     public void deleteTimesheet(@PathParam("id") int id) {
         Timesheet ts = findTimesheet(id);
-        TimesheetValidation.validateNotApproved(ts.getStatus());
+        TimesheetValidation.validateCanDelete(ts.getStatus());
 
         em.createQuery("DELETE FROM TimesheetRow r WHERE r.timesheet.tsId = :tsId")
                 .setParameter("tsId", id)

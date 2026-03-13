@@ -124,6 +124,7 @@ CREATE TABLE Timesheet(
     week_ending DATE NOT NULL,
     approver_id INT,
     approved BOOLEAN NOT NULL,
+    status ENUM('DRAFT', 'SUBMITTED', 'APPROVED', 'RETURNED') NOT NULL DEFAULT 'DRAFT',
     return_comment TEXT,
     emp_e_sig_id INT, 
     FOREIGN KEY (emp_id) REFERENCES Employee(emp_id),

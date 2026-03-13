@@ -8,7 +8,7 @@
     <div class="d-flex align-items-center justify-content-between mb-3">
         <div>
             <h1 class="display-6 mb-0">Approver Dashboard</h1>
-            <div class="text-muted">Review submitted timesheets for an approver</div>
+            <div class="text-muted">Review submitted timesheets for your direct reports</div>
         </div>
     </div>
 
@@ -18,9 +18,20 @@
         <div class="card-body">
             <div class="row g-3 align-items-end">
                 <div class="col-md-4">
-                    <label class="form-label">Approver ID</label>
-                    <input type="number" class="form-control" id="approverIdInput" min="1"
-                           value="@(Model.ApproverId ?? 1)" />
+                    <label class="form-label">Direct Report Employee ID</label>
+                    <select class="form-select" id="employeeIdSelect">
+                        @foreach (var empId in Model.DirectReportIds)
+                        {
+                            if (Model.SelectedEmployeeId == empId)
+                            {
+                                <option value="@empId" selected>@empId</option>
+                            }
+                            else
+                            {
+                                <option value="@empId">@empId</option>
+                            }
+                        }
+                    </select>
                 </div>
                 <div class="col-md-3">
                     <button class="btn btn-primary" onclick="loadDashboard()">Load Dashboard</button>
@@ -35,7 +46,7 @@
         </div>
         <div class="card-body">
             <div id="dashboardArea">
-                <p class="text-muted mb-0">Enter an approver ID and click "Load Dashboard".</p>
+                <p class="text-muted mb-0">Select an employee and click "Load Dashboard".</p>
             </div>
         </div>
     </div>
@@ -44,12 +55,26 @@
 @section Scripts {
     <script>
             const API = '@Model.ApiBaseUrl';
+            const TOKEN = '@Model.JwtToken';
+
+            function authFetch(url, options = {}) {
+                options.headers = {
+                    ...(options.headers || {}),
+                    'Authorization': `Bearer ${TOKEN}`
+                };
+                return fetch(url, options).then(res => {
+                    if (res.status === 401) {
+                        window.location.href = '/Login';
+                    }
+                    return res;
+                });
+            }
 
             async function loadDashboard() {
-                const approverId = parseInt(document.getElementById('approverIdInput').value);
+                const selectedEmployeeId = parseInt(document.getElementById('employeeIdSelect').value);
 
-                if (!approverId || approverId <= 0) {
-                    showAlert('Please enter a valid Approver ID.', 'warning');
+                if (!selectedEmployeeId || selectedEmployeeId <= 0) {
+                    showAlert('Please select a valid employee.', 'warning');
                     return;
                 }
 
@@ -57,23 +82,23 @@
                 area.innerHTML = '<p class="text-muted mb-0">Loading...</p>';
 
                 try {
-                    const res = await fetch(`${API}/api/timesheets?approverId=${approverId}&status=SUBMITTED`);
+                    const res = await authFetch(`${API}/api/timesheets?empId=${selectedEmployeeId}&status=SUBMITTED`);
                     if (!res.ok) throw new Error(await res.text());
 
                     const reviewItems = await res.json();
 
                     if (reviewItems.length === 0) {
-                        area.innerHTML = '<p class="text-muted mb-0">No submitted timesheets found for this approver.</p>';
+                        area.innerHTML = '<p class="text-muted mb-0">No submitted timesheets found for this employee.</p>';
                         return;
                     }
 
-                    renderDashboard(reviewItems, approverId);
+                    renderDashboard(reviewItems);
                 } catch (err) {
                     area.innerHTML = `<p class="text-danger mb-0">Error: ${esc(err.message)}</p>`;
                 }
             }
 
-            function renderDashboard(timesheets, approverId) {
+            function renderDashboard(timesheets) {
                 const area = document.getElementById('dashboardArea');
 
                 area.innerHTML = `
@@ -90,14 +115,14 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                ${timesheets.map(ts => renderRow(ts, approverId)).join('')}
+                                ${timesheets.map(ts => renderRow(ts)).join('')}
                             </tbody>
                         </table>
                     </div>
                 `;
             }
 
-            function renderRow(ts, approverId) {
+            function renderRow(ts) {
                 const totalHours = (ts.rows || []).reduce((sum, r) => {
                     return sum
                         + (r.monday || 0)
@@ -118,7 +143,7 @@
                         <td>${totalHours.toFixed(1)}</td>
                         <td>
                             <a class="btn btn-outline-primary btn-sm"
-                               href="/Approver/Review?id=${ts.tsId}&approverId=${approverId}">
+                               href="/Approver/Review?id=${ts.tsId}">
                                 View Details
                             </a>
                         </td>
@@ -150,7 +175,7 @@
             }
 
             document.addEventListener('DOMContentLoaded', () => {
-                if (document.getElementById('approverIdInput').value) {
+                if (document.getElementById('employeeIdSelect').value) {
                     loadDashboard();
                 }
             });

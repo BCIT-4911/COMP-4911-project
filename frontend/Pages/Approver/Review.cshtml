@@ -79,8 +79,22 @@
 @section Scripts {
     <script>
             const API = '@Model.ApiBaseUrl';
+            const TOKEN = '@Model.JwtToken';
             const TIMESHEET_ID = @Model.Id;
             const APPROVER_ID = @(Model.ApproverId ?? 0);
+
+            function authFetch(url, options = {}) {
+                options.headers = {
+                    ...(options.headers || {}),
+                    'Authorization': `Bearer ${TOKEN}`
+                };
+                return fetch(url, options).then(res => {
+                    if (res.status === 401) {
+                        window.location.href = '/Login';
+                    }
+                    return res;
+                });
+            }
 
             let currentTimesheet = null;
 
@@ -88,7 +102,7 @@
 
             async function loadTimesheet() {
                 try {
-                    const res = await fetch(`${API}/api/timesheets/${TIMESHEET_ID}`);
+                    const res = await authFetch(`${API}/api/timesheets/${TIMESHEET_ID}`);
                     if (!res.ok) throw new Error(await res.text());
 
                     const ts = await res.json();
@@ -179,7 +193,7 @@
                 clearAlert();
 
                 try {
-                    const res = await fetch(`${API}/api/timesheets/${TIMESHEET_ID}/approve?actorEmpId=${APPROVER_ID}`, {
+                    const res = await authFetch(`${API}/api/timesheets/${TIMESHEET_ID}/approve?actorEmpId=${APPROVER_ID}`, {
                         method: 'PUT'
                     });
 
@@ -201,7 +215,7 @@
                 }
 
                 try {
-                    const res = await fetch(`${API}/api/timesheets/${TIMESHEET_ID}/return?actorEmpId=${APPROVER_ID}`, {
+                    const res = await authFetch(`${API}/api/timesheets/${TIMESHEET_ID}/return?actorEmpId=${APPROVER_ID}`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ returnComment: comment })

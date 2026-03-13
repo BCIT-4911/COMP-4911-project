@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Text.Json;
 using frontend.data;
@@ -6,6 +7,8 @@ namespace frontend.Pages.EarnedValue;
 
 public class IndexModel : PageModel
 {
+    private readonly IConfiguration _config;
+    private readonly IHttpClientFactory _httpClientFactory;
     public int MonthCount { get; set; } = 6;
 
     // Filters (stubbed)
@@ -76,20 +79,33 @@ public class IndexModel : PageModel
     //     }
     // }
 
-    public async Task OnGetAsync()
+    public IndexModel(IConfiguration config, IHttpClientFactory httpClientFactory)
     {
+        _config = config;
+        _httpClientFactory = httpClientFactory;
+    }
+
+    public async Task<IActionResult> OnGetAsync()
+    {
+        var token = HttpContext.Session.GetString("JWT");
+        if (string.IsNullOrWhiteSpace(token))
+            return RedirectToPage("/Login");
+
         Projects = new() { new(1, "Demo Project") };
         ControlAccounts = new() { new(1, "Control Account A") };
 
-        var apiUrl = "http://localhost:8080/Project/api/earned-value?parentWpId=CA-1";
+        var apiBaseUrl = _config["ApiBaseUrl"] ?? "http://localhost:8080/Project";
+        var apiUrl = apiBaseUrl + "/api/earned-value?parentWpId=CA-1";
 
-        using var http = new HttpClient();
+        var http = _httpClientFactory.CreateClient();
+        http.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
         var response = await http.GetAsync(apiUrl);
 
         if (!response.IsSuccessStatusCode)
         {
             Console.WriteLine("API FAILED: " + response.StatusCode);
-            return;
+            return Page();
         }
 
         var json = await response.Content.ReadAsStringAsync();
@@ -101,7 +117,7 @@ public class IndexModel : PageModel
 
         var data = JsonSerializer.Deserialize<List<WorkPackageApiDto>>(json, options);
 
-        if (data == null) return;
+        if (data == null) return Page();
 
         WorkPackages.Clear();
 
@@ -136,6 +152,7 @@ public class IndexModel : PageModel
             CVByMonth[m] = TotalBCWPByMonth[m]; // ACWP = 0 for now
         }
 
+        return Page();
     }
 
     public record Option(int Id, string Name);

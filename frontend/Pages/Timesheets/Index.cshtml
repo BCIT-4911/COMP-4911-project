@@ -105,6 +105,15 @@
 @section Scripts {
 <script>
     const API = '@Model.ApiBaseUrl';
+    const TOKEN = '@Model.JwtToken';
+
+    function authFetch(url, options = {}) {
+        options.headers = { ...options.headers, 'Authorization': `Bearer ${TOKEN}` };
+        return fetch(url, options).then(res => {
+            if (res.status === 401) window.location.href = '/Login';
+            return res;
+        });
+    }
 
     let workPackages = [];
     let laborGrades = [];
@@ -133,7 +142,7 @@
 
     async function loadWorkPackages() {
         try {
-            const res = await fetch(`${API}/api/workpackages`);
+            const res = await authFetch(`${API}/api/workpackages`);
             if (!res.ok) throw new Error('Failed to load work packages');
             workPackages = await res.json();
         } catch (err) {
@@ -143,7 +152,7 @@
 
     async function loadLaborGrades() {
         try {
-            const res = await fetch(`${API}/api/labor-grades`);
+            const res = await authFetch(`${API}/api/labor-grades`);
             if (!res.ok) throw new Error('Failed to load labor grades');
             laborGrades = await res.json();
         } catch (err) {
@@ -243,7 +252,7 @@
 
         try {
             // Step 1: Create the timesheet via POST
-            const createRes = await fetch(`${API}/api/timesheets`, {
+            const createRes = await authFetch(`${API}/api/timesheets`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(dto)
@@ -258,7 +267,7 @@
             const tsId = created.tsId;
 
             // Step 2: Immediately submit via PUT /submit
-            const submitRes = await fetch(`${API}/api/timesheets/${tsId}/submit?actorEmpId=${dto.empId}`, {
+            const submitRes = await authFetch(`${API}/api/timesheets/${tsId}/submit`, {
                 method: 'PUT'
             });
 
@@ -286,6 +295,8 @@
     function buildRequestDTO() {
         const empId = parseInt(document.getElementById('empIdInput').value);
         const weekEnding = document.getElementById('weekEndingInput').value;
+        const approverEl = document.getElementById('approverIdInput');
+        const approverId = approverEl && approverEl.value ? parseInt(approverEl.value) : null;
 
         if (!empId || empId <= 0) {
             showAlert('Please enter a valid Employee ID.', 'warning');
@@ -338,6 +349,8 @@
 
     function resetForm() {
         document.getElementById('rowsBody').innerHTML = '';
+        const approverInput = document.getElementById('approverIdInput');
+        if (approverInput) approverInput.value = '';
         addRow();
     }
 
@@ -405,7 +418,7 @@
         area.innerHTML = '<p class="text-muted">Loading...</p>';
 
         try {
-            const res = await fetch(`${API}/api/timesheets?empId=${empId}`);
+            const res = await authFetch(`${API}/api/timesheets?empId=${empId}`);
             if (!res.ok) throw new Error(await res.text());
             const list = await res.json();
 

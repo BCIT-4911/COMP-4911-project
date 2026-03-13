@@ -152,7 +152,7 @@ public class TimesheetController {
         Timesheet ts = new Timesheet();
         ts.setEmployee(employee);
         ts.setWeekEnding(dto.getWeekEnding());
-        ts.setApprovalStatus(false);
+        ts.setStatus(TimesheetStatus.DRAFT);
 
         if (dto.getApproverId() != null) {
             ts.setApprover(findEmployee(dto.getApproverId()));
@@ -181,7 +181,7 @@ public class TimesheetController {
     @Transactional
     public TimesheetResponseDTO updateTimesheet(@PathParam("id") int id, TimesheetRequestDTO dto) {
         Timesheet ts = findTimesheet(id);
-        TimesheetValidation.validateNotApproved(ts.getApprovalStatus());
+        TimesheetValidation.validateNotApproved(ts.getStatus());
         TimesheetValidation.validateRequest(dto);
 
         // Update timesheet fields
@@ -207,22 +207,27 @@ public class TimesheetController {
 
 /**
  * Submits a timesheet.
- * Draft timesheets can be updated/deleted, but once submitted they become immutable and require approval.
- * Validates submission rules, automatically assigns supervisor as approver, and marks as submitted.
- * Rejects if already approved or if employee has no supervisor.
+ * Draft/returned timesheets can be submitted for approval once validation passes.
+ * Assigns the employee's supervisor as approver and moves status to SUBMITTED.
  */
 @PUT
 @Path("/{id}/submit")
 @Transactional
 public TimesheetResponseDTO submitTimesheet(@PathParam("id") int id) {
-
     Timesheet ts = findTimesheet(id);
+    TimesheetValidation.validateNotApproved(ts.getStatus());
 
-    // Reject if already approved
-    if (Boolean.TRUE.equals(ts.getApprovalStatus())) {
+    TimesheetStatus currentStatus = ts.getStatus();
+    if (currentStatus == TimesheetStatus.SUBMITTED) {
         throw new WebApplicationException(
-            "Approved timesheets cannot be submitted again.",
-            Response.Status.BAD_REQUEST
+                "Cannot submit a SUBMITTED timesheet.",
+                Response.Status.BAD_REQUEST
+        );
+    }
+    if (currentStatus != TimesheetStatus.DRAFT && currentStatus != TimesheetStatus.RETURNED) {
+        throw new WebApplicationException(
+                "Only DRAFT or RETURNED timesheets can be submitted.",
+                Response.Status.BAD_REQUEST
         );
     }
 
@@ -236,21 +241,19 @@ public TimesheetResponseDTO submitTimesheet(@PathParam("id") int id) {
     // Automatically assign supervisor as approver
     Employee employee = ts.getEmployee();
     Employee supervisor = employee.getSupervisor();
-
     if (supervisor == null) {
         throw new WebApplicationException(
-            "Employee does not have a supervisor assigned.",
-            Response.Status.BAD_REQUEST
+                "Employee does not have a supervisor assigned.",
+                Response.Status.BAD_REQUEST
         );
     }
 
     ts.setApprover(supervisor);
 
-    // Mark as submitted (waiting for approval)
-    ts.setApprovalStatus(false);
+    // Mark as submitted (waiting for approver action)
+    ts.setStatus(TimesheetStatus.SUBMITTED);
 
     em.merge(ts);
-
     return timesheetService.toResponseDTO(ts, rows);
 }
 
@@ -380,7 +383,7 @@ public TimesheetResponseDTO submitTimesheet(@PathParam("id") int id) {
     @Transactional
     public void deleteTimesheet(@PathParam("id") int id) {
         Timesheet ts = findTimesheet(id);
-        TimesheetValidation.validateNotApproved(ts.getApprovalStatus());
+        TimesheetValidation.validateNotApproved(ts.getStatus());
 
         em.createQuery("DELETE FROM TimesheetRow r WHERE r.timesheet.tsId = :tsId")
                 .setParameter("tsId", id)

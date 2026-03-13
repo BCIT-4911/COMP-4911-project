@@ -25,7 +25,7 @@ public class TimesheetService {
         dto.setEmpId(ts.getEmployee().getEmpId());
         dto.setEmpName(ts.getEmployee().getEmpFirstName() + " " + ts.getEmployee().getEmpLastName());
         dto.setWeekEnding(ts.getWeekEnding());
-        dto.setApproved(ts.getApprovalStatus());
+        dto.setStatus(ts.getStatus());
         if (ts.getApprover() != null) {
             dto.setApproverId(ts.getApprover().getEmpId());
             dto.setApproverName(ts.getApprover().getEmpFirstName() + " " + ts.getApprover().getEmpLastName());

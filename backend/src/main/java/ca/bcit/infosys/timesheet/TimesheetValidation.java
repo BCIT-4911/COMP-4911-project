@@ -204,8 +204,8 @@ public final class TimesheetValidation {
      * Ensures the timesheet has not been approved.
      * An approved timesheet cannot be edited, submitted again, or deleted.
      */
-    public static void validateNotApproved(Boolean approved) {
-        if (Boolean.TRUE.equals(approved)) {
+    public static void validateNotApproved(TimesheetStatus status) {
+        if (status == TimesheetStatus.APPROVED) {
             throw new IllegalArgumentException(
                     "Cannot modify an approved timesheet. Approved timesheets are immutable.");
         }

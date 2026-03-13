@@ -120,8 +120,16 @@ public class WorkPackageService {
             existing.setParentWorkPackage(null);
         }
 
+        // Map the existing fields
         existing.setWpName(wp.getWpName());
         existing.setDescription(wp.getDescription());
+        
+        // Map the NEW Estimate Fields!
+        existing.setBac(wp.getBac());
+        existing.setEac(wp.getEac());
+        existing.setPercentComplete(wp.getPercentComplete());
+        existing.setBudgetedEffort(wp.getBudgetedEffort());
+
         existing.setModifiedDate(LocalDateTime.now());
         em.merge(existing);
     }
@@ -202,11 +210,24 @@ public class WorkPackageService {
 
     public List<Employee> getAssignedEmployees(String wpId) {
         findWorkPackage(wpId);
-        return em.createQuery(
-                "SELECT e FROM Employee e JOIN WorkPackageAssignment wpa ON e = wpa.employee WHERE wpa.workPackage.wpId = :wpId",
-                Employee.class)
+        
+        List<WorkPackageAssignment> assignments = em.createQuery(
+                "SELECT wpa FROM WorkPackageAssignment wpa WHERE wpa.workPackage.wpId = :wpId",
+                WorkPackageAssignment.class)
                 .setParameter("wpId", wpId)
                 .getResultList();
+
+        List<Employee> cleanEmployees = new java.util.ArrayList<>();
+        for (WorkPackageAssignment wpa : assignments) {
+            Employee p = wpa.getEmployee();
+            Employee clean = new Employee();
+            clean.setEmpId(p.getEmpId());
+            clean.setEmpFirstName(p.getEmpFirstName());
+            clean.setEmpLastName(p.getEmpLastName());
+            clean.setWpRole(wpa.getWpRole().name()); // <-- Grabbing the WP role!
+            cleanEmployees.add(clean);
+        }
+        return cleanEmployees;
     }
 
     public void close(String id) {

@@ -11,6 +11,7 @@ import com.corejsf.Entity.Employee;
 import com.corejsf.Entity.LaborGrade;
 import com.corejsf.Entity.Timesheet;
 import com.corejsf.Entity.TimesheetRow;
+import com.corejsf.Entity.TimesheetStatus;
 import com.corejsf.Entity.WorkPackage;
 import com.corejsf.Service.TimesheetService;
 
@@ -166,19 +167,20 @@ public class TimesheetController {
     }
 
     // -------------------------------------------------------------------------
-    // PUT - Update draft
+    // PUT - Update draft or returned timesheet
     // -------------------------------------------------------------------------
 
     /**
-     * Updates an existing draft timesheet. Replaces all rows.
-     * Rejects if the timesheet is already approved (immutability).
+     * Updates an existing timesheet. Replaces all rows.
+     * Only DRAFT and RETURNED timesheets can be edited.
+     * Rejects edits on SUBMITTED (pending review) and APPROVED (final).
      */
     @PUT
     @Path("/{id}")
     @Transactional
     public TimesheetResponseDTO updateTimesheet(@PathParam("id") int id, TimesheetRequestDTO dto) {
         Timesheet ts = findTimesheet(id);
-        TimesheetValidation.validateNotApproved(ts.getStatus());
+        TimesheetValidation.validateCanEdit(ts.getStatus());
         TimesheetValidation.validateRequest(dto);
 
         // Update timesheet fields
@@ -203,15 +205,15 @@ public class TimesheetController {
     // -------------------------------------------------------------------------
 
     /**
-     * Submits a draft timesheet: validates submission rules, sets approved = true.
-     * Rejects if already approved.
+     * Submits a draft timesheet: validates submission rules, transitions to SUBMITTED.
+     * Only DRAFT and RETURNED timesheets can be submitted.
      */
     @PUT
     @Path("/{id}/submit")
     @Transactional
     public TimesheetResponseDTO submitTimesheet(@PathParam("id") int id) {
         Timesheet ts = findTimesheet(id);
-        TimesheetValidation.validateNotApproved(ts.getStatus());
+        TimesheetValidation.validateCanEdit(ts.getStatus());
 
         // Load existing rows and convert to request DTOs for validation
         List<TimesheetRow> rows = findRows(id);
@@ -219,27 +221,28 @@ public class TimesheetController {
 
         TimesheetValidation.validateForSubmission(rowDTOs);
 
-        // Transition state
-        ts.setStatus(TimesheetStatus.APPROVED);
+        // Transition state to SUBMITTED (pending review)
+        ts.setStatus(TimesheetStatus.SUBMITTED);
         em.merge(ts);
 
         return timesheetService.toResponseDTO(ts, rows);
     }
 
     // -------------------------------------------------------------------------
-    // DELETE - Delete draft
+    // DELETE - Delete draft or returned timesheet
     // -------------------------------------------------------------------------
 
     /**
-     * Deletes a draft timesheet and all its rows.
-     * Rejects if the timesheet is approved (immutability).
+     * Deletes a timesheet and all its rows.
+     * Only DRAFT and RETURNED timesheets can be deleted.
+     * Rejects deletion of SUBMITTED (pending review) and APPROVED (final).
      */
     @DELETE
     @Path("/{id}")
     @Transactional
     public void deleteTimesheet(@PathParam("id") int id) {
         Timesheet ts = findTimesheet(id);
-        TimesheetValidation.validateNotApproved(ts.getStatus());
+        TimesheetValidation.validateCanDelete(ts.getStatus());
 
         em.createQuery("DELETE FROM TimesheetRow r WHERE r.timesheet.tsId = :tsId")
                 .setParameter("tsId", id)

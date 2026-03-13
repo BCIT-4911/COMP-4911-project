@@ -4,6 +4,8 @@ import java.time.LocalDate;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -38,6 +40,7 @@ public class Timesheet {
     @Column(name = "return_comment", columnDefinition = "TEXT")
     private String returnComment;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private TimesheetStatus timesheetStatus;
 

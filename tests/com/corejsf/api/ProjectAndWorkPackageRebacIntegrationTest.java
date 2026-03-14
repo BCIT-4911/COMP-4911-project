@@ -279,4 +279,5 @@ public class ProjectAndWorkPackageRebacIntegrationTest {
         .then()
         .statusCode(403);
     }
+
 }

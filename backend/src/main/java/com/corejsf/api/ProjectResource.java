@@ -43,7 +43,12 @@ public class ProjectResource {
 
     @GET
     public List<Project> getAll() {
-        return projectService.getAllProjects();
+        // canCreateProject checks if the user is an OPERATIONS_MANAGER
+        if (rebacService.canCreateProject(authContext.getSystemRole())) {
+            return projectService.getAllProjects(); // Ops sees all
+        } else {
+            return projectService.getProjectsForEmployee(authContext.getEmpId()); // Everyone else sees their own
+        }
     }
 
     @GET
@@ -118,17 +123,41 @@ public class ProjectResource {
         if (role == null) {
             return Response.status(Response.Status.BAD_REQUEST).entity("role query parameter is required").build();
         }
-        if (!rebacService.canCreateProject(authContext.getSystemRole()) && !rebacService.canManageProject(authContext.getEmpId(), id)) {
+        
+        boolean isOpsManager = rebacService.canCreateProject(authContext.getSystemRole());
+        boolean isProjectManager = rebacService.canManageProject(authContext.getEmpId(), id);
+        boolean isSupervisor = rebacService.isSupervisorOf(authContext.getEmpId(), empId);
+
+        if (!isOpsManager && !isProjectManager && !isSupervisor) {
             return forbidden();
         }
+        
         projectService.assignEmployee(id, empId, role);
+        return Response.ok().build();
+    }
+
+    @DELETE
+    @Path("/{id}/employees/{empId}")
+    public Response removeEmployee(@PathParam("id") String id, @PathParam("empId") int empId) {
+        boolean isOpsManager = rebacService.canCreateProject(authContext.getSystemRole());
+        boolean isProjectManager = rebacService.canManageProject(authContext.getEmpId(), id);
+        boolean isSupervisor = rebacService.isSupervisorOf(authContext.getEmpId(), empId);
+
+        if (!isOpsManager && !isProjectManager && !isSupervisor) {
+            return forbidden();
+        }
+        
+        projectService.removeEmployee(id, empId);
         return Response.ok().build();
     }
 
     @GET
     @Path("/{id}/workpackages")
     public List<WorkPackage> getWorkPackages(@PathParam("id") String id) {
-        return projectService.getWorkPackages(id);
+        boolean isOpsManager = rebacService.canCreateProject(authContext.getSystemRole());
+        boolean isProjectManager = rebacService.canManageProject(authContext.getEmpId(), id);
+        
+        return projectService.getWorkPackages(id, authContext.getEmpId(), isOpsManager || isProjectManager);
     }
 
     @GET

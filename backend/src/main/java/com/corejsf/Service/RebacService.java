@@ -4,9 +4,11 @@ import java.util.List;
 
 import com.corejsf.Entity.Employee;
 import com.corejsf.Entity.Project;
+import com.corejsf.Entity.ProjectRole;
 import com.corejsf.Entity.SystemRole;
 import com.corejsf.Entity.Timesheet;
 import com.corejsf.Entity.WorkPackage;
+import com.corejsf.Entity.WpRole;
 
 import jakarta.ejb.Stateless;
 import jakarta.persistence.EntityManager;
@@ -26,7 +28,8 @@ public class RebacService {
     }
 
     public boolean canManageEmployees(SystemRole role) {
-        return role == SystemRole.HR;
+        // Allowed Employees to see the directory so PMs can make assignments
+        return role == SystemRole.HR || role == SystemRole.OPERATIONS_MANAGER || role == SystemRole.EMPLOYEE;
     }
 
     /**
@@ -34,10 +37,27 @@ public class RebacService {
      */
     public boolean canManageProject(int empId, String projId) {
         Project project = em.find(Project.class, projId);
-        if (project == null || project.getProjectManager() == null) {
+        if (project == null) {
             return false;
         }
-        return Integer.valueOf(empId).equals(project.getProjectManager().getEmpId());
+        
+        // 1. Check if they are the primary PM on the Project entity
+        if (project.getProjectManager() != null && Integer.valueOf(empId).equals(project.getProjectManager().getEmpId())) {
+            return true;
+        }
+        
+        // 2. Check if they are assigned as a PM in the ProjectAssignment table
+        Long pmCount = em.createQuery(
+                "SELECT COUNT(pa) FROM ProjectAssignment pa " +
+                "WHERE pa.project.projId = :projId " +
+                "AND pa.employee.empId = :empId " +
+                "AND pa.projectRole = :role", Long.class)
+                .setParameter("projId", projId)
+                .setParameter("empId", empId)
+                .setParameter("role", ProjectRole.PM)
+                .getSingleResult();
+                
+        return pmCount != null && pmCount > 0;
     }
 
     /**
@@ -67,7 +87,7 @@ public class RebacService {
     }
 
     public boolean canManageEmployees(Employee employee) {
-        return isHr(employee);
+        return isHr(employee) || isOperationsManager(employee) || (employee != null && employee.getSystemRole() == SystemRole.EMPLOYEE);
     }
 
     /**
@@ -140,17 +160,30 @@ public class RebacService {
         if (wp == null) {
             return false;
         }
+        
+        // 1. Are they the Project Manager? (This uses our previously fixed PM logic!)
+        if (wp.getProject() != null && canManageProject(empId, wp.getProject().getProjId())) {
+            return true;
+        }
+
+        // 2. Are they the primary RE?
         Integer empIdBoxed = Integer.valueOf(empId);
-        if (wp.getResponsibleEmployee() != null &&
-                empIdBoxed.equals(wp.getResponsibleEmployee().getEmpId())) {
+        if (wp.getResponsibleEmployee() != null && empIdBoxed.equals(wp.getResponsibleEmployee().getEmpId())) {
             return true;
         }
-        if (wp.getProject() != null &&
-                wp.getProject().getProjectManager() != null &&
-                empIdBoxed.equals(wp.getProject().getProjectManager().getEmpId())) {
-            return true;
-        }
-        return false;
+        
+        // 3. Are they assigned as an RE in the WorkPackageAssignment table?
+        Long reCount = em.createQuery(
+                "SELECT COUNT(wpa) FROM WorkPackageAssignment wpa " +
+                "WHERE wpa.workPackage.wpId = :wpId " +
+                "AND wpa.employee.empId = :empId " +
+                "AND wpa.wpRole = :role", Long.class)
+                .setParameter("wpId", wpId)
+                .setParameter("empId", empId)
+                .setParameter("role", WpRole.RE)
+                .getSingleResult();
+                
+        return reCount != null && reCount > 0;
     }
 
     /*

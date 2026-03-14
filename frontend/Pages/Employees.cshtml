@@ -1,5 +1,7 @@
 @page
 @model EmployeesModel
+@using frontend.model
+
 @{
     ViewData["Title"] = "Employees";
 }
@@ -7,4 +9,76 @@
 <div class="container py-4">
     <h1 class="display-6">Employees</h1>
     <p class="text-muted">HR only. Team Onboarding implements employee list and registration.</p>
+    <!-- Employee list -->
+    <div>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>First Name</th>
+                    <th>Last Name</th>
+                    <th>System Role</th>
+                    <th>Vacation Sick Balance</th>
+                    <th>Expected Weekly Hours</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var employee in (List<Employee>)ViewData["Employees"])
+                {
+                    <tr>
+                        <td>@employee.empId</td>
+                        <td>@employee.empFirstName</td>
+                        <td>@employee.empLastName</td>
+                        <td>@employee.systemRole</td>
+                        <td>@employee.vacationSickBalance</td>
+                        <td>@employee.expectedWeeklyHours</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <!-- Employee registration form -->
+    <div>
+        <form method="post">
+            <div class="form-group">
+                <label asp-for="employeeDto.firstName">First Name</label>
+                <input type="text" class="form-control" asp-for="employeeDto.firstName" placeholder="Enter first name" required>
+            </div>
+            <div class="form-group">
+                <label asp-for="employeeDto.lastName">Last Name</label>
+                <input type="text" class="form-control" asp-for="employeeDto.lastName" placeholder="Enter last name" required>
+            </div>
+            <div class="form-group">
+                <label asp-for="employeeDto.password">Password</label>
+                <input type="text" class="form-control" asp-for="employeeDto.password" placeholder="Enter password" required>
+            </div>
+            <div class="form-group">
+                <label asp-for="employeeDto.systemRole">System Role</label>
+                <select class="form-select" asp-for="employeeDto.systemRole" required>
+                    <option value="EMPLOYEE">Employee</option>
+                    <option value="OPERATIONS_MANAGER">Operations Manager</option>
+                    <option value="HR">HR</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label asp-for="employeeDto.laborGradeId">Labor Grade</label>
+                <select class="form-select" asp-for="employeeDto.laborGradeId" required>
+                    @foreach (var laborGrade in (List<LaborGrade>)ViewData["LaborGrades"])
+                    {
+                        <option value="@laborGrade.laborGradeId">@laborGrade.gradeCode</option>
+                    }
+                </select>
+            </div>
+            <div class="form-group">
+                <label asp-for="employeeDto.supervisorId">Supervisor</label>
+                <select class="form-select" asp-for="employeeDto.supervisorId" required>
+                    @foreach (var employee in (List<Employee>)ViewData["Employees"])
+                    {
+                        <option value="@employee.empId">@employee.empFirstName @employee.empLastName</option>
+                    }
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Add Employee</button>
+        </form>
+    </div>
 </div>

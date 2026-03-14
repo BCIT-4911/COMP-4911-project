@@ -2,6 +2,7 @@ package com.corejsf.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 
 import com.corejsf.Entity.Employee;
@@ -9,6 +10,7 @@ import com.corejsf.Entity.Project;
 import com.corejsf.Entity.WorkPackage;
 import com.corejsf.Entity.WorkPackageAssignment;
 import com.corejsf.Entity.WorkPackageStatus;
+import com.corejsf.Entity.WorkPackageType;
 import com.corejsf.Entity.WpRole;
 
 import jakarta.ejb.Stateless;
@@ -52,6 +54,11 @@ public class WorkPackageService {
     public WorkPackage createWorkPackage(WorkPackage wp) {
         WorkPackageValidation.validate(wp);
 
+        WorkPackage existingWp = em.find(WorkPackage.class, wp.getWpId());
+        if (existingWp != null) {
+            throw new IllegalArgumentException("WorkPackage with id " + wp.getWpId() + " already exists.");
+        }
+
         String projId = wp.getProjId();
         if (projId == null) {
             throw new IllegalArgumentException("projId is required.");
@@ -67,18 +74,33 @@ public class WorkPackageService {
             wp.setResponsibleEmployee(findEmployee(reEmpId));
         }
 
-        String parentWpId = wp.getParentWpId();
-        if (parentWpId != null) {
-            WorkPackage parent = em.find(WorkPackage.class, parentWpId);
-            if (parent == null) {
-                throw new NotFoundException("Parent WorkPackage with id " + parentWpId + " not found.");
+        String wpIds[] = wp.getWpId().split("\\.");
+        if (wpIds.length > 1) {
+            String parentWpId = String.join(".", Arrays.copyOfRange(wpIds, 0, wpIds.length - 1));
+            if (parentWpId != null) {
+                WorkPackage parent = em.find(WorkPackage.class, parentWpId);
+                if (parent == null) {
+                    throw new NotFoundException("Parent WorkPackage with id " + parentWpId + " not found.");
+                }
+
+                parent.setWpType(WorkPackageType.SUMMARY);
+                wp.setParentWorkPackage(parent);
             }
-            wp.setParentWorkPackage(parent);
+        } else {
+            wp.setParentWorkPackage(null); 
         }
 
         wp.setCreatedDate(LocalDateTime.now());
         wp.setModifiedDate(LocalDateTime.now());
         em.persist(wp);
+
+        List<WorkPackage> wpChildren = getChildren(wp.getWpId());
+        if (!wpChildren.isEmpty()) {
+            wp.setWpType(WorkPackageType.SUMMARY);
+        } else {
+            wp.setWpType(WorkPackageType.LOWEST_LEVEL);
+        }
+
         return wp;
     }
 
@@ -98,14 +120,31 @@ public class WorkPackageService {
             existing.setParentWorkPackage(null);
         }
 
+        // Map the existing fields
         existing.setWpName(wp.getWpName());
         existing.setDescription(wp.getDescription());
+        
+        // Map the NEW Estimate Fields!
+        existing.setBac(wp.getBac());
+        existing.setEac(wp.getEac());
+        existing.setPercentComplete(wp.getPercentComplete());
+        existing.setBudgetedEffort(wp.getBudgetedEffort());
+
         existing.setModifiedDate(LocalDateTime.now());
         em.merge(existing);
     }
 
     public void deleteWorkPackage(String id) {
-        findWorkPackage(id);
+        WorkPackage wp = findWorkPackage(id);
+
+        WorkPackage parentWp = wp.getParentWorkPackage();
+        if (parentWp != null) {
+            List<WorkPackage> parentWpChildren = getChildren(parentWp.getWpId());
+            if (parentWpChildren.size() == 1) {
+                parentWp.setWpType(WorkPackageType.LOWEST_LEVEL);
+            }
+        }
+
         deleteWorkPackageRecursive(id);
     }
 
@@ -173,11 +212,24 @@ public class WorkPackageService {
 
     public List<Employee> getAssignedEmployees(String wpId) {
         findWorkPackage(wpId);
-        return em.createQuery(
-                "SELECT e FROM Employee e JOIN WorkPackageAssignment wpa ON e = wpa.employee WHERE wpa.workPackage.wpId = :wpId",
-                Employee.class)
+        
+        List<WorkPackageAssignment> assignments = em.createQuery(
+                "SELECT wpa FROM WorkPackageAssignment wpa WHERE wpa.workPackage.wpId = :wpId",
+                WorkPackageAssignment.class)
                 .setParameter("wpId", wpId)
                 .getResultList();
+
+        List<Employee> cleanEmployees = new java.util.ArrayList<>();
+        for (WorkPackageAssignment wpa : assignments) {
+            Employee p = wpa.getEmployee();
+            Employee clean = new Employee();
+            clean.setEmpId(p.getEmpId());
+            clean.setEmpFirstName(p.getEmpFirstName());
+            clean.setEmpLastName(p.getEmpLastName());
+            clean.setWpRole(wpa.getWpRole().name()); // <-- Grabbing the WP role!
+            cleanEmployees.add(clean);
+        }
+        return cleanEmployees;
     }
 
     public void close(String id) {

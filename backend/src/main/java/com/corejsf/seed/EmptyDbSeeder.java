@@ -127,15 +127,15 @@ public class EmptyDbSeeder {
 
         em.persist(parent);
 
-        createChild("WP-1", "Procure Anvil", proj, parent, admin,
+        createChild("CA-1.WP-1", "Procure Anvil", proj, parent, admin,
                 LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 31),
                 new BigDecimal("1500.00"), new BigDecimal("0.00"));
 
-        createChild("WP-2", "Paint Fake Tunnel", proj, parent, admin,
+        createChild("CA-1.WP-2", "Paint Fake Tunnel", proj, parent, admin,
                 LocalDate.of(2026, 2, 1), LocalDate.of(2026, 2, 14),
                 new BigDecimal("1000.00"), new BigDecimal("50.00"));
 
-        createChild("WP-3", "Build Road", proj, parent, admin,
+        createChild("CA-1.WP-3", "Build Road", proj, parent, admin,
                 LocalDate.of(2026, 1, 15), LocalDate.of(2026, 3, 1),
                 new BigDecimal("3000.00"), new BigDecimal("35.00"));
 
@@ -154,8 +154,8 @@ public class EmptyDbSeeder {
         proj.setProjectManager(bugsBunny);
         em.merge(proj);
 
-        WorkPackage wp1 = em.find(WorkPackage.class, "WP-1");
-        WorkPackage wp2 = em.find(WorkPackage.class, "WP-2");
+        WorkPackage wp1 = em.find(WorkPackage.class, "CA-1.WP-1");
+        WorkPackage wp2 = em.find(WorkPackage.class, "CA-1.WP-2");
         if (wp1 != null) {
             WorkPackageAssignment wpaDaffy = new WorkPackageAssignment();
             wpaDaffy.setEmployee(daffyDuck);

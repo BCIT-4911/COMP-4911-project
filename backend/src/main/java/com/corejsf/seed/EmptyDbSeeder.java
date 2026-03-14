@@ -61,23 +61,18 @@ public class EmptyDbSeeder {
             em.persist(sig);
         }
 
-        Employee admin = em.find(Employee.class, 100);
-        if (admin == null) {
-            admin = new Employee();
-            admin.setEmpFirstName("Wile");
-            admin.setEmpLastName("Coyote");
-            admin.setEmpPassword(BCrypt.hashpw("password", BCrypt.gensalt()));
-
-            admin.setSystemRole(SystemRole.OPERATIONS_MANAGER); // enum
-            admin.setESignature(sig);
-            admin.setLaborGrade(lg);
-
-            admin.setSupervisor(null);
-            admin.setVacationSickBalance(new BigDecimal("40.00"));
-            admin.setExpectedWeeklyHours(new BigDecimal("40.0"));
-
-            em.persist(admin);
-        }
+        // Admin is always first employee (id 1 on fresh DB). No find(100) - ensures deterministic order.
+        Employee admin = new Employee();
+        admin.setEmpFirstName("Wile");
+        admin.setEmpLastName("Coyote");
+        admin.setEmpPassword(BCrypt.hashpw("password", BCrypt.gensalt()));
+        admin.setSystemRole(SystemRole.OPERATIONS_MANAGER);
+        admin.setESignature(sig);
+        admin.setLaborGrade(lg);
+        admin.setSupervisor(null);
+        admin.setVacationSickBalance(new BigDecimal("40.00"));
+        admin.setExpectedWeeklyHours(new BigDecimal("40.0"));
+        em.persist(admin);
 
         Employee roadRunner = createEmployee("Road", "Runner", SystemRole.HR, admin, lg);
         Employee bugsBunny = createEmployee("Bugs", "Bunny", SystemRole.EMPLOYEE, admin, lg);

@@ -10,7 +10,7 @@
             <h1 class="display-6 mb-0">Review Timesheet</h1>
             <div class="text-muted">Read-only review with approve or return actions</div>
         </div>
-        <a class="btn btn-outline-secondary" href="/Approver/Index?approverId=@(Model.ApproverId)">
+        <a class="btn btn-outline-secondary" href="/Approver/Index">
             Back to Dashboard
         </a>
     </div>
@@ -193,13 +193,13 @@
                 clearAlert();
 
                 try {
-                    const res = await authFetch(`${API}/api/timesheets/${TIMESHEET_ID}/approve?actorEmpId=${APPROVER_ID}`, {
+                    const res = await authFetch(`${API}/api/timesheets/${TIMESHEET_ID}/approve`, {
                         method: 'PUT'
                     });
 
                     if (!res.ok) throw new Error(await res.text());
 
-                    window.location.href = `/Approver/Index?approverId=${APPROVER_ID}`;
+                    window.location.href = '/Approver/Index';
                 } catch (err) {
                     showAlert('Approve failed: ' + err.message, 'danger');
                 }
@@ -215,7 +215,7 @@
                 }
 
                 try {
-                    const res = await authFetch(`${API}/api/timesheets/${TIMESHEET_ID}/return?actorEmpId=${APPROVER_ID}`, {
+                    const res = await authFetch(`${API}/api/timesheets/${TIMESHEET_ID}/return`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ returnComment: comment })
@@ -223,7 +223,7 @@
 
                     if (!res.ok) throw new Error(await res.text());
 
-                    window.location.href = `/Approver/Index?approverId=${APPROVER_ID}`;
+                    window.location.href = '/Approver/Index';
                 } catch (err) {
                     showAlert('Return failed: ' + err.message, 'danger');
                 }

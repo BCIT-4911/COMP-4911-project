@@ -77,25 +77,27 @@
                             (function () {
                                 const token = '@jwt';
                                 const apiBaseUrl = '@apiBaseUrl';
-                                if (!token || !apiBaseUrl) {
+                                if (!token || !apiBaseUrl) return;
+
+                                const cached = sessionStorage.getItem('canAccessApprover');
+                                if (cached === 'true') {
+                                    document.getElementById('approverNavItem').style.display = '';
                                     return;
                                 }
+                                if (cached === 'false') return;
 
                                 fetch(`${apiBaseUrl}/api/auth/can-access-approver-dashboard`, {
                                     headers: { 'Authorization': `Bearer ${token}` }
                                 })
-                                    .then(response => response.ok ? response.json() : null)
+                                    .then(r => r.ok ? r.json() : null)
                                     .then(data => {
-                                        if (data && data.allowed) {
-                                            const navItem = document.getElementById('approverNavItem');
-                                            if (navItem) {
-                                                navItem.style.display = '';
-                                            }
+                                        const allowed = data && data.allowed;
+                                        sessionStorage.setItem('canAccessApprover', String(allowed));
+                                        if (allowed) {
+                                            document.getElementById('approverNavItem').style.display = '';
                                         }
                                     })
-                                    .catch(() => {
-                                        // Keep nav item hidden when check fails.
-                                    });
+                                    .catch(() => {});
                             })();
                         </script>
                     }

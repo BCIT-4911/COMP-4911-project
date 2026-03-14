@@ -1,7 +1,5 @@
 package com.corejsf.DTO;
 
-import com.corejsf.Entity.TimesheetStatus;
-
 import java.time.LocalDate;
 import java.util.List;
 

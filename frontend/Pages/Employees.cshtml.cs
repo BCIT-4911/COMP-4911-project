@@ -14,13 +14,15 @@ namespace frontend.Pages;
 public class EmployeesModel : PageModel
 {
     private readonly IConfiguration _config;
+    private readonly IHttpClientFactory _httpClientFactory;
 
     [BindProperty]
     public EmployeeDto employeeDto { get; set; } = new();
 
-    public EmployeesModel(IConfiguration config)
+    public EmployeesModel(IConfiguration config, IHttpClientFactory httpClientFactory)
     {
         _config = config;
+        _httpClientFactory = httpClientFactory;
     }
 
     /**
@@ -38,7 +40,7 @@ public class EmployeesModel : PageModel
         if (role != "HR")
             return RedirectToPage("/Index");
 
-        var client = new HttpClient();
+        var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         var employeeResponse = await client.GetAsync(_config["ApiBaseUrl"] + "/api/employees");
         var laborGradeResponse = await client.GetAsync(_config["ApiBaseUrl"] + "/api/labor-grades");
@@ -69,7 +71,7 @@ public class EmployeesModel : PageModel
         if (role != "HR")
             return RedirectToPage("/Index");
 
-        var client = new HttpClient();
+        var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         var response = await client.PostAsync(_config["ApiBaseUrl"] + "/api/employees", new StringContent(JsonSerializer.Serialize(employeeDto), Encoding.UTF8, "application/json"));
         if (!response.IsSuccessStatusCode)

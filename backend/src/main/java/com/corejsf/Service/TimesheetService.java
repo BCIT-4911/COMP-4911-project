@@ -8,6 +8,7 @@ import jakarta.ejb.Stateless;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.TypedQuery;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
@@ -111,25 +112,20 @@ public class TimesheetService {
     public List<TimesheetResponseDTO> getAllTimesheets(Integer empId,
                                                        Integer approverId,
                                                        TimesheetStatus status) {
-        List<Timesheet> timesheets = em.createQuery("SELECT t FROM Timesheet t", Timesheet.class)
-                .getResultList();
+        StringBuilder jpql = new StringBuilder("SELECT t FROM Timesheet t WHERE 1=1");
+        if (empId != null) jpql.append(" AND t.employee.empId = :empId");
+        if (approverId != null) jpql.append(" AND t.approver.empId = :approverId");
+        if (status != null) jpql.append(" AND t.timesheetStatus = :status");
 
+        TypedQuery<Timesheet> query = em.createQuery(jpql.toString(), Timesheet.class);
+        if (empId != null) query.setParameter("empId", empId);
+        if (approverId != null) query.setParameter("approverId", approverId);
+        if (status != null) query.setParameter("status", status);
+
+        List<Timesheet> timesheets = query.getResultList();
         List<TimesheetResponseDTO> result = new ArrayList<>();
         for (Timesheet ts : timesheets) {
-            if (empId != null && !empId.equals(ts.getEmployee().getEmpId())) {
-                continue;
-            }
-            if (approverId != null) {
-                if (ts.getApprover() == null || !approverId.equals(ts.getApprover().getEmpId())) {
-                    continue;
-                }
-            }
-            if (status != null && ts.getStatus() != status) {
-                continue;
-            }
-
-            List<TimesheetRow> rows = findRows(ts.getTsId());
-            result.add(toResponseDTO(ts, rows));
+            result.add(toResponseDTO(ts, findRows(ts.getTsId())));
         }
         return result;
     }

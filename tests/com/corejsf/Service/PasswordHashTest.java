@@ -1,7 +1,8 @@
 package com.corejsf.Service;
 
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
 import org.mindrot.jbcrypt.BCrypt;
 
 public class PasswordHashTest {
@@ -19,5 +20,4 @@ public class PasswordHashTest {
         String hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt());
         assertTrue(BCrypt.checkpw(password, hashedPassword));
     }
-
 }

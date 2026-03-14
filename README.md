@@ -207,6 +207,37 @@ Use **emp_id** and **password** to log in (e.g. `empId: 1`, `password: password`
 | `Cross-Origin Request Blocked` | CORS filter issue | Verify `CorsFilter.java` handles OPTIONS preflight and doesn't duplicate headers |
 
 
+## Running Tests
+
+### Unit tests (no server required)
+
+From the project root:
+
+```bash
+cd backend
+mvn test -Dtest=RebacServiceTest,JwtUtilTest,PasswordHashTest
+```
+
+### Integration tests (backend must be running)
+
+1. Start MySQL and the backend (see [Step 3](#step-3-start-the-mysql-database) and [Step 4](#step-4-build-and-run-the-backend)).
+2. **Integration tests require a fresh database.** If you have run the backend before or altered the DB, reset it first:
+   ```bash
+   cd sql
+   docker compose down -v
+   docker compose up -d
+   ```
+   Then restart the backend so the seeder runs.
+3. Run:
+
+```bash
+cd backend
+mvn test -Dtest=AuthFilterIntegrationTest,ProjectAndWorkPackageRebacIntegrationTest
+```
+
+Integration tests hit `http://localhost:8080/Project/api` and require valid seeded users (see [Seeded users](#seeded-users)). `ProjectAndWorkPackageRebacIntegrationTest` resolves employee IDs from `GET /api/employees` at runtime, so it works with any consistent seed.
+
+
 ## Team Rules and Standards
 
 - Use meaningful names and keep code readable

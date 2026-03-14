@@ -6,18 +6,22 @@ import io.restassured.response.Response;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+import java.util.Map;
+
 import static io.restassured.RestAssured.given;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ProjectAndWorkPackageRebacIntegrationTest {
 
-    private static final int OPS_ID = 1;
-    private static final int HR_ID = 2;
-    private static final int PM_PROJ1_ID = 3;
-    private static final int RE_A_ID = 4;
-    private static final int MEMBER_A2_ID = 5;
-    private static final int RE_A2_ID = 6;
-    private static final int PM_PROJ2_ID = 7;
+    private static Integer OPS_ID;
+    private static Integer HR_ID;
+    private static Integer PM_PROJ1_ID;
+    private static Integer RE_A_ID;
+    private static Integer MEMBER_A2_ID;
+    private static Integer RE_A2_ID;
+    private static Integer PM_PROJ2_ID;
 
     private static final String PASSWORD = "password";
 
@@ -35,13 +39,46 @@ public class ProjectAndWorkPackageRebacIntegrationTest {
         RestAssured.port = 8080;
         RestAssured.basePath = "/Project/api";
 
-        opsToken = login(OPS_ID, PASSWORD);
+        opsToken = login(1, PASSWORD);
+        resolveSeedIds(opsToken);
         hrToken = login(HR_ID, PASSWORD);
         pmProj1Token = login(PM_PROJ1_ID, PASSWORD);
         reAToken = login(RE_A_ID, PASSWORD);
         memberA2Token = login(MEMBER_A2_ID, PASSWORD);
         reA2Token = login(RE_A2_ID, PASSWORD);
         pmProj2Token = login(PM_PROJ2_ID, PASSWORD);
+    }
+
+    private static void resolveSeedIds(String opsToken) {
+        List<Map<String, Object>> employees = given()
+                .header("Authorization", "Bearer " + opsToken)
+                .when()
+                .get("/employees")
+                .then()
+                .statusCode(200)
+                .extract()
+                .jsonPath()
+                .getList("$");
+
+        for (Map<String, Object> e : employees) {
+            String first = (String) e.get("empFirstName");
+            String last = (String) e.get("empLastName");
+            int id = ((Number) e.get("empId")).intValue();
+            if ("Wile".equals(first) && "Coyote".equals(last)) OPS_ID = id;
+            else if ("Road".equals(first) && "Runner".equals(last)) HR_ID = id;
+            else if ("Bugs".equals(first) && "Bunny".equals(last)) PM_PROJ1_ID = id;
+            else if ("Daffy".equals(first) && "Duck".equals(last)) RE_A_ID = id;
+            else if ("Tweety".equals(first) && "Bird".equals(last)) MEMBER_A2_ID = id;
+            else if ("Sylvester".equals(first) && "Cat".equals(last)) RE_A2_ID = id;
+            else if ("Marvin".equals(first) && "Martian".equals(last)) PM_PROJ2_ID = id;
+        }
+        assertNotNull(OPS_ID, "Seed data missing: Wile Coyote. Run: cd sql && docker compose down -v && docker compose up -d");
+        assertNotNull(HR_ID, "Seed data missing: Road Runner");
+        assertNotNull(PM_PROJ1_ID, "Seed data missing: Bugs Bunny");
+        assertNotNull(RE_A_ID, "Seed data missing: Daffy Duck");
+        assertNotNull(MEMBER_A2_ID, "Seed data missing: Tweety Bird");
+        assertNotNull(RE_A2_ID, "Seed data missing: Sylvester Cat");
+        assertNotNull(PM_PROJ2_ID, "Seed data missing: Marvin Martian");
     }
 
     private static String login(int empId, String password) {
@@ -99,7 +136,7 @@ public class ProjectAndWorkPackageRebacIntegrationTest {
     void assignEmployeeToProject_asOpsManager_succeeds() {
         Response response = postWithToken(
                 opsToken,
-                "/projects/PROJ-1/employees/5?role=MEMBER"
+                "/projects/PROJ-1/employees/" + MEMBER_A2_ID + "?role=MEMBER"
         );
 
         assertSuccess2xx(response);
@@ -109,7 +146,7 @@ public class ProjectAndWorkPackageRebacIntegrationTest {
     void assignEmployeeToProject_asPmOfThatProject_succeeds() {
         Response response = postWithToken(
                 pmProj1Token,
-                "/projects/PROJ-1/employees/6?role=MEMBER"
+                "/projects/PROJ-1/employees/" + RE_A2_ID + "?role=MEMBER"
         );
 
         assertSuccess2xx(response);
@@ -119,7 +156,7 @@ public class ProjectAndWorkPackageRebacIntegrationTest {
     void assignEmployeeToProject_asPmOfDifferentProject_returns403() {
         postWithToken(
                 pmProj2Token,
-                "/projects/PROJ-1/employees/5?role=MEMBER"
+                "/projects/PROJ-1/employees/" + MEMBER_A2_ID + "?role=MEMBER"
         )
         .then()
         .statusCode(403);
@@ -129,7 +166,7 @@ public class ProjectAndWorkPackageRebacIntegrationTest {
     void assignEmployeeToProject_asRegularEmployee_returns403() {
         postWithToken(
                 memberA2Token,
-                "/projects/PROJ-1/employees/4?role=MEMBER"
+                "/projects/PROJ-1/employees/" + RE_A_ID + "?role=MEMBER"
         )
         .then()
         .statusCode(403);
@@ -139,7 +176,7 @@ public class ProjectAndWorkPackageRebacIntegrationTest {
     void assignEmployeeToProject_asHr_returns403() {
         postWithToken(
                 hrToken,
-                "/projects/PROJ-1/employees/5?role=MEMBER"
+                "/projects/PROJ-1/employees/" + MEMBER_A2_ID + "?role=MEMBER"
         )
         .then()
         .statusCode(403);
@@ -154,7 +191,7 @@ public class ProjectAndWorkPackageRebacIntegrationTest {
     void assignEmployeeToWorkPackage_asPmOfThatProject_succeeds() {
         Response response = postWithToken(
                 pmProj1Token,
-                "/workpackages/CA-1.WP-1/employees/5?role=MEMBER"
+                "/workpackages/CA-1.WP-1/employees/" + MEMBER_A2_ID + "?role=MEMBER"
         );
 
         assertSuccess2xx(response);
@@ -164,7 +201,7 @@ public class ProjectAndWorkPackageRebacIntegrationTest {
     void assignEmployeeToWorkPackage_asOpsManager_returns403() {
         postWithToken(
                 opsToken,
-                "/workpackages/CA-1.WP-1/employees/5?role=MEMBER"
+                "/workpackages/CA-1.WP-1/employees/" + MEMBER_A2_ID + "?role=MEMBER"
         )
         .then()
         .statusCode(403);
@@ -174,7 +211,7 @@ public class ProjectAndWorkPackageRebacIntegrationTest {
     void assignEmployeeToWorkPackage_asPmOfDifferentProject_returns403() {
         postWithToken(
                 pmProj2Token,
-                "/workpackages/CA-1.WP-1/employees/5?role=MEMBER"
+                "/workpackages/CA-1.WP-1/employees/" + MEMBER_A2_ID + "?role=MEMBER"
         )
         .then()
         .statusCode(403);
@@ -184,7 +221,7 @@ public class ProjectAndWorkPackageRebacIntegrationTest {
     void assignEmployeeToWorkPackage_asRegularEmployee_returns403() {
         postWithToken(
                 memberA2Token,
-                "/workpackages/CA-1.WP-1/employees/4?role=MEMBER"
+                "/workpackages/CA-1.WP-1/employees/" + RE_A_ID + "?role=MEMBER"
         )
         .then()
         .statusCode(403);
@@ -194,7 +231,7 @@ public class ProjectAndWorkPackageRebacIntegrationTest {
     void assignEmployeeToWorkPackage_asAssignedRe_returns403() {
         postWithToken(
                 reA2Token,
-                "/workpackages/CA-1.WP-1/employees/5?role=MEMBER"
+                "/workpackages/CA-1.WP-1/employees/" + MEMBER_A2_ID + "?role=MEMBER"
         )
         .then()
         .statusCode(403);

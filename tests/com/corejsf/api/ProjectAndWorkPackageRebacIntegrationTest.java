@@ -317,4 +317,299 @@ public class ProjectAndWorkPackageRebacIntegrationTest {
         .statusCode(403);
     }
 
+    @Test
+    void createEmployee_asHr_succeeds() {
+        String body = "{"
+            + "\"firstName\":\"Test\","
+            + "\"lastName\":\"Employee\","
+            + "\"password\":\"password\","
+            + "\"laborGradeId\":1,"
+            + "\"supervisorId\":" + OPS_ID + ","
+            + "\"systemRole\":\"EMPLOYEE\""
+            + "}";
+
+        Response response = given()
+            .header("Authorization", "Bearer " + hrToken)
+            .contentType(ContentType.JSON)
+            .body(body)
+            .when()
+            .post("/employees");
+
+        assertSuccess2xx(response);
+    }
+
+
+    // Employee creation tests
+
+    @Test
+    void createEmployee_asOpsManager_returns403() {
+        String body = "{"
+            + "\"firstName\":\"Test\","
+            + "\"lastName\":\"Employee\","
+            + "\"password\":\"password\","
+            + "\"laborGradeId\":1,"
+            + "\"supervisorId\":" + OPS_ID + ","
+            + "\"systemRole\":\"EMPLOYEE\""
+            + "}";
+
+        given()
+            .header("Authorization", "Bearer " + opsToken)
+            .contentType(ContentType.JSON)
+            .body(body)
+            .when()
+            .post("/employees")
+            .then()
+            .statusCode(403);
+    }
+
+    @Test
+    void createEmployee_asRegularEmployee_returns403() {
+        String body = "{"
+            + "\"firstName\":\"Test\","
+            + "\"lastName\":\"Employee\","
+            + "\"password\":\"password\","
+            + "\"laborGradeId\":1,"
+            + "\"supervisorId\":" + OPS_ID + ","
+            + "\"systemRole\":\"EMPLOYEE\""
+            + "}";
+
+        given()
+            .header("Authorization", "Bearer " + memberA2Token)
+            .contentType(ContentType.JSON)
+            .body(body)
+            .when()
+            .post("/employees")
+            .then()
+            .statusCode(403);
+    }
+
+    //Project Creation ReBAC
+
+    @Test
+    void createProject_asOpsManager_returns201() { //This test has behaved strangely, need to revisit
+        String body = "{"
+            + "\"project_id\":\"PROJ-T\","
+            + "\"project_type\":\"INTERNAL\","
+            + "\"project_name\":\"Integration Test Project\","
+            + "\"project_desc\":\"Created by ops in integration test\","
+            + "\"project_status\":\"OPEN\","
+            + "\"start_date\":\"2026-04-01\","
+            + "\"end_date\":\"2026-06-30\","
+            + "\"markup_rate\":10.00,"
+            + "\"project_manager_id\":" + PM_PROJ1_ID
+            + "}";
+
+        given()
+            .header("Authorization", "Bearer " + opsToken)
+            .contentType(ContentType.JSON)
+            .body(body)
+            .when()
+            .post("/projects")
+            .then()
+            .statusCode(201);
+    }
+
+    @Test
+    void createProject_asHr_returns403() {
+        String body = "{"
+            + "\"project_id\":\"PROJ-TEST\","
+            + "\"project_type\":\"INTERNAL\","
+            + "\"project_name\":\"Integration Test Project\","
+            + "\"project_desc\":\"Should be forbidden for HR\","
+            + "\"project_status\":\"OPEN\","
+            + "\"start_date\":\"2026-04-01\","
+            + "\"end_date\":\"2026-06-30\","
+            + "\"markup_rate\":10.00,"
+            + "\"project_manager_id\":" + PM_PROJ1_ID
+            + "}";
+
+        given()
+            .header("Authorization", "Bearer " + hrToken)
+            .contentType(ContentType.JSON)
+            .body(body)
+            .when()
+            .post("/projects")
+            .then()
+            .statusCode(403);
+    }
+
+    @Test
+    void createProject_asRegularEmployee_returns403() {
+        String body = "{"
+            + "\"project_id\":\"PROJ-TEST\","
+            + "\"project_type\":\"INTERNAL\","
+            + "\"project_name\":\"Integration Test Project\","
+            + "\"project_desc\":\"Should be forbidden for employee\","
+            + "\"project_status\":\"OPEN\","
+            + "\"start_date\":\"2026-04-01\","
+            + "\"end_date\":\"2026-06-30\","
+            + "\"markup_rate\":10.00,"
+            + "\"project_manager_id\":" + PM_PROJ1_ID
+            + "}";
+
+        given()
+            .header("Authorization", "Bearer " + memberA2Token)
+            .contentType(ContentType.JSON)
+            .body(body)
+            .when()
+            .post("/projects")
+            .then()
+            .statusCode(403);
+    }
+
+    @Test
+    void createProject_asProjectManagerEmployee_returns403() {
+        String body = "{"
+            + "\"project_id\":\"PROJ-TEST\","
+            + "\"project_type\":\"INTERNAL\","
+            + "\"project_name\":\"Integration Test Project\","
+            + "\"project_desc\":\"Should be forbidden for PM at system-role level\","
+            + "\"project_status\":\"OPEN\","
+            + "\"start_date\":\"2026-04-01\","
+            + "\"end_date\":\"2026-06-30\","
+            + "\"markup_rate\":10.00,"
+            + "\"project_manager_id\":" + PM_PROJ1_ID
+            + "}";
+
+        given()
+            .header("Authorization", "Bearer " + pmProj1Token)
+            .contentType(ContentType.JSON)
+            .body(body)
+            .when()
+            .post("/projects")
+            .then()
+            .statusCode(403);
+    }
+
+
+    // Timesheet Access Tests
+    @Test
+    void getOwnTimesheet_asEmployee_returns200() {
+        given()
+            .header("Authorization", "Bearer " + memberA2Token)
+            .when()
+            .get("/timesheets/3")
+            .then()
+            .statusCode(200);
+    }
+
+    @Test
+    void getAnotherEmployeesTimesheet_asEmployee_returns403() {
+        given()
+            .header("Authorization", "Bearer " + memberA2Token)
+            .when()
+            .get("/timesheets/" + RE_A_ID)
+            .then()
+            .statusCode(403);
+    }
+
+
+    // Work Package edit ReBAC tests
+
+    @Test
+void updateWorkPackage_asAssignedRe_returns200() {
+    String body = "{"
+            + "\"wpName\":\"Paint Fake Tunnel Updated\","
+            + "\"description\":\"Updated by assigned RE\","
+            + "\"bac\":1000.00,"
+            + "\"eac\":1100.00,"
+            + "\"percentComplete\":55.00,"
+            + "\"budgetedEffort\":10.00"
+            + "}";
+
+    given()
+            .header("Authorization", "Bearer " + reA2Token)
+            .contentType(ContentType.JSON)
+            .body(body)
+            .when()
+            .put("/workpackages/CA-1.WP-2")
+            .then()
+            .statusCode(200);
+}
+
+@Test
+void updateWorkPackage_asProjectPm_returns200() {
+    String body = "{"
+            + "\"wpName\":\"Paint Fake Tunnel PM Update\","
+            + "\"description\":\"Updated by project PM\","
+            + "\"bac\":1000.00,"
+            + "\"eac\":1150.00,"
+            + "\"percentComplete\":60.00,"
+            + "\"budgetedEffort\":12.00"
+            + "}";
+
+    given()
+            .header("Authorization", "Bearer " + pmProj1Token)
+            .contentType(ContentType.JSON)
+            .body(body)
+            .when()
+            .put("/workpackages/CA-1.WP-2")
+            .then()
+            .statusCode(200);
+}
+
+@Test
+void updateWorkPackage_asUnrelatedPm_returns403() {
+    String body = "{"
+            + "\"wpName\":\"Should Fail\","
+            + "\"description\":\"Unrelated PM should not edit\","
+            + "\"bac\":1000.00,"
+            + "\"eac\":1200.00,"
+            + "\"percentComplete\":65.00,"
+            + "\"budgetedEffort\":15.00"
+            + "}";
+
+    given()
+            .header("Authorization", "Bearer " + pmProj2Token)
+            .contentType(ContentType.JSON)
+            .body(body)
+            .when()
+            .put("/workpackages/CA-1.WP-2")
+            .then()
+            .statusCode(403);
+}
+
+@Test
+void updateWorkPackage_asRegularEmployee_returns403() {
+    String body = "{"
+            + "\"wpName\":\"Should Fail\","
+            + "\"description\":\"Regular employee should not edit\","
+            + "\"bac\":1000.00,"
+            + "\"eac\":1200.00,"
+            + "\"percentComplete\":65.00,"
+            + "\"budgetedEffort\":15.00"
+            + "}";
+
+    given()
+            .header("Authorization", "Bearer " + memberA2Token)
+            .contentType(ContentType.JSON)
+            .body(body)
+            .when()
+            .put("/workpackages/CA-1.WP-2")
+            .then()
+            .statusCode(403);
+}
+
+@Test
+void updateWorkPackage_asHr_returns403() {
+    String body = "{"
+            + "\"wpName\":\"Should Fail\","
+            + "\"description\":\"HR should not edit work package\","
+            + "\"bac\":1000.00,"
+            + "\"eac\":1200.00,"
+            + "\"percentComplete\":65.00,"
+            + "\"budgetedEffort\":15.00"
+            + "}";
+
+    given()
+            .header("Authorization", "Bearer " + hrToken)
+            .contentType(ContentType.JSON)
+            .body(body)
+            .when()
+            .put("/workpackages/CA-1.WP-2")
+            .then()
+            .statusCode(403);
+}
+
+
 }

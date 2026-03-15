@@ -19,6 +19,9 @@ import com.corejsf.Entity.WorkPackageAssignment;
 import com.corejsf.Entity.WorkPackageStatus;
 import com.corejsf.Entity.WorkPackageType;
 import com.corejsf.Entity.WpRole;
+import com.corejsf.Entity.Timesheet;
+import com.corejsf.Entity.TimesheetRow;
+import com.corejsf.Entity.TimesheetStatus;
 
 import jakarta.annotation.PostConstruct;
 import org.mindrot.jbcrypt.BCrypt;
@@ -214,8 +217,108 @@ public class EmptyDbSeeder {
             em.persist(wpaTweety);
         }
 
+
+        //Timesheet seeding with 4 Statuses
+        LocalDate weekEnding = LocalDate.of(2026, 1, 11);
+
+    // ---------- DRAFT ----------
+        Timesheet tsDraft = new Timesheet();
+        tsDraft.setEmployee(daffyDuck);
+        tsDraft.setWeekEnding(weekEnding);
+        tsDraft.setApprover(null);
+        tsDraft.setReturnComment(null);
+        tsDraft.setStatus(TimesheetStatus.DRAFT);
+        tsDraft.setSignature(null);
+        em.persist(tsDraft);
+
+        TimesheetRow tsDraftRow = new TimesheetRow();
+        tsDraftRow.setWorkPackage(wp1);
+        tsDraftRow.setLaborGrade(daffyDuck.getLaborGrade());
+        tsDraftRow.setMonday(new BigDecimal("8.0"));
+        tsDraftRow.setTuesday(new BigDecimal("8.0"));
+        tsDraftRow.setTimesheet(tsDraft);
+        tsDraftRow.setWednesday(new BigDecimal("8.0"));
+        tsDraftRow.setThursday(new BigDecimal("8.0"));
+        tsDraftRow.setFriday(new BigDecimal("8.0"));
+        tsDraftRow.setSaturday(new BigDecimal("0.0"));
+        tsDraftRow.setSunday(new BigDecimal("0.0"));
+        em.persist(tsDraftRow);
+
+
+        // ---------- SUBMITTED ----------
+        Timesheet tsSubmitted = new Timesheet();
+        tsSubmitted.setEmployee(tweetyBird);
+        tsSubmitted.setWeekEnding(weekEnding);
+        tsSubmitted.setApprover(bugsBunny);
+        tsSubmitted.setReturnComment(null);
+        tsSubmitted.setStatus(TimesheetStatus.SUBMITTED);
+        tsSubmitted.setSignature(tweetyBird.getESignature());
+        em.persist(tsSubmitted);
+
+        TimesheetRow tsSubmittedRow = new TimesheetRow();
+        tsSubmittedRow.setTimesheet(tsSubmitted);
+        tsSubmittedRow.setWorkPackage(wp2);
+        tsSubmittedRow.setLaborGrade(tweetyBird.getLaborGrade());
+        tsSubmittedRow.setMonday(new BigDecimal("8.0"));
+        tsSubmittedRow.setTuesday(new BigDecimal("8.0"));
+        tsSubmittedRow.setWednesday(new BigDecimal("8.0"));
+        tsSubmittedRow.setThursday(new BigDecimal("8.0"));
+        tsSubmittedRow.setFriday(new BigDecimal("4.0"));
+        tsSubmittedRow.setSaturday(new BigDecimal("0.0"));
+        tsSubmittedRow.setSunday(new BigDecimal("0.0"));
+        em.persist(tsSubmittedRow);
+
+
+// ---------- APPROVED ----------
+        Timesheet tsApproved = new Timesheet();
+        tsApproved.setEmployee(sylvesterCat);
+        tsApproved.setWeekEnding(weekEnding);
+        tsApproved.setApprover(bugsBunny);
+        tsApproved.setReturnComment(null);
+        tsApproved.setStatus(TimesheetStatus.APPROVED);
+        tsApproved.setSignature(sylvesterCat.getESignature());
+        em.persist(tsApproved);
+
+        TimesheetRow tsApprovedRow = new TimesheetRow();
+        tsApprovedRow.setTimesheet(tsApproved);
+        tsApprovedRow.setWorkPackage(wp2);
+        tsApprovedRow.setLaborGrade(sylvesterCat.getLaborGrade());
+        tsApprovedRow.setMonday(new BigDecimal("8.0"));
+        tsApprovedRow.setTuesday(new BigDecimal("8.0"));
+        tsApprovedRow.setWednesday(new BigDecimal("6.0"));
+        tsApprovedRow.setThursday(new BigDecimal("8.0"));
+        tsApprovedRow.setFriday(new BigDecimal("8.0"));
+        tsApprovedRow.setSaturday(new BigDecimal("0.0"));
+        tsApprovedRow.setSunday(new BigDecimal("0.0"));
+        em.persist(tsApprovedRow);
+
+
+// ---------- RETURNED ----------
+        Timesheet tsReturned = new Timesheet();
+        tsReturned.setEmployee(daffyDuck);
+        tsReturned.setWeekEnding(LocalDate.of(2026, 1, 18));
+        tsReturned.setApprover(bugsBunny);
+        tsReturned.setReturnComment("Please correct hours for Wednesday.");
+        tsReturned.setStatus(TimesheetStatus.RETURNED);
+        tsReturned.setSignature(daffyDuck.getESignature());
+        em.persist(tsReturned);
+
+        TimesheetRow tsReturnedRow = new TimesheetRow();
+        tsReturnedRow.setTimesheet(tsReturned);
+        tsReturnedRow.setWorkPackage(wp1);
+        tsReturnedRow.setLaborGrade(daffyDuck.getLaborGrade());
+        tsReturnedRow.setMonday(new BigDecimal("8.0"));
+        tsReturnedRow.setTuesday(new BigDecimal("8.0"));
+        tsReturnedRow.setWednesday(new BigDecimal("12.0"));
+        tsReturnedRow.setThursday(new BigDecimal("8.0"));
+        tsReturnedRow.setFriday(new BigDecimal("8.0"));
+        tsReturnedRow.setSaturday(new BigDecimal("0.0"));
+        tsReturnedRow.setSunday(new BigDecimal("0.0"));
+        em.persist(tsReturnedRow);
+
         System.out.println("[Seeder] Seed complete: LaborGrade + Signature + Employee + Project + A + children + HR/PM/RE/MEMBER.");
     }
+
 
     private Employee createEmployee(String firstName, String lastName, SystemRole role, Employee supervisor, LaborGrade lg) {
         EmployeeESignature sig = new EmployeeESignature();

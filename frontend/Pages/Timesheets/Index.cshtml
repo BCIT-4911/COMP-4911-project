@@ -33,7 +33,7 @@
                     <label class="form-label">Week Ending</label>
                     <input type="date" class="form-control" id="weekEndingInput" />
                 </div>
-                <!-- OMIT FOR NOW, AUTO APPROVED FOR EAP -->
+                <!-- Approver is assigned automatically on submit based on employee supervisor -->
                 <!-- <div class="col-md-4">
                     <label class="form-label">Approver ID</label>
                     <input type="number" class="form-control" id="approverIdInput" min="1" />
@@ -86,14 +86,14 @@
     <!-- View Timesheets Section -->
     <div class="card shadow-sm mt-4">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Submitted Timesheets</h5>
+            <h5 class="mb-0">Timesheets</h5>
             <button class="btn btn-outline-secondary btn-sm" onclick="loadTimesheets()">
                 Load for Employee
             </button>
         </div>
         <div class="card-body">
             <div id="timesheetsListArea">
-                <p class="text-muted mb-0">Click "Load for Employee" to view submitted timesheets.</p>
+                <p class="text-muted mb-0">Click "Load for Employee" to view timesheets.</p>
             </div>
         </div>
     </div>
@@ -105,6 +105,15 @@
 @section Scripts {
 <script>
     const API = '@Model.ApiBaseUrl';
+    const TOKEN = '@Model.JwtToken';
+
+    function authFetch(url, options = {}) {
+        options.headers = { ...options.headers, 'Authorization': `Bearer ${TOKEN}` };
+        return fetch(url, options).then(res => {
+            if (res.status === 401) window.location.href = '/Login';
+            return res;
+        });
+    }
 
     let workPackages = [];
     let laborGrades = [];
@@ -133,7 +142,7 @@
 
     async function loadWorkPackages() {
         try {
-            const res = await fetch(`${API}/api/workpackages`);
+            const res = await authFetch(`${API}/api/workpackages`);
             if (!res.ok) throw new Error('Failed to load work packages');
             workPackages = await res.json();
         } catch (err) {
@@ -143,7 +152,7 @@
 
     async function loadLaborGrades() {
         try {
-            const res = await fetch(`${API}/api/labor-grades`);
+            const res = await authFetch(`${API}/api/labor-grades`);
             if (!res.ok) throw new Error('Failed to load labor grades');
             laborGrades = await res.json();
         } catch (err) {
@@ -185,7 +194,7 @@
             <td><input type="number" class="form-control form-control-sm hr-wed" step="0.1" min="0" max="24" value="0" oninput="updateTotals()" /></td>
             <td><input type="number" class="form-control form-control-sm hr-thu" step="0.1" min="0" max="24" value="0" oninput="updateTotals()" /></td>
             <td><input type="number" class="form-control form-control-sm hr-fri" step="0.1" min="0" max="24" value="0" oninput="updateTotals()" /></td>
-            <td><input type="number" class="form-control form-control-sm hr-sat" step="0.1" min="0" max="24" value="" oninput="updateTotals()" /></td>
+            <td><input type="number" class="form-control form-control-sm hr-sat" step="0.1" min="0" max="24" value="0" oninput="updateTotals()" /></td>
             <td><input type="number" class="form-control form-control-sm hr-sun" step="0.1" min="0" max="24" value="0" oninput="updateTotals()" /></td>
             <td class="fw-semibold row-total">0.0</td>
             <td>
@@ -243,7 +252,7 @@
 
         try {
             // Step 1: Create the timesheet via POST
-            const createRes = await fetch(`${API}/api/timesheets`, {
+            const createRes = await authFetch(`${API}/api/timesheets`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(dto)
@@ -258,7 +267,7 @@
             const tsId = created.tsId;
 
             // Step 2: Immediately submit via PUT /submit
-            const submitRes = await fetch(`${API}/api/timesheets/${tsId}/submit`, {
+            const submitRes = await authFetch(`${API}/api/timesheets/${tsId}/submit`, {
                 method: 'PUT'
             });
 
@@ -286,8 +295,8 @@
     function buildRequestDTO() {
         const empId = parseInt(document.getElementById('empIdInput').value);
         const weekEnding = document.getElementById('weekEndingInput').value;
-        const approverIdVal = document.getElementById('approverIdInput').value;
-        const approverId = approverIdVal ? parseInt(approverIdVal) : null;
+        const approverEl = document.getElementById('approverIdInput');
+        const approverId = approverEl && approverEl.value ? parseInt(approverEl.value) : null;
 
         if (!empId || empId <= 0) {
             showAlert('Please enter a valid Employee ID.', 'warning');
@@ -331,7 +340,7 @@
 
         if (!valid) return null;
 
-        return { empId, weekEnding, approverId, rows };
+        return { empId, weekEnding, rows };
     }
 
     // ========================================================================
@@ -340,7 +349,8 @@
 
     function resetForm() {
         document.getElementById('rowsBody').innerHTML = '';
-        document.getElementById('approverIdInput').value = '';
+        const approverInput = document.getElementById('approverIdInput');
+        if (approverInput) approverInput.value = '';
         addRow();
     }
 
@@ -408,7 +418,7 @@
         area.innerHTML = '<p class="text-muted">Loading...</p>';
 
         try {
-            const res = await fetch(`${API}/api/timesheets?empId=${empId}`);
+            const res = await authFetch(`${API}/api/timesheets?empId=${empId}`);
             if (!res.ok) throw new Error(await res.text());
             const list = await res.json();
 
@@ -455,10 +465,8 @@
                 + (r.sunday || 0);
         }, 0);
 
-        const status = ts.approved ? 'Submitted' : 'Draft';
-        const statusBadge = ts.approved
-            ? '<span class="badge bg-success">Submitted</span>'
-            : '<span class="badge bg-warning text-dark">Draft</span>';
+        const status = ts.status || 'DRAFT';
+        const statusBadge = renderStatusBadge(status);
 
         const detailId = `detail-${ts.tsId}`;
 
@@ -521,6 +529,19 @@
         const row = document.getElementById(`detail-${tsId}`);
         if (!row) return;
         row.style.display = row.style.display === 'none' ? '' : 'none';
+    }
+
+    function renderStatusBadge(status) {
+        if (status === 'APPROVED') {
+            return '<span class="badge bg-success">Approved</span>';
+        }
+        if (status === 'SUBMITTED') {
+            return '<span class="badge bg-primary">Submitted</span>';
+        }
+        if (status === 'RETURNED') {
+            return '<span class="badge bg-danger">Returned</span>';
+        }
+        return '<span class="badge bg-secondary">Draft</span>';
     }
 </script>
 }

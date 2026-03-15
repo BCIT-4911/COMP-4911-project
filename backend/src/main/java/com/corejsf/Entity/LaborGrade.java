@@ -3,6 +3,10 @@ package com.corejsf.Entity;
 import java.math.BigDecimal;
 import jakarta.persistence.*;
 
+/**
+ * Entity class representing a labor grade.
+ * Maps to the Labor_Grade table in the database.
+ */
 @Entity
 @Table(name = "Labor_Grade")
 public class LaborGrade {
@@ -21,6 +25,7 @@ public class LaborGrade {
     public LaborGrade() {
     }
 
+    //Getters and setters
     public Integer getLaborGradeId() {
         return laborGradeId;
     }

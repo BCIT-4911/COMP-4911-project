@@ -180,6 +180,21 @@ dotnet watch
 Open http://localhost:3000 — the frontend should display data from the backend.
 
 
+### Seeded users
+
+After the database and backend are running, the following users are seeded (passwords are BCrypt-hashed; **all passwords are `password`**):
+
+| emp_id | First name | Last name  | System role        | Supervisor   |
+|--------|------------|------------|--------------------|--------------|
+| 1      | Wile       | Coyote     | OPERATIONS_MANAGER | —            |
+| 2      | Road       | Runner     | HR                 | Wile Coyote  |
+| 3      | Bugs       | Bunny      | EMPLOYEE           | Wile Coyote  |
+| 4      | Daffy      | Duck       | EMPLOYEE           | Bugs Bunny   |
+| 5      | Tweety     | Bird       | EMPLOYEE           | Bugs Bunny   |
+
+Use **emp_id** and **password** to log in (e.g. `empId: 1`, `password: password` via API or the Login page).
+
+
 ### Troubleshooting
 
 | Error | Cause | Fix |
@@ -190,6 +205,37 @@ Open http://localhost:3000 — the frontend should display data from the backend
 | `Required services not installed: MySQLDS` | `persistence.xml` references wrong datasource name | Ensure `persistence.xml` uses `java:jboss/datasources/MySQLDS` |
 | `Schema-validation: missing column` | Docker volume has stale DDL | Run `docker compose down -v && docker compose up -d` in `sql/` |
 | `Cross-Origin Request Blocked` | CORS filter issue | Verify `CorsFilter.java` handles OPTIONS preflight and doesn't duplicate headers |
+
+
+## Running Tests
+
+### Unit tests (no server required)
+
+From the project root:
+
+```bash
+cd backend
+mvn test -Dtest=RebacServiceTest,JwtUtilTest,PasswordHashTest
+```
+
+### Integration tests (backend must be running)
+
+1. Start MySQL and the backend (see [Step 3](#step-3-start-the-mysql-database) and [Step 4](#step-4-build-and-run-the-backend)).
+2. **Integration tests require a fresh database.** If you have run the backend before or altered the DB, reset it first:
+   ```bash
+   cd sql
+   docker compose down -v
+   docker compose up -d
+   ```
+   Then restart the backend so the seeder runs.
+3. Run:
+
+```bash
+cd backend
+mvn test -Dtest=AuthFilterIntegrationTest,ProjectAndWorkPackageRebacIntegrationTest
+```
+
+Integration tests hit `http://localhost:8080/Project/api` and require valid seeded users (see [Seeded users](#seeded-users)). `ProjectAndWorkPackageRebacIntegrationTest` resolves employee IDs from `GET /api/employees` at runtime, so it works with any consistent seed.
 
 
 ## Team Rules and Standards

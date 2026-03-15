@@ -1,4 +1,4 @@
-package ca.bcit.infosys.timesheet;
+package com.corejsf.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -6,6 +6,7 @@ import java.util.List;
 
 import com.corejsf.DTO.TimesheetRequestDTO;
 import com.corejsf.DTO.TimesheetRowRequestDTO;
+import com.corejsf.Entity.TimesheetStatus;
 import com.corejsf.Entity.WorkPackage;
 import com.corejsf.Entity.WorkPackageStatus;
 import com.corejsf.Entity.WorkPackageType;
@@ -18,7 +19,7 @@ public final class TimesheetValidation {
 
     private static final BigDecimal INCREMENT = new BigDecimal("0.1");
     private static final BigDecimal MAX_DAILY_HOURS = new BigDecimal("24.0");
-    private static final BigDecimal MAX_WEEKLY_HOURS = new BigDecimal("168.0"); 
+    private static final BigDecimal MAX_WEEKLY_HOURS = new BigDecimal("168.0");
 
     // -------------------------------------------------------------------------
     // Top-level validation entry points
@@ -60,7 +61,7 @@ public final class TimesheetValidation {
     public static void validateWeekEnding(LocalDate weekEnding) {
         if (weekEnding == null) {
             throw new IllegalArgumentException("Week ending date is required.");
-        }        
+        }
     }
 
     public static void validateRowsNotEmpty(List<TimesheetRowRequestDTO> rows) {
@@ -199,13 +200,36 @@ public final class TimesheetValidation {
     // -------------------------------------------------------------------------
 
     /**
-     * Ensures the timesheet has not been approved.
-     * An approved timesheet cannot be edited, submitted again, or deleted.
+     * Validates that a timesheet can be edited.
+     * Only DRAFT and RETURNED timesheets are editable.
+     * SUBMITTED (pending review) and APPROVED (final) timesheets cannot be edited.
      */
-    public static void validateNotApproved(Boolean approved) {
-        if (Boolean.TRUE.equals(approved)) {
+    public static void validateCanEdit(TimesheetStatus status) {
+        if (status == TimesheetStatus.SUBMITTED) {
             throw new IllegalArgumentException(
-                    "Cannot modify an approved timesheet. Approved timesheets are immutable.");
+                    "Cannot edit a submitted timesheet. It is currently pending review. "
+                            + "Wait for it to be approved or returned before making changes.");
+        }
+        if (status == TimesheetStatus.APPROVED) {
+            throw new IllegalArgumentException(
+                    "Cannot edit an approved timesheet. Approved timesheets are final and immutable.");
+        }
+    }
+
+    /**
+     * Validates that a timesheet can be deleted.
+     * Only DRAFT and RETURNED timesheets can be deleted.
+     * SUBMITTED (pending review) and APPROVED (final) timesheets cannot be deleted.
+     */
+    public static void validateCanDelete(TimesheetStatus status) {
+        if (status == TimesheetStatus.SUBMITTED) {
+            throw new IllegalArgumentException(
+                    "Cannot delete a submitted timesheet. It is currently pending review. "
+                            + "Wait for it to be returned before deleting.");
+        }
+        if (status == TimesheetStatus.APPROVED) {
+            throw new IllegalArgumentException(
+                    "Cannot delete an approved timesheet. Approved timesheets are final and immutable.");
         }
     }
 

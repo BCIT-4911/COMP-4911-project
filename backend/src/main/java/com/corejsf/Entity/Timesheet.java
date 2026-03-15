@@ -4,6 +4,8 @@ import java.time.LocalDate;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -32,11 +34,12 @@ public class Timesheet {
     @JoinColumn(name = "approver_id", nullable = true)
     private Employee approver;
 
-    @Column(name = "approved", nullable = false)
-    private Boolean approvalStatus;
-
     @Column(name = "return_comment", columnDefinition = "TEXT")
     private String returnComment;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private TimesheetStatus timesheetStatus;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "emp_e_sig_id")
@@ -79,14 +82,6 @@ public class Timesheet {
         this.approver = approver;
     }
 
-    public Boolean getApprovalStatus() {
-        return approvalStatus;
-    }
-
-    public void setApprovalStatus(Boolean approvalStatus) {
-        this.approvalStatus = approvalStatus;
-    }
-
     public String getReturnComment() {
         return returnComment;
     }
@@ -94,6 +89,10 @@ public class Timesheet {
     public void setReturnComment(String returnComment) {
         this.returnComment = returnComment;
     }
+
+    public TimesheetStatus getStatus() { return timesheetStatus; }
+
+    public void setStatus(TimesheetStatus timesheetStatus) { this.timesheetStatus = timesheetStatus; }
 
     public EmployeeESignature getSignature() {
         return signature;

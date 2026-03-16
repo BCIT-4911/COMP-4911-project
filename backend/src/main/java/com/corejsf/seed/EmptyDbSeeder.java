@@ -129,6 +129,49 @@ public class EmptyDbSeeder {
             em.persist(proj2);  
         }
 
+        //Work Packages for seeded project PROJ-2
+                // ---------------- PROJ-2 work packages ----------------
+        WorkPackage parentProj2 = new WorkPackage();
+        parentProj2.setWpId("B");
+        parentProj2.setWpName("Control Account B");
+        parentProj2.setDescription("Parent summary WP for PROJ-2");
+        parentProj2.setProject(proj2);
+        parentProj2.setParentWorkPackage(null);
+
+        parentProj2.setWpType(WorkPackageType.SUMMARY);
+        parentProj2.setStatus(WorkPackageStatus.OPEN_FOR_CHARGES);
+
+        parentProj2.setStructureLocked(false);
+        parentProj2.setBudgetedEffort(new BigDecimal("0.00"));
+        parentProj2.setBcws(new BigDecimal("0.00"));
+
+        parentProj2.setPlanStartDate(LocalDate.of(2026, 1, 3));
+        parentProj2.setPlanEndDate(LocalDate.of(2026, 3, 3));
+
+        parentProj2.setResponsibleEmployee(marvinMartian);
+        parentProj2.setBac(new BigDecimal("6000.00"));
+        parentProj2.setPercentComplete(new BigDecimal("20.00"));
+
+        parentProj2.setCreatedDate(LocalDateTime.now());
+        parentProj2.setModifiedDate(LocalDateTime.now());
+        parentProj2.setCreatedBy(admin);
+        parentProj2.setModifiedBy(admin);
+
+        em.persist(parentProj2);
+
+        createChild("CB-1.WP-1", "Design Spaceship", proj2, parentProj2, marvinMartian,
+                LocalDate.of(2026, 1, 3), LocalDate.of(2026, 1, 20),
+                new BigDecimal("2000.00"), new BigDecimal("15.00"));
+
+        createChild("CB-1.WP-2", "Install Laser System", proj2, parentProj2, marvinMartian,
+                LocalDate.of(2026, 1, 21), LocalDate.of(2026, 2, 10),
+                new BigDecimal("1800.00"), new BigDecimal("40.00"));
+
+        createChild("CB-1.WP-3", "Test Martian Radar", proj2, parentProj2, marvinMartian,
+                LocalDate.of(2026, 2, 11), LocalDate.of(2026, 3, 3),
+                new BigDecimal("2200.00"), new BigDecimal("5.00"));
+
+        //Work Packages for seeded project PROJ-1
         WorkPackage parent = new WorkPackage();
         parent.setWpId("A");
         parent.setWpName("Control Account A");

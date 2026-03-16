@@ -13,7 +13,7 @@ import static io.restassured.RestAssured.given;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class ProjectAndWorkPackageRebacIntegrationTest {
+public class RebacIntegrationTest {
 
     private static Integer OPS_ID;
     private static Integer HR_ID;

@@ -1,4 +1,4 @@
-package com.corejsf.Api;
+package com.corejsf.api;
 
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;

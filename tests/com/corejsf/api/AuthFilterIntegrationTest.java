@@ -1,14 +1,14 @@
-package com.corejsf.Api;
+package com.corejsf.api;
 
-import io.restassured.RestAssured;
-import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import io.restassured.RestAssured;
 import static io.restassured.RestAssured.given;
+import io.restassured.http.ContentType;
 
-public class AuthFilterIntegrationTest {
+class AuthFilterIntegrationTest {
 
     private static final String INVALID_BEARER = "Bearer this.is.not.a.valid.jwt";
 
@@ -23,73 +23,91 @@ public class AuthFilterIntegrationTest {
 
     private void assertUnauthorizedWithoutToken(String method, String endpoint) {
         switch (method.toUpperCase()) {
-            case "GET" -> given()
-                    .when()
-                    .get(endpoint)
-                    .then()
-                    .statusCode(401);
+            case "GET":
+                given()
+                        .when()
+                        .get(endpoint)
+                        .then()
+                        .statusCode(401);
+                break;
 
-            case "POST" -> given()
-                    .contentType(ContentType.JSON)
-                    .body("{}")
-                    .when()
-                    .post(endpoint)
-                    .then()
-                    .statusCode(401);
+            case "POST":
+                given()
+                        .contentType(ContentType.JSON)
+                        .body("{}")
+                        .when()
+                        .post(endpoint)
+                        .then()
+                        .statusCode(401);
+                break;
 
-            case "PUT" -> given()
-                    .contentType(ContentType.JSON)
-                    .body("{}")
-                    .when()
-                    .put(endpoint)
-                    .then()
-                    .statusCode(401);
+            case "PUT":
+                given()
+                        .contentType(ContentType.JSON)
+                        .body("{}")
+                        .when()
+                        .put(endpoint)
+                        .then()
+                        .statusCode(401);
+                break;
 
-            case "DELETE" -> given()
-                    .when()
-                    .delete(endpoint)
-                    .then()
-                    .statusCode(401);
+            case "DELETE":
+                given()
+                        .when()
+                        .delete(endpoint)
+                        .then()
+                        .statusCode(401);
+                break;
 
-            default -> throw new IllegalArgumentException("Unsupported method: " + method);
+            default:
+                throw new IllegalArgumentException("Unsupported method: " + method);
         }
     }
 
     private void assertUnauthorizedWithInvalidToken(String method, String endpoint) {
         switch (method.toUpperCase()) {
-            case "GET" -> given()
-                    .header("Authorization", INVALID_BEARER)
-                    .when()
-                    .get(endpoint)
-                    .then()
-                    .statusCode(401);
+            case "GET":
+                given()
+                        .header("Authorization", INVALID_BEARER)
+                        .when()
+                        .get(endpoint)
+                        .then()
+                        .statusCode(401);
+                break;
 
-            case "POST" -> given()
-                    .header("Authorization", INVALID_BEARER)
-                    .contentType(ContentType.JSON)
-                    .body("{}")
-                    .when()
-                    .post(endpoint)
-                    .then()
-                    .statusCode(401);
+            case "POST":
+                given()
+                        .header("Authorization", INVALID_BEARER)
+                        .contentType(ContentType.JSON)
+                        .body("{}")
+                        .when()
+                        .post(endpoint)
+                        .then()
+                        .statusCode(401);
+                break;
 
-            case "PUT" -> given()
-                    .header("Authorization", INVALID_BEARER)
-                    .contentType(ContentType.JSON)
-                    .body("{}")
-                    .when()
-                    .put(endpoint)
-                    .then()
-                    .statusCode(401);
+            case "PUT":
+                given()
+                        .header("Authorization", INVALID_BEARER)
+                        .contentType(ContentType.JSON)
+                        .body("{}")
+                        .when()
+                        .put(endpoint)
+                        .then()
+                        .statusCode(401);
+                break;
 
-            case "DELETE" -> given()
-                    .header("Authorization", INVALID_BEARER)
-                    .when()
-                    .delete(endpoint)
-                    .then()
-                    .statusCode(401);
+            case "DELETE":
+                given()
+                        .header("Authorization", INVALID_BEARER)
+                        .when()
+                        .delete(endpoint)
+                        .then()
+                        .statusCode(401);
+                break;
 
-            default -> throw new IllegalArgumentException("Unsupported method: " + method);
+            default:
+                throw new IllegalArgumentException("Unsupported method: " + method);
         }
     }
 

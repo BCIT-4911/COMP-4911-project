@@ -1,5 +1,7 @@
 package com.corejsf.Service;
 
+import org.mindrot.jbcrypt.BCrypt;
+
 import com.corejsf.Entity.Employee;
 import com.corejsf.Entity.SystemRole;
 
@@ -8,7 +10,6 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
-import org.mindrot.jbcrypt.BCrypt;
 
 @Stateless
 public class AuthService {

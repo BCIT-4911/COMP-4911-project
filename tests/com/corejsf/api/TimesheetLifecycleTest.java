@@ -1,15 +1,15 @@
-package com.corejsf.Service;
+package com.corejsf.api;
 
-import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import io.restassured.RestAssured;
+import static io.restassured.RestAssured.given;
 import io.restassured.http.ContentType;
 import io.restassured.path.json.JsonPath;
 import io.restassured.response.Response;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
 
 public class TimesheetLifecycleTest {
 

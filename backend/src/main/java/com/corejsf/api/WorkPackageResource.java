@@ -3,7 +3,6 @@ package com.corejsf.api;
 import java.util.List;
 
 import com.corejsf.Entity.Employee;
-import com.corejsf.Entity.SystemRole;
 import com.corejsf.Entity.WorkPackage;
 import com.corejsf.Entity.WpRole;
 import com.corejsf.Service.RebacService;

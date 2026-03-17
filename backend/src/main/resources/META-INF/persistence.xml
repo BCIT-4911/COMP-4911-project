@@ -9,9 +9,11 @@
         <properties>
             <!-- Properties for schema generation. Set to "none" because you are managing the schema with DDL scripts. -->
             <property name="jakarta.persistence.schema-generation.database.action" value="none"/>
-            <property name="hibernate.dialect" value="org.hibernate.dialect.MySQLDialect"/>
             <property name="hibernate.show_sql" value="true"/>
             <property name="hibernate.format_sql" value="true"/>
+            <property name="hibernate.use_sql_comments" value="true"/>
+            <!-- Enables detailed type binding information -->
+            <property name="hibernate.type" value="trace"/> 
         </properties>
     </persistence-unit>
 </persistence>

@@ -9,8 +9,7 @@
 	<packaging>war</packaging>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<maven.compiler.source>21</maven.compiler.source>
-		<maven.compiler.target>21</maven.compiler.target>
+		<maven.compiler.release>21</maven.compiler.release>
 		<version.maven.war.plugin>3.4.0</version.maven.war.plugin>
 		<version.wildfly.plugin>5.1.4.Final</version.wildfly.plugin>
 		<version.wildfly>37.0.1.Final</version.wildfly>
@@ -102,10 +101,10 @@
 					</galleon-options>
 					<env>
 						<MYSQL_HOST>127.0.0.1</MYSQL_HOST>
-						<MYSQL_PORT>3307</MYSQL_PORT>
+						<MYSQL_PORT>3306</MYSQL_PORT>
 						<MYSQL_DATABASE>Project_Management</MYSQL_DATABASE>
-						<MYSQL_USER>project_user</MYSQL_USER>
-						<MYSQL_PASSWORD>password</MYSQL_PASSWORD>
+						<MYSQL_USER>root</MYSQL_USER>
+						<MYSQL_PASSWORD>n/a</MYSQL_PASSWORD>
 					</env>
 					<runtime-name>ROOT.war</runtime-name>
 				</configuration>

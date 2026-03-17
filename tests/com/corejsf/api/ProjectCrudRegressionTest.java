@@ -6,24 +6,28 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestMethodOrder;
 
 import io.restassured.RestAssured;
 import static io.restassured.RestAssured.given;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 
+// Executing CRUD test operation according to specific order due to parent-child relationship
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ProjectCrudRegressionTest {
 
-    // Note: This is not a correct way to identify a manager as a role should be given to actually identify a project manager
-    // Role can be achieved used a separate table or an additional enum which is not currently defined.
-    private static final String PROJECT_MANAGER_FIRST_NAME = "Bugs";
-    private static final String PROJECT_MANAGER_LAST_NAME = "Bunny";
     private static final String PROJECT_MANAGER_PASSWORD = "password";
+    private static final String PROJECT_MANAGER_SYSTEM_ROLE = "PROJECT_MANAGER";
 
     private static final int OPERATION_MANAGER_EMP_ID = 1;
     private static final String OPERATION_MANAGER_PASSWORD = "password";
@@ -61,11 +65,6 @@ class ProjectCrudRegressionTest {
 
     private static final String WORK_PACKAGE_RESOURCE_API_ENDPOINT_PREFIX = "/workpackages/";
     private static final String WORK_PACKAGE_RESOURE_CREATE_API_ENDPOINT = "/workpackages";
-
-    String wpBody = "{" + "\"wpId\":\"CRUD-1.WP-1\"," + "\"wpName\":\"Initial Work Package\","
-            + "\"description\":\"Test WP for CRUD\"," + "\"status\":\"OPEN\"," + "\"budgetedEffort\":100.00,"
-            + "\"bac\":5000.00," + "\"projectId\":\"CRUD-1\"," + "\"responsibleEngineerId\":" + projectManagerId
-            + "}";
 
     private static final String TEST_WORK_PACKAGE_INITIAL_ID = "CRUD-1.WP-1";
     private static final String TEST_WORK_PACKAGE_INITIAL_NAME = "Initial test work package";
@@ -118,38 +117,40 @@ class ProjectCrudRegressionTest {
     private static final String JSON_KEY_VALUE_SEPARATOR = "\":\"";
     private static final String JSON_FIELD_DATA_SEPARATOR = "\",\"";
 
-    private static int projectManagerId;
+    private static final int DEFAULT_NON_EXISTING_EMP_ID = -1;
 
-    private static String opsToken;
-    private static String pmProj1Token;
+    private int projectManagerId = DEFAULT_NON_EXISTING_EMP_ID;
+
+    private String opsToken = null;
+    private String pmProj1Token = null;
 
     @BeforeAll
-    static void setup() {
+    void setup() {
         RestAssured.baseURI = "http://localhost";
         RestAssured.port = 8080;
         RestAssured.basePath = "/Project/api";
 
         opsToken = login(OPERATION_MANAGER_EMP_ID, OPERATION_MANAGER_PASSWORD);
-        resoleProjectManagerEmpId(opsToken);
+        resolveProjectManagerEmpId(opsToken);
         pmProj1Token = login(projectManagerId, PROJECT_MANAGER_PASSWORD);
     }
 
-    private static void resoleProjectManagerEmpId(String opsToken) {
+    private void resolveProjectManagerEmpId(String opsToken) {
         List<Map<String, Object>> employees = given()
                 .header(AUTHORIZATION_BEARER_HTTP_HEADER_PREFIX, AUTHORIZATION_BEARER_VALUE_PREFIX + opsToken)
                 .get("/employees").then().statusCode(200).extract().jsonPath().getList("$");
 
         for (Map<String, Object> e : employees) {
-            String first = (String) e.get("empFirstName");
-            String last = (String) e.get("empLastName");
-            if (first.equals(PROJECT_MANAGER_FIRST_NAME) && last.equals(PROJECT_MANAGER_LAST_NAME)) {
+            String systemRole = (String) e.get("systemRole");
+            if (systemRole.equals(PROJECT_MANAGER_SYSTEM_ROLE)) {
                 projectManagerId = ((Number) e.get("empId")).intValue();
+                break;
             }
         }
 
-        assertNotNull(projectManagerId, "Employee (Project Manager) seed data missing: " + PROJECT_MANAGER_FIRST_NAME
-                + " " + PROJECT_MANAGER_LAST_NAME);
-
+        assertNotEquals(projectManagerId,
+                DEFAULT_NON_EXISTING_EMP_ID,
+                "Project manager employee ID should not be \"" + DEFAULT_NON_EXISTING_EMP_ID + "\".");
     }
 
     private static String login(int empId, String password) {

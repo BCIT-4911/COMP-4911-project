@@ -103,8 +103,8 @@
 						<MYSQL_HOST>127.0.0.1</MYSQL_HOST>
 						<MYSQL_PORT>3306</MYSQL_PORT>
 						<MYSQL_DATABASE>Project_Management</MYSQL_DATABASE>
-						<MYSQL_USER>root</MYSQL_USER>
-						<MYSQL_PASSWORD>n/a</MYSQL_PASSWORD>
+						<MYSQL_USER>ProjectSQLAdmin</MYSQL_USER>
+						<MYSQL_PASSWORD>ProjectSqlAdmin!23</MYSQL_PASSWORD>
 					</env>
 					<runtime-name>ROOT.war</runtime-name>
 				</configuration>

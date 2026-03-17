@@ -1,7 +1,12 @@
+DROP DATABASE IF EXISTS Project_Management;
 CREATE DATABASE IF NOT EXISTS Project_Management;
 
-USE Project_Management;
+DROP USER IF EXISTS 'ProjectSQLAdmin'@'%';
 
+CREATE USER 'ProjectSQLAdmin'@'%';
+ALTER USER 'ProjectSQLAdmin'@'%' IDENTIFIED BY 'ProjectSqlAdmin!23';
+GRANT ALL PRIVILEGES ON Project_Management.* TO 'ProjectSQLAdmin'@'%';
+USE Project_Management;
 DROP TABLE IF EXISTS Timesheet_Row; 
 DROP TABLE IF EXISTS Timesheet;    
 DROP TABLE IF EXISTS Work_Package_Assignment;
@@ -39,7 +44,7 @@ CREATE TABLE Employee(
     emp_first_name VARCHAR(255) NOT NULL,
     emp_last_name VARCHAR(255) NOT NULL,
     emp_password VARCHAR(255) NOT NULL,
-    system_role ENUM('HR', 'OPERATIONS_MANAGER', 'EMPLOYEE'),
+    system_role ENUM('HR', 'OPERATIONS_MANAGER', 'EMPLOYEE', 'PROJECT_MANAGER'),
     emp_e_sig_id INT NOT NULL,
     labor_grade_id INT NOT NULL,
     supervisor_id INT,
@@ -125,9 +130,9 @@ CREATE TABLE Timesheet(
     emp_id INT NOT NULL,
     week_ending DATE NOT NULL,
     approver_id INT,
-    approved BOOLEAN NOT NULL,
     return_comment TEXT,
-    emp_e_sig_id INT, 
+    emp_e_sig_id INT,
+    status ENUM('DRAFT', 'SUBMITTED', 'APPROVED', 'RETURNED') NOT NULL DEFAULT 'DRAFT',
     FOREIGN KEY (emp_id) REFERENCES Employee(emp_id),
     FOREIGN KEY (approver_id) REFERENCES Employee(emp_id),
     FOREIGN KEY (emp_e_sig_id) REFERENCES Employee_E_Signature(emp_e_sig_id)

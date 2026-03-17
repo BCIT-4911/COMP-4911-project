@@ -1,9 +1,10 @@
 package com.corejsf.seed;
 
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+
+import org.mindrot.jbcrypt.BCrypt;
 
 import com.corejsf.Entity.Employee;
 import com.corejsf.Entity.EmployeeESignature;
@@ -14,17 +15,16 @@ import com.corejsf.Entity.ProjectRole;
 import com.corejsf.Entity.ProjectStatus;
 import com.corejsf.Entity.ProjectType;
 import com.corejsf.Entity.SystemRole;
+import com.corejsf.Entity.Timesheet;
+import com.corejsf.Entity.TimesheetRow;
+import com.corejsf.Entity.TimesheetStatus;
 import com.corejsf.Entity.WorkPackage;
 import com.corejsf.Entity.WorkPackageAssignment;
 import com.corejsf.Entity.WorkPackageStatus;
 import com.corejsf.Entity.WorkPackageType;
 import com.corejsf.Entity.WpRole;
-import com.corejsf.Entity.Timesheet;
-import com.corejsf.Entity.TimesheetRow;
-import com.corejsf.Entity.TimesheetStatus;
 
 import jakarta.annotation.PostConstruct;
-import org.mindrot.jbcrypt.BCrypt;
 import jakarta.ejb.Singleton;
 import jakarta.ejb.Startup;
 import jakarta.persistence.EntityManager;
@@ -47,7 +47,6 @@ public class EmptyDbSeeder {
 
         System.out.println("[Seeder] Empty DB detected. Seeding minimum dataset...");
 
-
         LaborGrade lg = em.find(LaborGrade.class, 1);
         if (lg == null) {
             lg = new LaborGrade();
@@ -59,7 +58,7 @@ public class EmptyDbSeeder {
         EmployeeESignature sig = em.find(EmployeeESignature.class, 1);
         if (sig == null) {
             sig = new EmployeeESignature();
-            sig.setSignatureData(new byte[] { 0x00 });
+            sig.setSignatureData(new byte[]{0x00});
             sig.setSignedAt(LocalDateTime.now());
             em.persist(sig);
         }
@@ -78,22 +77,20 @@ public class EmptyDbSeeder {
         em.persist(admin);
 
         Employee roadRunner = createEmployee("Road", "Runner", SystemRole.HR, admin, lg);
-        Employee bugsBunny = createEmployee("Bugs", "Bunny", SystemRole.EMPLOYEE, admin, lg);
+        Employee bugsBunny = createEmployee("Bugs", "Bunny", SystemRole.PROJECT_MANAGER, admin, lg);
         Employee daffyDuck = createEmployee("Daffy", "Duck", SystemRole.EMPLOYEE, bugsBunny, lg);
         Employee tweetyBird = createEmployee("Tweety", "Bird", SystemRole.EMPLOYEE, bugsBunny, lg);
         Employee sylvesterCat = createEmployee("Sylvester", "Cat", SystemRole.EMPLOYEE, bugsBunny, lg);
-
-    
 
         Project proj = em.find(Project.class, "PROJ-1");
         if (proj == null) {
             proj = new Project();
             proj.setProjId("PROJ-1");
-            proj.setProjType(ProjectType.INTERNAL);  
-            proj.setProjectManager(admin);              
+            proj.setProjType(ProjectType.INTERNAL);
+            proj.setProjectManager(admin);
             proj.setProjName("Demo Project");
             proj.setDescription("Seed data for Earned Value report");
-            proj.setStatus(ProjectStatus.OPEN);      
+            proj.setStatus(ProjectStatus.OPEN);
             proj.setStartDate(LocalDate.of(2026, 1, 1));
             proj.setEndDate(LocalDate.of(2026, 3, 31));
             proj.setCreatedDate(LocalDateTime.now());
@@ -105,12 +102,11 @@ public class EmptyDbSeeder {
             em.persist(proj);
         }
 
-
         Employee marvinMartian = createEmployee("Marvin", "Martian", SystemRole.EMPLOYEE, admin, lg);
 
         // Project 2 for Seed cases
         Project proj2 = em.find(Project.class, "PROJ-2");
-        if(proj2 == null) {
+        if (proj2 == null) {
             proj2 = new Project();
             proj2.setProjId("PROJ-2");
             proj2.setProjType(ProjectType.EXTERNAL);
@@ -126,11 +122,11 @@ public class EmptyDbSeeder {
             proj2.setModifiedBy(admin);
             proj2.setMarkupRate(new BigDecimal("10.00"));
 
-            em.persist(proj2);  
+            em.persist(proj2);
         }
 
         //Work Packages for seeded project PROJ-2
-                // ---------------- PROJ-2 work packages ----------------
+        // ---------------- PROJ-2 work packages ----------------
         WorkPackage parentProj2 = new WorkPackage();
         parentProj2.setWpId("B");
         parentProj2.setWpName("Control Account B");
@@ -179,8 +175,8 @@ public class EmptyDbSeeder {
         parent.setProject(proj);
         parent.setParentWorkPackage(null);
 
-        parent.setWpType(WorkPackageType.SUMMARY);               
-        parent.setStatus(WorkPackageStatus.OPEN_FOR_CHARGES);    
+        parent.setWpType(WorkPackageType.SUMMARY);
+        parent.setStatus(WorkPackageStatus.OPEN_FOR_CHARGES);
 
         parent.setStructureLocked(false);
         parent.setBudgetedEffort(new BigDecimal("0.00"));
@@ -189,7 +185,7 @@ public class EmptyDbSeeder {
         parent.setPlanStartDate(LocalDate.of(2026, 1, 1));
         parent.setPlanEndDate(LocalDate.of(2026, 3, 31));
 
-        parent.setResponsibleEmployee(admin); 
+        parent.setResponsibleEmployee(admin);
         parent.setBac(new BigDecimal("5000.00"));
         parent.setPercentComplete(new BigDecimal("25.00"));
 
@@ -211,7 +207,6 @@ public class EmptyDbSeeder {
         createChild("CA-1.WP-3", "Build Road", proj, parent, admin,
                 LocalDate.of(2026, 1, 15), LocalDate.of(2026, 3, 1),
                 new BigDecimal("3000.00"), new BigDecimal("35.00"));
-
 
         ProjectAssignment paBugs = new ProjectAssignment();
         paBugs.setEmployee(bugsBunny);
@@ -260,11 +255,10 @@ public class EmptyDbSeeder {
             em.persist(wpaTweety);
         }
 
-
         //Timesheet seeding with 4 Statuses
         LocalDate weekEnding = LocalDate.of(2026, 1, 11);
 
-    // ---------- DRAFT ----------
+        // ---------- DRAFT ----------
         Timesheet tsDraft = new Timesheet();
         tsDraft.setEmployee(daffyDuck);
         tsDraft.setWeekEnding(weekEnding);
@@ -286,7 +280,6 @@ public class EmptyDbSeeder {
         tsDraftRow.setSaturday(new BigDecimal("0.0"));
         tsDraftRow.setSunday(new BigDecimal("0.0"));
         em.persist(tsDraftRow);
-
 
         // ---------- SUBMITTED ----------
         Timesheet tsSubmitted = new Timesheet();
@@ -311,7 +304,6 @@ public class EmptyDbSeeder {
         tsSubmittedRow.setSunday(new BigDecimal("0.0"));
         em.persist(tsSubmittedRow);
 
-
 // ---------- APPROVED ----------
         Timesheet tsApproved = new Timesheet();
         tsApproved.setEmployee(sylvesterCat);
@@ -334,7 +326,6 @@ public class EmptyDbSeeder {
         tsApprovedRow.setSaturday(new BigDecimal("0.0"));
         tsApprovedRow.setSunday(new BigDecimal("0.0"));
         em.persist(tsApprovedRow);
-
 
 // ---------- RETURNED ----------
         Timesheet tsReturned = new Timesheet();
@@ -362,10 +353,9 @@ public class EmptyDbSeeder {
         System.out.println("[Seeder] Seed complete: LaborGrade + Signature + Employee + Project + A + children + HR/PM/RE/MEMBER.");
     }
 
-
     private Employee createEmployee(String firstName, String lastName, SystemRole role, Employee supervisor, LaborGrade lg) {
         EmployeeESignature sig = new EmployeeESignature();
-        sig.setSignatureData(new byte[] { 0x00 });
+        sig.setSignatureData(new byte[]{0x00});
         sig.setSignedAt(LocalDateTime.now());
         em.persist(sig);
 

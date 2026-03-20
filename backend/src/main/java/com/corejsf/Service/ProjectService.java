@@ -11,6 +11,7 @@ import com.corejsf.Entity.ProjectRole;
 import com.corejsf.Entity.ProjectStatus;
 import com.corejsf.Entity.WorkPackage;
 
+import jakarta.ejb.EJB;
 import jakarta.ejb.Stateless;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -22,6 +23,9 @@ public class ProjectService {
 
     @PersistenceContext(unitName = "project-management-pu")
     private EntityManager em;
+
+    @EJB
+    private WorkPackageService workPackageService;
 
     private Project findProject(String id) {
         Project project = em.find(Project.class, id);
@@ -129,11 +133,10 @@ public class ProjectService {
         em.merge(project);
     }
 
-    public void addWorkPackage(String projId, WorkPackage wp) {
-        Project project = findProject(projId);
-        WorkPackageValidation.validate(wp);
-        wp.setProject(project);
-        em.persist(wp);
+    public WorkPackage addWorkPackage(String projId, WorkPackage wp) {
+        findProject(projId);
+        wp.setProjId(projId);
+        return workPackageService.createWorkPackage(wp);
     }
 
     /**

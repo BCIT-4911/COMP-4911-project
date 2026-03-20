@@ -309,14 +309,9 @@
         if (!select) return;
 
         const uniqueIds = [...new Set((wps || []).map(w => w.wpId).filter(Boolean))].sort((a, b) => a.localeCompare(b));
-        if (uniqueIds.length === 0) {
-            select.innerHTML = '<option value="">No existing WPs</option>';
-            select.disabled = true;
-            return;
-        }
-
         select.disabled = false;
-        select.innerHTML = uniqueIds.map(id => `<option value="${esc(id)}">${esc(id)}</option>`).join('');
+        select.innerHTML = '<option value="">(Root – no parent)</option>'
+            + uniqueIds.map(id => `<option value="${esc(id)}">${esc(id)}</option>`).join('');
     }
 
     function statusDisplay(s) {
@@ -666,7 +661,8 @@
         const isEdit = document.getElementById('editMode').value === 'true';
         const id = isEdit ? document.getElementById('originalId').value : document.getElementById('wpId').value;
         const parentWpId = document.getElementById('parentWpIdSelect').value || null;
-        const wpId = parentWpId + "." + (document.getElementById('wpId').disabled ? id : document.getElementById('wpId').value);
+        const userWpId = document.getElementById('wpId').disabled ? id : document.getElementById('wpId').value;
+        const wpId = parentWpId ? parentWpId + "." + userWpId : userWpId;
 
         // MERGE data so we don't accidentally wipe out Estimates when saving basic info!
         const existingWp = isEdit ? allWps.find(x => x.wpId === id) : {};
@@ -678,7 +674,7 @@
             projId: PROJECT_ID,
             status: document.getElementById('wpStatus').value,
             parentWpId: parentWpId,
-            reEmployeeId: parseInt(document.getElementById('reEmployeeId').value) || 0,
+            reEmployeeId: parseInt(document.getElementById('reEmployeeId').value) || null,
             planStartDate: document.getElementById('planStartDate').value || null,
             planEndDate: document.getElementById('planEndDate').value || null,
             description: document.getElementById('wpDesc').value || null,

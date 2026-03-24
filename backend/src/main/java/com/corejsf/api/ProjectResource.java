@@ -112,8 +112,8 @@ public class ProjectResource {
         if (!rebacService.canCreateProject(authContext.getSystemRole()) && !rebacService.canManageProject(authContext.getEmpId(), id)) {
             return forbidden();
         }
-        projectService.addWorkPackage(id, wp);
-        return Response.status(Response.Status.CREATED).build();
+        WorkPackage created = projectService.addWorkPackage(id, wp);
+        return Response.status(Response.Status.CREATED).entity(created).build();
     }
 
     @POST

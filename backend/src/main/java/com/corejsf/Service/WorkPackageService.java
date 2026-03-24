@@ -120,6 +120,11 @@ public class WorkPackageService {
             existing.setParentWorkPackage(null);
         }
 
+        Integer reEmpId = wp.getReEmployeeId();
+        if (reEmpId != null) {
+            existing.setResponsibleEmployee(findEmployee(reEmpId));
+        }
+
         // Map the existing fields
         existing.setWpName(wp.getWpName());
         existing.setDescription(wp.getDescription());

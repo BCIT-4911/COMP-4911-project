@@ -93,8 +93,9 @@ public class WorkPackageService {
 
         wp.setCreatedDate(LocalDateTime.now());
         wp.setModifiedDate(LocalDateTime.now());
-        updateWorkPackageBacRecursive(wp);
         em.persist(wp);
+        
+        updateWorkPackageBacRecursive(wp);
 
         List<WorkPackage> wpChildren = getChildren(wp.getWpId());
         if (!wpChildren.isEmpty()) {

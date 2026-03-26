@@ -1,5 +1,6 @@
 package com.corejsf.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -92,6 +93,7 @@ public class WorkPackageService {
 
         wp.setCreatedDate(LocalDateTime.now());
         wp.setModifiedDate(LocalDateTime.now());
+        updateWorkPackageBacRecursive(wp);
         em.persist(wp);
 
         List<WorkPackage> wpChildren = getChildren(wp.getWpId());
@@ -102,6 +104,24 @@ public class WorkPackageService {
         }
 
         return wp;
+    }
+
+    private void updateWorkPackageBacRecursive(WorkPackage wp) {
+        WorkPackage parent = wp.getParentWorkPackage();
+        if (parent != null) {
+            List<WorkPackage> parentChildren = getChildren(parent.getWpId());
+            BigDecimal newBac = BigDecimal.ZERO;
+
+            for (WorkPackage child : parentChildren) {
+                newBac = newBac.add(child.getBac());
+            }
+
+            parent.setBac(newBac);
+            parent.setModifiedDate(LocalDateTime.now());
+            em.merge(parent);
+            
+            updateWorkPackageBacRecursive(parent);
+        }
     }
 
     public void updateWorkPackage(String id, WorkPackage wp) {

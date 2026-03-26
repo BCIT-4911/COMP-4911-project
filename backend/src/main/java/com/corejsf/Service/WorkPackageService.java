@@ -130,7 +130,6 @@ public class WorkPackageService {
         existing.setDescription(wp.getDescription());
         
         // Map the NEW Estimate Fields!
-        existing.setBac(wp.getBac());
         existing.setEac(wp.getEac());
         existing.setPercentComplete(wp.getPercentComplete());
         existing.setBudgetedEffort(wp.getBudgetedEffort());

@@ -98,6 +98,10 @@
                     <label for="planEndDate">End Date *</label>
                     <input type="date" id="planEndDate" required />
                 </div>
+                <div class="form-group">
+                    <label for="estCreationBac">BAC (Budget at Completion)</label>
+                    <input type="number" id="estCreationBac" step="0.01" min="0" placeholder="e.g. 5000.00"/>
+                </div>
             </div>
 
             <div class="form-group" style="grid-column: 1/-1;">
@@ -133,7 +137,7 @@
                 </div>
                 <div class="form-group">
                     <label for="estBac">BAC (Budget at Completion)</label>
-                    <input type="number" id="estBac" step="0.01" min="0" placeholder="e.g. 5000.00" />
+                    <input type="number" id="estBac" disabled="true"/>
                 </div>
                 <div class="form-group">
                     <label for="estEac">EAC (Estimate at Completion)</label>
@@ -678,7 +682,8 @@
             planStartDate: document.getElementById('planStartDate').value || null,
             planEndDate: document.getElementById('planEndDate').value || null,
             description: document.getElementById('wpDesc').value || null,
-            structureLocked: false
+            structureLocked: false,
+            bac: document.getElementById('estCreationBac').value || null
         };
 
         try {

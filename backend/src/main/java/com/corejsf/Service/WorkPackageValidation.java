@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
 
+import com.corejsf.Entity.Project;
 import com.corejsf.Entity.WorkPackage;
 
 /**
@@ -71,6 +72,15 @@ public final class WorkPackageValidation {
             BigDecimal childBac = wp.getBac();
             if (childBac.compareTo(parentBac) > 0) {
                 throw new IllegalArgumentException("BAC of child work package (" + wp.getWpId() + ") cannot exceed BAC of parent work package.");
+            }
+        } else {
+            Project project = wp.getProject();
+            if (project != null) {
+                BigDecimal projectBac = project.getBac();
+                BigDecimal childBac = wp.getBac();
+                if (childBac.compareTo(projectBac) > 0) {
+                    throw new IllegalArgumentException("BAC of work package (" + wp.getWpId() + ") cannot exceed BAC of project.");
+                }
             }
         }
     }

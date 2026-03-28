@@ -15,6 +15,9 @@
 		<version.wildfly.plugin>5.1.4.Final</version.wildfly.plugin>
 		<version.wildfly>37.0.1.Final</version.wildfly>
 		<jakarta.jakartaee-api.version>10.0.0</jakarta.jakartaee-api.version>
+		<!-- Passed to integration tests (see tests/com/corejsf/TestConfig.java). Override with -Premote-okd or quoted -D on the CLI. -->
+		<api.baseUri>http://localhost:8080</api.baseUri>
+		<api.basePath>/Project/api</api.basePath>
 	</properties>
 
 	<dependencies>
@@ -82,6 +85,12 @@
 				<groupId>org.apache.maven.plugins</groupId>
     			<artifactId>maven-surefire-plugin</artifactId>
     			<version>3.2.5</version>
+				<configuration>
+					<systemPropertyVariables>
+						<api.baseUri>${api.baseUri}</api.baseUri>
+						<api.basePath>${api.basePath}</api.basePath>
+					</systemPropertyVariables>
+				</configuration>
 			</plugin>
 
 			<plugin>
@@ -119,4 +128,14 @@
 			</plugin>
 		</plugins>
 	</build>
+
+	<profiles>
+		<profile>
+			<id>remote-okd</id>
+			<properties>
+				<api.baseUri>https://backend-liul-labs.apps.okd4.infoteach.ca</api.baseUri>
+				<api.basePath>/api</api.basePath>
+			</properties>
+		</profile>
+	</profiles>
 </project>

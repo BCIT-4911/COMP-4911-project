@@ -110,13 +110,13 @@ public class WorkPackageService {
     private void validateWpWithParentAndProjectBac(WorkPackage wp) {
         WorkPackage parent = wp.getParentWorkPackage();
         if (parent != null) {
-            validateWpWithParent(wp, parent);
+            validateWpWithParentBac(wp, parent);
         } else {
-            validateWpWithProject(wp, wp.getProject());
+            validateWpWithProjectBac(wp, wp.getProject());
         }
     }
 
-    private void validateWpWithParent(WorkPackage wp, WorkPackage parent) {
+    private void validateWpWithParentBac(WorkPackage wp, WorkPackage parent) {
         BigDecimal parentBac = parent.getBac();
         validateBacAgainstLimit(
                 wp.getBac(),
@@ -126,7 +126,7 @@ public class WorkPackageService {
                 "Total BAC of child work packages cannot exceed BAC of parent work package.");
     }
 
-    private void validateWpWithProject(WorkPackage wp, Project project) {
+    private void validateWpWithProjectBac(WorkPackage wp, Project project) {
         BigDecimal projectBac = project.getBac();
         validateBacAgainstLimit(
                 wp.getBac(),

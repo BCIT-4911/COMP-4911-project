@@ -95,8 +95,6 @@ public class WorkPackageService {
         wp.setCreatedDate(LocalDateTime.now());
         wp.setModifiedDate(LocalDateTime.now());
         em.persist(wp);
-        
-        updateWorkPackageBacRecursive(wp);
 
         List<WorkPackage> wpChildren = getChildren(wp.getWpId());
         if (!wpChildren.isEmpty()) {
@@ -106,24 +104,6 @@ public class WorkPackageService {
         }
 
         return wp;
-    }
-
-    private void updateWorkPackageBacRecursive(WorkPackage wp) {
-        WorkPackage parent = wp.getParentWorkPackage();
-        if (parent != null) {
-            List<WorkPackage> parentChildren = getChildren(parent.getWpId());
-            BigDecimal newBac = BigDecimal.ZERO;
-
-            for (WorkPackage child : parentChildren) {
-                newBac = newBac.add(child.getBac());
-            }
-
-            parent.setBac(newBac);
-            parent.setModifiedDate(LocalDateTime.now());
-            em.merge(parent);
-            
-            updateWorkPackageBacRecursive(parent);
-        }
     }
 
     public void updateWorkPackage(String id, WorkPackage wp) {

@@ -54,6 +54,7 @@ public class WorkPackageService {
 
     public WorkPackage createWorkPackage(WorkPackage wp) {
         WorkPackageValidation.validate(wp);
+        WorkPackageValidation.validateBac(wp);
 
         WorkPackage existingWp = em.find(WorkPackage.class, wp.getWpId());
         if (existingWp != null) {

@@ -147,7 +147,7 @@ public class WorkPackageService {
             throw new IllegalArgumentException(bacExceededMessage);
         }
 
-        BigDecimal totalBac = BigDecimal.ZERO;
+        BigDecimal totalBac = bacToValidate;
         for (WorkPackage workPackage : workPackagesToSum) {
             if (workPackage.getBac() != null) {
                 totalBac = totalBac.add(workPackage.getBac());

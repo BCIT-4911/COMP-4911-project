@@ -448,5 +448,479 @@ class WorkPackageResourceTest extends TestConfig {
                 .statusCode(200)
                 .body("structureLocked", org.hamcrest.Matchers.equalTo(true));
     }
+
+    @Test
+    void allocateBac_withinProjectBudget_succeeds() {
+        String projId = "BAC-OK-" + System.nanoTime();
+        LocalDate start = LocalDate.now();
+        LocalDate end = start.plusMonths(6);
+
+        given()
+                .header("Authorization", "Bearer " + opsToken)
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                          "project_id": "%s",
+                          "project_name": "BAC within budget",
+                          "project_desc": "sum test",
+                          "project_type": "INTERNAL",
+                          "start_date": "%s",
+                          "end_date": "%s",
+                          "markup_rate": 10.00,
+                          "project_manager_id": %d,
+                          "bac": 10000.00
+                        }
+                        """.formatted(projId, start, end, IDS.pmProj1Id()))
+                .when()
+                .post("/projects")
+                .then()
+                .statusCode(201);
+
+        String wpA = "WPA" + Math.abs(System.nanoTime() % 1_000_000_000);
+        String wpB = "WPB" + Math.abs(System.nanoTime() % 1_000_000_000);
+        String wpC = "WPC" + Math.abs(System.nanoTime() % 1_000_000_000);
+
+        given()
+                .header("Authorization", "Bearer " + bugsToken)
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                          "wpId": "%s",
+                          "wpName": "WP-A",
+                          "description": "bac 4000",
+                          "projId": "%s",
+                          "planStartDate": "%s",
+                          "planEndDate": "%s",
+                          "bac": 4000.00,
+                          "percentComplete": 0,
+                          "reEmployeeId": %d
+                        }
+                        """.formatted(wpA, projId, start, end, IDS.pmProj1Id()))
+                .when()
+                .post("/workpackages")
+                .then()
+                .statusCode(201);
+
+        given()
+                .header("Authorization", "Bearer " + bugsToken)
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                          "wpId": "%s",
+                          "wpName": "WP-B",
+                          "description": "bac 3000",
+                          "projId": "%s",
+                          "planStartDate": "%s",
+                          "planEndDate": "%s",
+                          "bac": 3000.00,
+                          "percentComplete": 0,
+                          "reEmployeeId": %d
+                        }
+                        """.formatted(wpB, projId, start, end, IDS.pmProj1Id()))
+                .when()
+                .post("/workpackages")
+                .then()
+                .statusCode(201);
+
+        given()
+                .header("Authorization", "Bearer " + bugsToken)
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                          "wpId": "%s",
+                          "wpName": "WP-C",
+                          "description": "bac 3000",
+                          "projId": "%s",
+                          "planStartDate": "%s",
+                          "planEndDate": "%s",
+                          "bac": 3000.00,
+                          "percentComplete": 0,
+                          "reEmployeeId": %d
+                        }
+                        """.formatted(wpC, projId, start, end, IDS.pmProj1Id()))
+                .when()
+                .post("/workpackages")
+                .then()
+                .statusCode(201);
+
+        given().header("Authorization", "Bearer " + bugsToken).delete("/workpackages/" + wpC).then().statusCode(200);
+        given().header("Authorization", "Bearer " + bugsToken).delete("/workpackages/" + wpB).then().statusCode(200);
+        given().header("Authorization", "Bearer " + bugsToken).delete("/workpackages/" + wpA).then().statusCode(200);
+        given().header("Authorization", "Bearer " + opsToken).delete("/projects/" + projId).then().statusCode(200);
+    }
+
+    @Test
+    void allocateBac_exceedingProjectBudget_returns400() {
+        String projId = "BAC-EX-" + System.nanoTime();
+        LocalDate start = LocalDate.now();
+        LocalDate end = start.plusMonths(6);
+
+        given()
+                .header("Authorization", "Bearer " + opsToken)
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                          "project_id": "%s",
+                          "project_name": "BAC exceed budget",
+                          "project_desc": "sum test",
+                          "project_type": "INTERNAL",
+                          "start_date": "%s",
+                          "end_date": "%s",
+                          "markup_rate": 10.00,
+                          "project_manager_id": %d,
+                          "bac": 10000.00
+                        }
+                        """.formatted(projId, start, end, IDS.pmProj1Id()))
+                .when()
+                .post("/projects")
+                .then()
+                .statusCode(201);
+
+        String wpA = "WPA" + Math.abs(System.nanoTime() % 1_000_000_000);
+        String wpB = "WPB" + Math.abs(System.nanoTime() % 1_000_000_000);
+
+        given()
+                .header("Authorization", "Bearer " + bugsToken)
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                          "wpId": "%s",
+                          "wpName": "WP-A",
+                          "description": "bac 6000",
+                          "projId": "%s",
+                          "planStartDate": "%s",
+                          "planEndDate": "%s",
+                          "bac": 6000.00,
+                          "percentComplete": 0,
+                          "reEmployeeId": %d
+                        }
+                        """.formatted(wpA, projId, start, end, IDS.pmProj1Id()))
+                .when()
+                .post("/workpackages")
+                .then()
+                .statusCode(201);
+
+        given()
+                .header("Authorization", "Bearer " + bugsToken)
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                          "wpId": "%s",
+                          "wpName": "WP-B",
+                          "description": "bac 5000 -- exceeds project",
+                          "projId": "%s",
+                          "planStartDate": "%s",
+                          "planEndDate": "%s",
+                          "bac": 5000.00,
+                          "percentComplete": 0,
+                          "reEmployeeId": %d
+                        }
+                        """.formatted(wpB, projId, start, end, IDS.pmProj1Id()))
+                .when()
+                .post("/workpackages")
+                .then()
+                .statusCode(400);
+
+        given().header("Authorization", "Bearer " + bugsToken).delete("/workpackages/" + wpA).then().statusCode(200);
+        given().header("Authorization", "Bearer " + opsToken).delete("/projects/" + projId).then().statusCode(200);
+    }
+
+    @Test
+    void updateBac_exceedingProjectBudget_returns400() {
+        String projId = "BAC-UPD-" + System.nanoTime();
+        LocalDate start = LocalDate.now();
+        LocalDate end = start.plusMonths(6);
+
+        given()
+                .header("Authorization", "Bearer " + opsToken)
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                          "project_id": "%s",
+                          "project_name": "BAC update exceed",
+                          "project_desc": "sum test",
+                          "project_type": "INTERNAL",
+                          "start_date": "%s",
+                          "end_date": "%s",
+                          "markup_rate": 10.00,
+                          "project_manager_id": %d,
+                          "bac": 10000.00
+                        }
+                        """.formatted(projId, start, end, IDS.pmProj1Id()))
+                .when()
+                .post("/projects")
+                .then()
+                .statusCode(201);
+
+        String wpA = "WPA" + Math.abs(System.nanoTime() % 1_000_000_000);
+        String wpB = "WPB" + Math.abs(System.nanoTime() % 1_000_000_000);
+
+        given()
+                .header("Authorization", "Bearer " + bugsToken)
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                          "wpId": "%s",
+                          "wpName": "WP-A",
+                          "description": "bac 5000",
+                          "projId": "%s",
+                          "planStartDate": "%s",
+                          "planEndDate": "%s",
+                          "bac": 5000.00,
+                          "percentComplete": 0,
+                          "reEmployeeId": %d
+                        }
+                        """.formatted(wpA, projId, start, end, IDS.pmProj1Id()))
+                .when()
+                .post("/workpackages")
+                .then()
+                .statusCode(201);
+
+        given()
+                .header("Authorization", "Bearer " + bugsToken)
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                          "wpId": "%s",
+                          "wpName": "WP-B",
+                          "description": "bac 4000",
+                          "projId": "%s",
+                          "planStartDate": "%s",
+                          "planEndDate": "%s",
+                          "bac": 4000.00,
+                          "percentComplete": 0,
+                          "reEmployeeId": %d
+                        }
+                        """.formatted(wpB, projId, start, end, IDS.pmProj1Id()))
+                .when()
+                .post("/workpackages")
+                .then()
+                .statusCode(201);
+
+        given()
+                .header("Authorization", "Bearer " + bugsToken)
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                          "wpName": "WP-B",
+                          "description": "bac 6000 -- exceeds project",
+                          "reEmployeeId": %d,
+                          "bac": 6000.00,
+                          "percentComplete": 0,
+                          "budgetedEffort": 0.00
+                        }
+                        """.formatted(IDS.pmProj1Id()))
+                .when()
+                .put("/workpackages/" + wpB)
+                .then()
+                .statusCode(400);
+
+        given().header("Authorization", "Bearer " + bugsToken).delete("/workpackages/" + wpB).then().statusCode(200);
+        given().header("Authorization", "Bearer " + bugsToken).delete("/workpackages/" + wpA).then().statusCode(200);
+        given().header("Authorization", "Bearer " + opsToken).delete("/projects/" + projId).then().statusCode(200);
+    }
+
+    @Test
+    void childWpBac_withinParentBudget_succeeds() {
+        String projId = "BAC-CW-" + System.nanoTime();
+        LocalDate start = LocalDate.now();
+        LocalDate end = start.plusMonths(6);
+
+        given()
+                .header("Authorization", "Bearer " + opsToken)
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                          "project_id": "%s",
+                          "project_name": "Child BAC within parent",
+                          "project_desc": "hierarchy test",
+                          "project_type": "INTERNAL",
+                          "start_date": "%s",
+                          "end_date": "%s",
+                          "markup_rate": 10.00,
+                          "project_manager_id": %d,
+                          "bac": 10000.00
+                        }
+                        """.formatted(projId, start, end, IDS.pmProj1Id()))
+                .when()
+                .post("/projects")
+                .then()
+                .statusCode(201);
+
+        String parentWp = "WPP" + Math.abs(System.nanoTime() % 1_000_000_000);
+        String child1 = parentWp + ".1";
+        String child2 = parentWp + ".2";
+
+        given()
+                .header("Authorization", "Bearer " + bugsToken)
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                          "wpId": "%s",
+                          "wpName": "Parent WP-P",
+                          "description": "parent bac 6000",
+                          "projId": "%s",
+                          "planStartDate": "%s",
+                          "planEndDate": "%s",
+                          "bac": 6000.00,
+                          "percentComplete": 0,
+                          "reEmployeeId": %d
+                        }
+                        """.formatted(parentWp, projId, start, end, IDS.pmProj1Id()))
+                .when()
+                .post("/workpackages")
+                .then()
+                .statusCode(201);
+
+        given()
+                .header("Authorization", "Bearer " + bugsToken)
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                          "wpId": "%s",
+                          "wpName": "Child WP-P.1",
+                          "description": "child bac 3000",
+                          "projId": "%s",
+                          "parentWpId": "%s",
+                          "planStartDate": "%s",
+                          "planEndDate": "%s",
+                          "bac": 3000.00,
+                          "percentComplete": 0,
+                          "reEmployeeId": %d
+                        }
+                        """.formatted(child1, projId, parentWp, start, end, IDS.pmProj1Id()))
+                .when()
+                .post("/workpackages")
+                .then()
+                .statusCode(201);
+
+        given()
+                .header("Authorization", "Bearer " + bugsToken)
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                          "wpId": "%s",
+                          "wpName": "Child WP-P.2",
+                          "description": "child bac 3000",
+                          "projId": "%s",
+                          "parentWpId": "%s",
+                          "planStartDate": "%s",
+                          "planEndDate": "%s",
+                          "bac": 3000.00,
+                          "percentComplete": 0,
+                          "reEmployeeId": %d
+                        }
+                        """.formatted(child2, projId, parentWp, start, end, IDS.pmProj1Id()))
+                .when()
+                .post("/workpackages")
+                .then()
+                .statusCode(201);
+
+        given().header("Authorization", "Bearer " + bugsToken).delete("/workpackages/" + child2).then().statusCode(200);
+        given().header("Authorization", "Bearer " + bugsToken).delete("/workpackages/" + child1).then().statusCode(200);
+        given().header("Authorization", "Bearer " + bugsToken).delete("/workpackages/" + parentWp).then().statusCode(200);
+        given().header("Authorization", "Bearer " + opsToken).delete("/projects/" + projId).then().statusCode(200);
+    }
+
+    @Test
+    void childWpBac_exceedingParentBudget_returns400() {
+        String projId = "BAC-CX-" + System.nanoTime();
+        LocalDate start = LocalDate.now();
+        LocalDate end = start.plusMonths(6);
+
+        given()
+                .header("Authorization", "Bearer " + opsToken)
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                          "project_id": "%s",
+                          "project_name": "Child BAC exceed parent",
+                          "project_desc": "hierarchy test",
+                          "project_type": "INTERNAL",
+                          "start_date": "%s",
+                          "end_date": "%s",
+                          "markup_rate": 10.00,
+                          "project_manager_id": %d,
+                          "bac": 10000.00
+                        }
+                        """.formatted(projId, start, end, IDS.pmProj1Id()))
+                .when()
+                .post("/projects")
+                .then()
+                .statusCode(201);
+
+        String parentWp = "WPP" + Math.abs(System.nanoTime() % 1_000_000_000);
+        String child1 = parentWp + ".1";
+        String child2 = parentWp + ".2";
+
+        given()
+                .header("Authorization", "Bearer " + bugsToken)
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                          "wpId": "%s",
+                          "wpName": "Parent WP-P",
+                          "description": "parent bac 6000",
+                          "projId": "%s",
+                          "planStartDate": "%s",
+                          "planEndDate": "%s",
+                          "bac": 6000.00,
+                          "percentComplete": 0,
+                          "reEmployeeId": %d
+                        }
+                        """.formatted(parentWp, projId, start, end, IDS.pmProj1Id()))
+                .when()
+                .post("/workpackages")
+                .then()
+                .statusCode(201);
+
+        given()
+                .header("Authorization", "Bearer " + bugsToken)
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                          "wpId": "%s",
+                          "wpName": "Child WP-P.1",
+                          "description": "child bac 4000",
+                          "projId": "%s",
+                          "parentWpId": "%s",
+                          "planStartDate": "%s",
+                          "planEndDate": "%s",
+                          "bac": 4000.00,
+                          "percentComplete": 0,
+                          "reEmployeeId": %d
+                        }
+                        """.formatted(child1, projId, parentWp, start, end, IDS.pmProj1Id()))
+                .when()
+                .post("/workpackages")
+                .then()
+                .statusCode(201);
+
+        given()
+                .header("Authorization", "Bearer " + bugsToken)
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                          "wpId": "%s",
+                          "wpName": "Child WP-P.2",
+                          "description": "child bac 3000 -- exceeds parent",
+                          "projId": "%s",
+                          "parentWpId": "%s",
+                          "planStartDate": "%s",
+                          "planEndDate": "%s",
+                          "bac": 3000.00,
+                          "percentComplete": 0,
+                          "reEmployeeId": %d
+                        }
+                        """.formatted(child2, projId, parentWp, start, end, IDS.pmProj1Id()))
+                .when()
+                .post("/workpackages")
+                .then()
+                .statusCode(400);
+
+        given().header("Authorization", "Bearer " + bugsToken).delete("/workpackages/" + child1).then().statusCode(200);
+        given().header("Authorization", "Bearer " + bugsToken).delete("/workpackages/" + parentWp).then().statusCode(200);
+        given().header("Authorization", "Bearer " + opsToken).delete("/projects/" + projId).then().statusCode(200);
+    }
     */
 }

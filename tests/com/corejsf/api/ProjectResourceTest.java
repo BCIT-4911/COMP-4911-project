@@ -373,5 +373,46 @@ class ProjectResourceTest extends TestConfig {
                 .then()
                 .statusCode(200);
     }
+
+    @Test
+    void createProject_withoutBac_defaultsToNull() {
+        String projId = "AUTO-NBAC-" + System.nanoTime();
+        LocalDate start = LocalDate.now();
+        LocalDate end = start.plusMonths(6);
+        given()
+                .header("Authorization", "Bearer " + opsToken)
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                          "project_id": "%s",
+                          "project_name": "No BAC probe",
+                          "project_desc": "iteration 2",
+                          "project_type": "INTERNAL",
+                          "start_date": "%s",
+                          "end_date": "%s",
+                          "markup_rate": 10.50,
+                          "project_manager_id": %d
+                        }
+                        """.formatted(projId, start, end, IDS.pmProj1Id()))
+                .when()
+                .post("/projects")
+                .then()
+                .statusCode(201);
+
+        given()
+                .header("Authorization", "Bearer " + opsToken)
+                .when()
+                .get("/projects/" + projId)
+                .then()
+                .statusCode(200)
+                .body("bac", org.hamcrest.Matchers.nullValue());
+
+        given()
+                .header("Authorization", "Bearer " + opsToken)
+                .when()
+                .delete("/projects/" + projId)
+                .then()
+                .statusCode(200);
+    }
     */
 }

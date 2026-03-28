@@ -4,7 +4,6 @@ import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
 
-import com.corejsf.Entity.Project;
 import com.corejsf.Entity.WorkPackage;
 
 /**
@@ -19,6 +18,7 @@ public final class WorkPackageValidation {
         validateId(wp.getWpId());
         validateName(wp.getWpName());
         validateProjectId(wp.getProjId());
+        validateBac(wp.getBac());
     }
 
     public static void validateId(final String id) {
@@ -58,30 +58,12 @@ public final class WorkPackageValidation {
         }
     }
 
-    public static void validateBac(final WorkPackage wp) {
-        if (wp.getBac() == null) {
+    public static void validateBac(final BigDecimal bac) {
+        if (bac == null) {
             throw new IllegalArgumentException("BAC cannot be null.");
         }
-        if (wp.getBac().compareTo(BigDecimal.ZERO) < 0) {
+        if (bac.compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException("BAC cannot be negative.");
-        }
-
-        WorkPackage parent = wp.getParentWorkPackage();
-        if (parent != null) {
-            BigDecimal parentBac = parent.getBac();
-            BigDecimal childBac = wp.getBac();
-            if (childBac.compareTo(parentBac) > 0) {
-                throw new IllegalArgumentException("BAC of child work package (" + wp.getWpId() + ") cannot exceed BAC of parent work package.");
-            }
-        } else {
-            Project project = wp.getProject();
-            if (project != null) {
-                BigDecimal projectBac = project.getBac();
-                BigDecimal childBac = wp.getBac();
-                if (childBac.compareTo(projectBac) > 0) {
-                    throw new IllegalArgumentException("BAC of work package (" + wp.getWpId() + ") cannot exceed BAC of project.");
-                }
-            }
         }
     }
 }

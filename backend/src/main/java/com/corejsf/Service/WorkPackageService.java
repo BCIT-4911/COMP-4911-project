@@ -54,7 +54,6 @@ public class WorkPackageService {
 
     public WorkPackage createWorkPackage(WorkPackage wp) {
         WorkPackageValidation.validate(wp);
-        WorkPackageValidation.validateBac(wp);
 
         WorkPackage existingWp = em.find(WorkPackage.class, wp.getWpId());
         if (existingWp != null) {
@@ -92,6 +91,8 @@ public class WorkPackageService {
             wp.setParentWorkPackage(null); 
         }
 
+        validateWpWithParentAndProjectBac(wp);
+
         wp.setCreatedDate(LocalDateTime.now());
         wp.setModifiedDate(LocalDateTime.now());
         em.persist(wp);
@@ -104,6 +105,58 @@ public class WorkPackageService {
         }
 
         return wp;
+    }
+
+    private void validateWpWithParentAndProjectBac(WorkPackage wp) {
+        WorkPackage parent = wp.getParentWorkPackage();
+        if (parent != null) {
+            validateWpWithParent(wp, parent);
+        } else {
+            validateWpWithProject(wp, wp.getProject());
+        }
+    }
+
+    private void validateWpWithParent(WorkPackage wp, WorkPackage parent) {
+        BigDecimal parentBac = parent.getBac();
+        validateBacAgainstLimit(
+                wp.getBac(),
+                parentBac,
+                "BAC of child work package (" + wp.getWpId() + ") cannot exceed BAC of parent work package.",
+                getChildren(parent.getWpId()),
+                "Total BAC of child work packages cannot exceed BAC of parent work package.");
+    }
+
+    private void validateWpWithProject(WorkPackage wp, Project project) {
+        BigDecimal projectBac = project.getBac();
+        validateBacAgainstLimit(
+                wp.getBac(),
+                projectBac,
+                "BAC of work package (" + wp.getWpId() + ") cannot exceed BAC of project.",
+                getChildren(wp.getWpId()),
+                "Total BAC of root work packages cannot exceed BAC of project.");
+    }
+
+    private void validateBacAgainstLimit(
+        BigDecimal bacToValidate,
+        BigDecimal bacLimit,
+        String bacExceededMessage,
+        List<WorkPackage> workPackagesToSum,
+        String totalExceededMessage
+    ) {
+        if (bacToValidate.compareTo(bacLimit) > 0) {
+            throw new IllegalArgumentException(bacExceededMessage);
+        }
+
+        BigDecimal totalBac = BigDecimal.ZERO;
+        for (WorkPackage workPackage : workPackagesToSum) {
+            if (workPackage.getBac() != null) {
+                totalBac = totalBac.add(workPackage.getBac());
+            }
+        }
+
+        if (totalBac.compareTo(bacLimit) > 0) {
+            throw new IllegalArgumentException(totalExceededMessage);
+        }
     }
 
     public void updateWorkPackage(String id, WorkPackage wp) {

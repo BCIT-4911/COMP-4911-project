@@ -252,6 +252,15 @@ public class WorkPackageService {
         WorkPackage workPackage = findWorkPackage(wpId);
         Employee employee = findEmployee(empId);
 
+        TypedQuery<Long> projectAssignQuery = em.createQuery(
+                "SELECT COUNT(pa) FROM ProjectAssignment pa WHERE pa.project.projId = :projId AND pa.employee.empId = :empId",
+                Long.class);
+        projectAssignQuery.setParameter("projId", workPackage.getProject().getProjId());
+        projectAssignQuery.setParameter("empId", empId);
+        if (projectAssignQuery.getSingleResult() == 0) {
+            throw new jakarta.ws.rs.WebApplicationException("Employee must be assigned to the project before being assigned to a work package.", jakarta.ws.rs.core.Response.Status.BAD_REQUEST);
+        }
+
         TypedQuery<Long> query = em.createQuery(
                 "SELECT COUNT(wpa) FROM WorkPackageAssignment wpa WHERE wpa.workPackage.wpId = :wpId AND wpa.employee.empId = :empId",
                 Long.class);

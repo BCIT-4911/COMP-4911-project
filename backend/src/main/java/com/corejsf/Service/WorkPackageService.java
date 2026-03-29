@@ -35,6 +35,18 @@ public class WorkPackageService {
         return wp;
     }
 
+    /**
+     * JSON-B calls {@link WorkPackage#getProjId()} and {@link WorkPackage#getReEmployeeId()} during
+     * response serialization, which touch lazy associations. That happens after this EJB method returns,
+     * so without an active persistence context those reads cause LazyInitializationException (500).
+     * Touch the associations here while the transaction is still open.
+     */
+    private void initializeWorkPackageJsonAssociations(WorkPackage wp) {
+        wp.getProjId();
+        wp.getReEmployeeId();
+        wp.getParentWpId();
+    }
+
     private Employee findEmployee(int id) {
         Employee emp = em.find(Employee.class, id);
         if (emp == null) {
@@ -49,7 +61,9 @@ public class WorkPackageService {
     }
 
     public WorkPackage getWorkPackage(String id) {
-        return findWorkPackage(id);
+        WorkPackage wp = findWorkPackage(id);
+        initializeWorkPackageJsonAssociations(wp);
+        return wp;
     }
 
     public WorkPackage createWorkPackage(WorkPackage wp) {
@@ -316,7 +330,15 @@ public class WorkPackageService {
         if (wp.getParentWorkPackage() == null) {
             throw new NotFoundException("Work package " + id + " has no parent.");
         }
-        return findWorkPackage(wp.getParentWorkPackage().getWpId());
+        String parentWpId = wp.getParentWorkPackage().getWpId();
+        // The persistence context already holds a Hibernate proxy for the parent (loaded when
+        // we navigated the lazy association above). em.find would return that same proxy, and
+        // JSON-B chokes on its synthetic 'hibernateLazyInitializer' property.
+        // Clearing the PC forces a fresh, non-proxied load.
+        em.clear();
+        WorkPackage parent = findWorkPackage(parentWpId);
+        initializeWorkPackageJsonAssociations(parent);
+        return parent;
     }
 
     public String generateReport(String id) {

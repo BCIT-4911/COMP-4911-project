@@ -1,6 +1,7 @@
 @inject IConfiguration Config
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -10,100 +11,128 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/frontend.styles.css" asp-append-version="true" />
 </head>
+
 <body>
     <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container">
-                <a class="navbar-brand" asp-area="" asp-page="/Index">frontend</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse"
-                        aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <nav class="navbar navbar-expand-lg custom-header py-3">
+            <div class="container-fluid px-sm-4 px-2 d-flex align-items-center">
+
+                <a class="navbar-brand header-brand fw-bold mb-0 me-4" asp-area="" asp-page="/Index">Front-end</a>
+                
+                <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse"
+                        data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent" aria-expanded="false"
+                        aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+
+                <div class="navbar-collapse collapse w-100">
                     @{
                         var role = Context.Session.GetString("SystemRole") ?? "";
                         var empId = Context.Session.GetString("EmpId") ?? "";
                         var jwt = Context.Session.GetString("JWT") ?? "";
                         var apiBaseUrl = Config["ApiBaseUrl"] ?? "";
-                        var isLoggedIn = !string.IsNullOrEmpty(role) || !string.IsNullOrEmpty(Context.Session.GetString("JWT"));
+                        var isLoggedIn = !string.IsNullOrEmpty(role) ||
+                    !string.IsNullOrEmpty(Context.Session.GetString("JWT"));
                     }
-                    <ul class="navbar-nav flex-grow-1">
+                    
+                    <!-- Nav items -->
+                    <ul class="navbar-nav mx-auto header-nav gap-lg-4 gap-2">
                         @if (isLoggedIn)
                         {
                             <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-page="/Index">Home</a>
+                                <a class="nav-link header-link" asp-area="" asp-page="/Index">Home</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-dark" asp-page="/Timesheets/Index">Timesheet</a>
+                                <a class="nav-link header-link" asp-area="" asp-page="/Projects">Projects</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-page="/Projects">Projects</a>
+                                <a class="nav-link header-link" asp-page="/Timesheets/Index">Timesheet</a>
                             </li>
                             <li class="nav-item" id="approverNavItem" style="display:none;">
-                                <a class="nav-link text-dark" asp-page="/Approver/Index">Approver Dashboard</a>
+                                <a class="nav-link header-link" asp-page="/Approver/Index">Approver Dashboard</a>
                             </li>
                             @if (role == "OPERATIONS_MANAGER")
                             {
                                 <li class="nav-item">
-                                    <a class="nav-link text-dark" asp-page="/EarnedValue/Index">Earned Value</a>
+                                    <a class="nav-link header-link" asp-page="/EarnedValue/Index">Earned Value</a>
                                 </li>
                             }
                             @if (role == "HR")
                             {
                                 <li class="nav-item">
-                                    <a class="nav-link text-dark" asp-area="" asp-page="/Employees">Employees</a>
+                                    <a class="nav-link header-link" asp-area="" asp-page="/Employees">Employees</a>
                                 </li>
                             }
                         }
-                        else
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-page="/Login">Login</a>
-                            </li>
-                        }
                     </ul>
+
+                    <!--  Icons and userid-->
                     @if (isLoggedIn)
                     {
-                        <ul class="navbar-nav">
+                        <ul class="navbar-nav ms-auto align-items-center flex-row justify-content-end gap-3 mt-3 mt-lg-0">
                             <li class="nav-item">
                                 <span class="nav-link text-muted">Emp #@empId</span>
                             </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-page="/Login" asp-page-handler="Logout">Logout</a>
+
+                            <li class="nav-item ms-lg-2">
+                                <a asp-page="/Login" asp-page-handler="Logout" class="nav-link header-link px-0">Logout</a>
                             </li>
                         </ul>
 
                         <script>
-                            (function () {
-                                const token = '@jwt';
-                                const apiBaseUrl = '@apiBaseUrl';
-                                if (!token || !apiBaseUrl) return;
+                                                (function () {
+                                                    const token = '@jwt';
+                                                    const apiBaseUrl = '@apiBaseUrl';
+                                                    if (!token || !apiBaseUrl) return;
 
-                                const cached = sessionStorage.getItem('canAccessApprover');
-                                if (cached === 'true') {
-                                    document.getElementById('approverNavItem').style.display = '';
-                                    return;
-                                }
-                                if (cached === 'false') return;
+                                                    const cached = sessionStorage.getItem('canAccessApprover');
+                                                    if (cached === 'true') {
+                                                        document.getElementById('approverNavItem').style.display = '';
+                                                        return;
+                                                    }
+                                                    if (cached === 'false') return;
 
-                                fetch(`${apiBaseUrl}/api/auth/can-access-approver-dashboard`, {
-                                    headers: { 'Authorization': `Bearer ${token}` }
-                                })
-                                    .then(r => r.ok ? r.json() : null)
-                                    .then(data => {
-                                        const allowed = data && data.allowed;
-                                        sessionStorage.setItem('canAccessApprover', String(allowed));
-                                        if (allowed) {
-                                            document.getElementById('approverNavItem').style.display = '';
-                                        }
-                                    })
-                                    .catch(() => {});
-                            })();
+                                                    fetch(`${apiBaseUrl}/api/auth/can-access-approver-dashboard`, {
+                                                        headers: { 'Authorization': `Bearer ${token}` }
+                                                    })
+                                                        .then(r => r.ok ? r.json() : null)
+                                                        .then(data => {
+                                                            const allowed = data && data.allowed;
+                                                            sessionStorage.setItem('canAccessApprover', String(allowed));
+                                                            if (allowed) {
+                                                                document.getElementById('approverNavItem').style.display = '';
+                                                            }
+                                                        })
+                                                        .catch(() => { });
+                                                })();
                         </script>
                     }
                 </div>
             </div>
         </nav>
+
+        <!--Highlights current nav link-->
+        <script>
+                    document.addEventListener('DOMContentLoaded', () => {
+                        const navLinks = document.querySelectorAll('.header-link');
+                        const currPath = window.location.pathname.toLowerCase();
+                
+                        navLinks.forEach(link => {
+                            const href = link.getAttribute('href');
+                            if (!href) return;
+                    
+                            const hrefLower = href.toLowerCase();
+                    
+                            if (currPath === '/' && (hrefLower === '/' || hrefLower === '/index')) {
+                                link.classList.add('active');
+                            } else if (currPath === '/index' && (hrefLower === '/' || hrefLower === '/index')) {
+                                link.classList.add('active');
+                            } else if (hrefLower !== '/' && hrefLower !== '/index' && currPath.startsWith(hrefLower)) {
+                                link.classList.add('active');
+                            }
+                        });
+                    });
+        </script>
     </header>
     <div class="container">
         <main role="main" class="pb-3">
@@ -112,9 +141,7 @@
     </div>
 
     <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - frontend - <a asp-area="" asp-page="/Privacy">Privacy</a>
-        </div>
+        <!-- No footer in current design -->
     </footer>
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>

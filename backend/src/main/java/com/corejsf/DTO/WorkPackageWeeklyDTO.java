@@ -22,6 +22,7 @@ public class WorkPackageWeeklyDTO {
     private BigDecimal totalBcws;
     private BigDecimal totalBcwp;
     private BigDecimal totalAcwp;
+    private BigDecimal etc;
 
     public WorkPackageWeeklyDTO() { }
 
@@ -58,5 +59,8 @@ public class WorkPackageWeeklyDTO {
 
     public BigDecimal getTotalAcwp() { return totalAcwp; }
     public void setTotalAcwp(BigDecimal totalAcwp) { this.totalAcwp = totalAcwp; }
+
+    public BigDecimal getEtc() { return etc; }
+    public void setEtc(BigDecimal etc) { this.etc = etc; }
 }
 

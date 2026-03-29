@@ -78,6 +78,9 @@ public class WorkPackage {
     @Column(name = "modified_date")
     private LocalDateTime modifiedDate;
 
+    @Column(name =  "etc")
+    private BigDecimal etc;
+
     @JsonbTransient
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by")
@@ -349,5 +352,13 @@ public class WorkPackage {
 
     public void setModifiedBy(final Employee modifiedBy) {
         this.modifiedBy = modifiedBy;
+    }
+
+    public BigDecimal getEtc() {
+        return etc;
+    }
+
+    public void setEtc(final BigDecimal etc) {
+        this.etc = etc;
     }
 }

@@ -19,6 +19,7 @@ import com.corejsf.Entity.WorkPackageAssignment;
 import com.corejsf.Entity.WorkPackageStatus;
 import com.corejsf.Entity.WorkPackageType;
 import com.corejsf.Entity.WpRole;
+import com.corejsf.Entity.RateHistory;
 
 import jakarta.annotation.PostConstruct;
 import org.mindrot.jbcrypt.BCrypt;
@@ -52,6 +53,9 @@ public class EmptyDbSeeder {
             lg.setChargeRate(new BigDecimal("85.00"));
             em.persist(lg);
         }
+
+        createRateHistory(lg, "75.00", LocalDate.of(2025, 1, 1), LocalDate.of(2025, 12, 31));
+        createRateHistory(lg, "85.00", LocalDate.of(2026, 1, 1), null);
 
         EmployeeESignature sig = em.find(EmployeeESignature.class, 1);
         if (sig == null) {
@@ -275,5 +279,18 @@ public class EmptyDbSeeder {
         child.setModifiedBy(emp);
 
         em.persist(child);
+    }
+
+    private void createRateHistory(
+            final LaborGrade laborGrade,
+            final String chargeRate,
+            final LocalDate startDate,
+            final LocalDate endDate) {
+        RateHistory rateHistory = new RateHistory();
+        rateHistory.setLaborGrade(laborGrade);
+        rateHistory.setChargeRate(new BigDecimal(chargeRate));
+        rateHistory.setStartDate(startDate);
+        rateHistory.setEndDate(endDate);
+        em.persist(rateHistory);
     }
 }

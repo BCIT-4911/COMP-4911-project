@@ -24,11 +24,6 @@ public class LoginModel : PageModel
 
     public async Task<IActionResult> OnPostAsync()
     {
-        if (string.IsNullOrWhiteSpace(Input.EmpId) || string.IsNullOrWhiteSpace(Input.Password))
-        {
-            ErrorMessage = "Enter employee ID and password.";
-            return Page();
-        }
         if (!ModelState.IsValid)
             return Page();
 
@@ -38,7 +33,7 @@ public class LoginModel : PageModel
 
         var loginData = new
         {
-            empId = int.TryParse(Input.EmpId, out var id) ? id : 0,
+            empId = Input.EmpId,
             password = Input.Password
         };
 
@@ -57,7 +52,7 @@ public class LoginModel : PageModel
 
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
-            ErrorMessage = "Invalid employee ID or password.";
+            ErrorMessage = "Invalid credentials.";
             return Page();
         }
 
@@ -117,7 +112,7 @@ public class LoginModel : PageModel
     public class LoginInput
     {
         [Required]
-        public string EmpId { get; set; } = "";
+        public int EmpId { get; set; }
 
         [Required]
         public string Password { get; set; } = "";

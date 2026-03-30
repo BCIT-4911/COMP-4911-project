@@ -159,11 +159,16 @@ public class WorkPackageService {
 
     private void validateWpWithProjectBac(WorkPackage wp, Project project) {
         BigDecimal projectBac = project.getBac();
+        List<WorkPackage> existingRootWps = em.createQuery(
+                "SELECT w FROM WorkPackage w WHERE w.project.projId = :projId AND w.parentWorkPackage IS NULL",
+                WorkPackage.class)
+                .setParameter("projId", project.getProjId())
+                .getResultList();
         validateBacAgainstLimit(
                 wp.getBac(),
                 projectBac,
                 "BAC of work package (" + wp.getWpId() + ") cannot exceed BAC of project.",
-                getChildren(wp.getWpId()),
+                existingRootWps,
                 "Total BAC of root work packages cannot exceed BAC of project.");
     }
 
@@ -349,7 +354,7 @@ public class WorkPackageService {
     public List<WorkPackage> getChildren(String id) {
         findWorkPackage(id);
         return em.createQuery(
-                "SELECT w FROM WorkPackage w WHERE w.parentWorkPackage.wpId = :parentId", WorkPackage.class)
+                "SELECT w FROM WorkPackage w LEFT JOIN FETCH w.project LEFT JOIN FETCH w.responsibleEmployee WHERE w.parentWorkPackage.wpId = :parentId", WorkPackage.class)
                 .setParameter("parentId", id)
                 .getResultList();
     }

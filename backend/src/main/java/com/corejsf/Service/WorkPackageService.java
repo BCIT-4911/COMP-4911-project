@@ -242,17 +242,6 @@ public class WorkPackageService {
 
         WorkPackageValidation.validateName(wp.getWpName());
 
-        String parentWpId = wp.getParentWpId();
-        if (parentWpId != null) {
-            WorkPackage parent = em.find(WorkPackage.class, parentWpId);
-            if (parent == null) {
-                throw new NotFoundException("Parent WorkPackage with id " + parentWpId + " not found.");
-            }
-            existing.setParentWorkPackage(parent);
-        } else {
-            existing.setParentWorkPackage(null);
-        }
-
         String reName = wp.getReEmployeeName();
         Integer reEmpId = wp.getReEmployeeId();
         if (reName != null && !reName.isBlank()) {

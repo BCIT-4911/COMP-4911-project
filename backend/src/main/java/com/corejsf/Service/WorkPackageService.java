@@ -55,12 +55,22 @@ public class WorkPackageService {
     }
 
     public List<WorkPackage> getAllWorkPackages() {
-        return em.createQuery("SELECT w FROM WorkPackage w", WorkPackage.class)
+        return em.createQuery(
+                "SELECT w FROM WorkPackage w LEFT JOIN FETCH w.responsibleEmployee",
+                WorkPackage.class)
                 .getResultList();
     }
 
     public WorkPackage getWorkPackage(String id) {
-        return findWorkPackage(id);
+        List<WorkPackage> results = em.createQuery(
+                "SELECT w FROM WorkPackage w LEFT JOIN FETCH w.responsibleEmployee WHERE w.wpId = :id",
+                WorkPackage.class)
+                .setParameter("id", id)
+                .getResultList();
+        if (results.isEmpty()) {
+            throw new NotFoundException("WorkPackage with id " + id + " not found.");
+        }
+        return results.get(0);
     }
 
     public WorkPackage createWorkPackage(WorkPackage wp) {

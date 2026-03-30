@@ -62,10 +62,10 @@ class WorkPackageResourceTest extends TestConfig {
         given()
                 .header("Authorization", "Bearer " + opsToken)
                 .when()
-                .get("/workpackages/CA-1.WP-1")
+                .get("/workpackages/A.WP-1")
                 .then()
                 .statusCode(200)
-                .body("wpId", org.hamcrest.Matchers.equalTo("CA-1.WP-1"));
+                .body("wpId", org.hamcrest.Matchers.equalTo("A.WP-1"));
     }
 
     @Test
@@ -209,7 +209,7 @@ class WorkPackageResourceTest extends TestConfig {
                         }
                         """.formatted(IDS.daffyId()))
                 .when()
-                .put("/workpackages/CA-1.WP-1")
+                .put("/workpackages/A.WP-1")
                 .then()
                 .statusCode(200);
     }
@@ -229,7 +229,7 @@ class WorkPackageResourceTest extends TestConfig {
         given()
                 .header("Authorization", "Bearer " + opsToken)
                 .when()
-                .get("/workpackages/CA-1.WP-1/parent")
+                .get("/workpackages/A.WP-1/parent")
                 .then()
                 .statusCode(200)
                 .body("wpId", org.hamcrest.Matchers.equalTo("A"));
@@ -240,7 +240,7 @@ class WorkPackageResourceTest extends TestConfig {
         given()
                 .header("Authorization", "Bearer " + opsToken)
                 .when()
-                .get("/workpackages/CA-1.WP-1/report")
+                .get("/workpackages/A.WP-1/report")
                 .then()
                 .statusCode(200)
                 .contentType(containsString("text/plain"))
@@ -306,7 +306,7 @@ class WorkPackageResourceTest extends TestConfig {
                 .header("Authorization", "Bearer " + bugsToken)
                 .contentType(ContentType.JSON)
                 .when()
-                .post("/workpackages/CA-1.WP-1/employees/" + IDS.marvinPmProj2Id() + "?role=MEMBER")
+                .post("/workpackages/A.WP-1/employees/" + IDS.marvinPmProj2Id() + "?role=MEMBER")
                 .then()
                 .statusCode(400);
     }
@@ -317,7 +317,7 @@ class WorkPackageResourceTest extends TestConfig {
                 .header("Authorization", "Bearer " + bugsToken)
                 .contentType(ContentType.JSON)
                 .when()
-                .post("/workpackages/CA-1.WP-1/employees/" + IDS.tweetyId() + "?role=MEMBER")
+                .post("/workpackages/A.WP-1/employees/" + IDS.tweetyId() + "?role=MEMBER")
                 .then()
                 .statusCode(200);
     }
@@ -327,7 +327,7 @@ class WorkPackageResourceTest extends TestConfig {
         given()
                 .header("Authorization", "Bearer " + opsToken)
                 .when()
-                .get("/workpackages/CA-1.WP-1")
+                .get("/workpackages/A.WP-1")
                 .then()
                 .statusCode(200)
                 .body("$", org.hamcrest.Matchers.hasKey("etc"));
@@ -351,7 +351,7 @@ class WorkPackageResourceTest extends TestConfig {
                         }
                         """.formatted(IDS.daffyId()))
                 .when()
-                .put("/workpackages/CA-1.WP-1")
+                .put("/workpackages/A.WP-1")
                 .then()
                 .statusCode(200);
     }
@@ -374,7 +374,7 @@ class WorkPackageResourceTest extends TestConfig {
                         }
                         """.formatted(IDS.daffyId()))
                 .when()
-                .put("/workpackages/CA-1.WP-1")
+                .put("/workpackages/A.WP-1")
                 .then()
                 .statusCode(403);
     }
@@ -384,7 +384,7 @@ class WorkPackageResourceTest extends TestConfig {
         given()
                 .header("Authorization", "Bearer " + opsToken)
                 .when()
-                .get("/workpackages/CA-1.WP-1")
+                .get("/workpackages/A.WP-1")
                 .then()
                 .statusCode(200)
                 .body("structureLocked", org.hamcrest.Matchers.anyOf(
@@ -406,7 +406,7 @@ class WorkPackageResourceTest extends TestConfig {
                           "weekEnding": "%s",
                           "rows": [
                             {
-                              "wpId": "CA-1.WP-1",
+                              "wpId": "A.WP-1",
                               "laborGradeId": 1,
                               "monday": 8.0,
                               "tuesday": 8.0,
@@ -443,7 +443,7 @@ class WorkPackageResourceTest extends TestConfig {
         given()
                 .header("Authorization", "Bearer " + opsToken)
                 .when()
-                .get("/workpackages/CA-1.WP-1")
+                .get("/workpackages/A.WP-1")
                 .then()
                 .statusCode(200)
                 .body("structureLocked", org.hamcrest.Matchers.equalTo(true));

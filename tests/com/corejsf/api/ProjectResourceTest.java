@@ -84,7 +84,8 @@ class ProjectResourceTest extends TestConfig {
                           "start_date": "%s",
                           "end_date": "%s",
                           "markup_rate": 10.50,
-                          "project_manager_id": %d
+                          "project_manager_id": %d,
+                          "bac": 10000.00
                         }
                         """.formatted(projId, start, end, IDS.pmProj1Id()))
                 .when()
@@ -138,7 +139,8 @@ class ProjectResourceTest extends TestConfig {
                           "start_date": "2026-01-01",
                           "end_date": "2026-03-31",
                           "markup_rate": 10.00,
-                          "project_manager_id": %d
+                          "project_manager_id": %d,
+                          "bac": 10000.00
                         }
                         """.formatted(IDS.pmProj1Id()))
                 .when()

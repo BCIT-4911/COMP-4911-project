@@ -157,7 +157,7 @@ public class ProjectAndWorkPackageRebacIntegrationTest extends TestConfig {
     void assignEmployeeToWorkPackage_asPmOfThatProject_succeeds() {
         Response response = postWithToken(
                 pmProj1Token,
-                "/workpackages/CA-1.WP-1/employees/" + MEMBER_A2_ID + "?role=MEMBER"
+                "/workpackages/A.WP-1/employees/" + MEMBER_A2_ID + "?role=MEMBER"
         );
 
         assertSuccess2xx(response);
@@ -167,7 +167,7 @@ public class ProjectAndWorkPackageRebacIntegrationTest extends TestConfig {
     void assignEmployeeToWorkPackage_asOpsManager_returns403() {
         postWithToken(
                 opsToken,
-                "/workpackages/CA-1.WP-1/employees/" + MEMBER_A2_ID + "?role=MEMBER"
+                "/workpackages/A.WP-1/employees/" + MEMBER_A2_ID + "?role=MEMBER"
         )
         .then()
         .statusCode(403);
@@ -177,7 +177,7 @@ public class ProjectAndWorkPackageRebacIntegrationTest extends TestConfig {
     void assignEmployeeToWorkPackage_asPmOfDifferentProject_returns403() {
         postWithToken(
                 pmProj2Token,
-                "/workpackages/CA-1.WP-1/employees/" + MEMBER_A2_ID + "?role=MEMBER"
+                "/workpackages/A.WP-1/employees/" + MEMBER_A2_ID + "?role=MEMBER"
         )
         .then()
         .statusCode(403);
@@ -187,7 +187,7 @@ public class ProjectAndWorkPackageRebacIntegrationTest extends TestConfig {
     void assignEmployeeToWorkPackage_asRegularEmployee_returns403() {
         postWithToken(
                 memberA2Token,
-                "/workpackages/CA-1.WP-1/employees/" + RE_A_ID + "?role=MEMBER"
+                "/workpackages/A.WP-1/employees/" + RE_A_ID + "?role=MEMBER"
         )
         .then()
         .statusCode(403);
@@ -197,7 +197,7 @@ public class ProjectAndWorkPackageRebacIntegrationTest extends TestConfig {
     void assignEmployeeToWorkPackage_asAssignedRe_returns403() {
         postWithToken(
                 reA2Token,
-                "/workpackages/CA-1.WP-1/employees/" + MEMBER_A2_ID + "?role=MEMBER"
+                "/workpackages/A.WP-1/employees/" + MEMBER_A2_ID + "?role=MEMBER"
         )
         .then()
         .statusCode(403);
@@ -217,7 +217,7 @@ public class ProjectAndWorkPackageRebacIntegrationTest extends TestConfig {
     void closeWorkPackage_asAssignedRe_succeeds() {
         Response response = putWithToken(
                 reA2Token,
-                "/workpackages/CA-1.WP-2/close"
+                "/workpackages/A.WP-2/close"
         );
 
         assertSuccess2xx(response);
@@ -227,7 +227,7 @@ public class ProjectAndWorkPackageRebacIntegrationTest extends TestConfig {
     void openWorkPackage_asAssignedRe_succeeds() {
         Response response = putWithToken(
                 reA2Token,
-                "/workpackages/CA-1.WP-2/open"
+                "/workpackages/A.WP-2/open"
         );
 
         assertSuccess2xx(response);
@@ -237,7 +237,7 @@ public class ProjectAndWorkPackageRebacIntegrationTest extends TestConfig {
     void closeWorkPackage_asProjectPm_succeeds() {
         Response response = putWithToken(
                 pmProj1Token,
-                "/workpackages/CA-1.WP-2/close"
+                "/workpackages/A.WP-2/close"
         );
 
         assertSuccess2xx(response);
@@ -247,7 +247,7 @@ public class ProjectAndWorkPackageRebacIntegrationTest extends TestConfig {
     void openWorkPackage_asProjectPm_succeeds() {
         Response response = putWithToken(
                 pmProj1Token,
-                "/workpackages/CA-1.WP-2/open"
+                "/workpackages/A.WP-2/open"
         );
 
         assertSuccess2xx(response);
@@ -257,7 +257,7 @@ public class ProjectAndWorkPackageRebacIntegrationTest extends TestConfig {
     void closeWorkPackage_asUnrelatedPm_returns403() {
         putWithToken(
                 pmProj2Token,
-                "/workpackages/CA-1.WP-2/close"
+                "/workpackages/A.WP-2/close"
         )
         .then()
         .statusCode(403);
@@ -267,7 +267,7 @@ public class ProjectAndWorkPackageRebacIntegrationTest extends TestConfig {
     void openWorkPackage_asRegularEmployee_returns403() {
         putWithToken(
                 memberA2Token,
-                "/workpackages/CA-1.WP-2/open"
+                "/workpackages/A.WP-2/open"
         )
         .then()
         .statusCode(403);
@@ -277,7 +277,7 @@ public class ProjectAndWorkPackageRebacIntegrationTest extends TestConfig {
     void closeWorkPackage_asHr_returns403() {
         putWithToken(
                 hrToken,
-                "/workpackages/CA-1.WP-2/close"
+                "/workpackages/A.WP-2/close"
         )
         .then()
         .statusCode(403);
@@ -288,13 +288,13 @@ public class ProjectAndWorkPackageRebacIntegrationTest extends TestConfig {
     //
     // Seed state for PROJ-1:
     //   A           - no WP assignments
-    //   CA-1.WP-1   - Daffy Duck (RE)
-    //   CA-1.WP-2   - Sylvester Cat (RE), Tweety Bird (MEMBER)
-    //   CA-1.WP-3   - no WP assignments
+    //   A.WP-1   - Daffy Duck (RE)
+    //   A.WP-2   - Sylvester Cat (RE), Tweety Bird (MEMBER)
+    //   A.WP-3   - no WP assignments
     //
     // @Order(1-6) ensures these read-only tests run BEFORE mutation tests
     // (assignEmployeeToWorkPackage_asPmOfThatProject_succeeds adds Tweety
-    //  to CA-1.WP-1, which would otherwise corrupt the size==1 assertion).
+    //  to A.WP-1, which would otherwise corrupt the size==1 assertion).
     // ----------------------------------------------------------------
 
     @Test
@@ -304,7 +304,7 @@ public class ProjectAndWorkPackageRebacIntegrationTest extends TestConfig {
 
         assertTrue(ids.size() == 4,
                 "Ops Manager should see all 4 WPs in PROJ-1 but got: " + ids);
-        assertTrue(ids.containsAll(java.util.List.of("A", "CA-1.WP-1", "CA-1.WP-2", "CA-1.WP-3")),
+        assertTrue(ids.containsAll(java.util.List.of("A", "A.WP-1", "A.WP-2", "A.WP-3")),
                 "Ops Manager is missing expected WP IDs. Got: " + ids);
     }
 
@@ -315,44 +315,44 @@ public class ProjectAndWorkPackageRebacIntegrationTest extends TestConfig {
 
         assertTrue(ids.size() == 4,
                 "PM of PROJ-1 should see all 4 WPs but got: " + ids);
-        assertTrue(ids.containsAll(java.util.List.of("A", "CA-1.WP-1", "CA-1.WP-2", "CA-1.WP-3")),
+        assertTrue(ids.containsAll(java.util.List.of("A", "A.WP-1", "A.WP-2", "A.WP-3")),
                 "PM of PROJ-1 is missing expected WP IDs. Got: " + ids);
     }
 
     @Test
     @Order(3)
     void getWorkPackages_asReOnWp1_returnsOnlyWp1() {
-        // Daffy Duck is assigned as RE only to CA-1.WP-1
+        // Daffy Duck is assigned as RE only to A.WP-1
         List<String> ids = getWorkPackageIds("PROJ-1", reAToken);
 
         assertTrue(ids.size() == 1,
-                "Daffy Duck (RE on CA-1.WP-1 only) should see exactly 1 WP but got: " + ids);
-        assertTrue(ids.contains("CA-1.WP-1"),
-                "Daffy Duck should see CA-1.WP-1 but got: " + ids);
+                "Daffy Duck (RE on A.WP-1 only) should see exactly 1 WP but got: " + ids);
+        assertTrue(ids.contains("A.WP-1"),
+                "Daffy Duck should see A.WP-1 but got: " + ids);
     }
 
     @Test
     @Order(4)
     void getWorkPackages_asMemberOnWp2_returnsOnlyWp2() {
-        // Tweety Bird is assigned as MEMBER only to CA-1.WP-2
+        // Tweety Bird is assigned as MEMBER only to A.WP-2
         List<String> ids = getWorkPackageIds("PROJ-1", memberA2Token);
 
         assertTrue(ids.size() == 1,
-                "Tweety Bird (MEMBER on CA-1.WP-2 only) should see exactly 1 WP but got: " + ids);
-        assertTrue(ids.contains("CA-1.WP-2"),
-                "Tweety Bird should see CA-1.WP-2 but got: " + ids);
+                "Tweety Bird (MEMBER on A.WP-2 only) should see exactly 1 WP but got: " + ids);
+        assertTrue(ids.contains("A.WP-2"),
+                "Tweety Bird should see A.WP-2 but got: " + ids);
     }
 
     @Test
     @Order(5)
     void getWorkPackages_asReOnWp2_returnsOnlyWp2() {
-        // Sylvester Cat is assigned as RE only to CA-1.WP-2
+        // Sylvester Cat is assigned as RE only to A.WP-2
         List<String> ids = getWorkPackageIds("PROJ-1", reA2Token);
 
         assertTrue(ids.size() == 1,
-                "Sylvester Cat (RE on CA-1.WP-2 only) should see exactly 1 WP but got: " + ids);
-        assertTrue(ids.contains("CA-1.WP-2"),
-                "Sylvester Cat should see CA-1.WP-2 but got: " + ids);
+                "Sylvester Cat (RE on A.WP-2 only) should see exactly 1 WP but got: " + ids);
+        assertTrue(ids.contains("A.WP-2"),
+                "Sylvester Cat should see A.WP-2 but got: " + ids);
     }
 
     @Test

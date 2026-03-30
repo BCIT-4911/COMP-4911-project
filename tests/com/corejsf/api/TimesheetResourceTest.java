@@ -331,7 +331,7 @@ class TimesheetResourceTest extends TestConfig {
         int tsId = given()
                 .header("Authorization", "Bearer " + tweetyToken)
                 .contentType(ContentType.JSON)
-                .body(buildTimesheetJsonForWp(IDS.tweetyId(), weekEnding, "CA-1.WP-2"))
+                .body(buildTimesheetJsonForWp(IDS.tweetyId(), weekEnding, "A.WP-2"))
                 .when()
                 .post("/timesheets")
                 .then()
@@ -399,7 +399,7 @@ class TimesheetResourceTest extends TestConfig {
     }
 
     private static String buildTimesheetJson(int empId, LocalDate weekEnding) {
-        return buildTimesheetJsonForWp(empId, weekEnding, "CA-1.WP-1");
+        return buildTimesheetJsonForWp(empId, weekEnding, "A.WP-1");
     }
 
     private static String buildTimesheetJsonForWp(int empId, LocalDate weekEnding, String wpId) {
@@ -445,7 +445,7 @@ class TimesheetResourceTest extends TestConfig {
         int tsId = given()
                 .header("Authorization", "Bearer " + daffyToken)
                 .contentType(ContentType.JSON)
-                .body(buildTimesheetJsonForWp(IDS.daffyId(), weekEnding, "CA-1.WP-2"))
+                .body(buildTimesheetJsonForWp(IDS.daffyId(), weekEnding, "A.WP-2"))
                 .when()
                 .post("/timesheets")
                 .then()

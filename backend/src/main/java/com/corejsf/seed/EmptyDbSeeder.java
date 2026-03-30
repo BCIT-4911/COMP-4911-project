@@ -177,6 +177,28 @@ public class EmptyDbSeeder {
         proj.setProjectManager(bugsBunny);
         em.merge(proj);
 
+        // Assign WP-level employees to the project so they can navigate to it
+        ProjectAssignment paDaffy = new ProjectAssignment();
+        paDaffy.setEmployee(daffyDuck);
+        paDaffy.setProject(proj);
+        paDaffy.setAssignmentDate(LocalDate.now());
+        paDaffy.setProjectRole(ProjectRole.MEMBER);
+        em.persist(paDaffy);
+
+        ProjectAssignment paTweety = new ProjectAssignment();
+        paTweety.setEmployee(tweetyBird);
+        paTweety.setProject(proj);
+        paTweety.setAssignmentDate(LocalDate.now());
+        paTweety.setProjectRole(ProjectRole.MEMBER);
+        em.persist(paTweety);
+
+        ProjectAssignment paSylvester = new ProjectAssignment();
+        paSylvester.setEmployee(sylvesterCat);
+        paSylvester.setProject(proj);
+        paSylvester.setAssignmentDate(LocalDate.now());
+        paSylvester.setProjectRole(ProjectRole.MEMBER);
+        em.persist(paSylvester);
+
         ProjectAssignment paMarvin = new ProjectAssignment();
         paMarvin.setEmployee(marvinMartian);
         paMarvin.setProject(proj2);

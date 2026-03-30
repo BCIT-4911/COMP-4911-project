@@ -87,8 +87,10 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="reEmployeeName">Responsible Engineer *</label>
-                    <input type="text" id="reEmployeeName" required placeholder="e.g. John Smith" />
+                    <label for="reEmployeeSelect">Responsible Engineer *</label>
+                    <select id="reEmployeeSelect" required>
+                        <option value="">-- Select RE --</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label for="planStartDate">Start Date *</label>
@@ -638,6 +640,31 @@
     }
 
     // ---- Create & Edit Modal Functions ----
+    function normalizeFullName(s) {
+        return (s || '').trim().replace(/\s+/g, ' ');
+    }
+
+    function populateReDropdown(selectedName) {
+        const select = document.getElementById('reEmployeeSelect');
+        select.innerHTML = '';
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = '-- Select RE --';
+        select.appendChild(placeholder);
+        const selectedNorm = normalizeFullName(selectedName);
+        for (const e of projectTeam) {
+            const fullName = `${e.empFirstName || ''} ${e.empLastName || ''}`.trim();
+            if (!fullName) continue;
+            const opt = document.createElement('option');
+            opt.value = fullName;
+            opt.textContent = `${fullName} (ID: ${e.empId})`;
+            if (normalizeFullName(fullName) === selectedNorm) {
+                opt.selected = true;
+            }
+            select.appendChild(opt);
+        }
+    }
+
     function openCreateModal() {
         document.getElementById('editMode').value = 'false';
         document.getElementById('modalTitle').textContent = 'New Work Package';
@@ -645,6 +672,8 @@
         document.getElementById('wpId').disabled = false;
         document.getElementById('parentWpIdSelect').disabled = false;
         document.getElementById('wpForm').reset();
+        document.getElementById('estCreationBac').disabled = false;
+        populateReDropdown('');
         document.getElementById('wpModal').classList.add('active');
     }
 
@@ -663,10 +692,12 @@
         document.getElementById('parentWpIdSelect').disabled = true;
         document.getElementById('wpName').value = w.wpName || '';
         document.getElementById('wpStatus').value = w.status || 'OPEN_FOR_CHARGES';
-        document.getElementById('reEmployeeName').value = w.reEmployeeName || '';
+        populateReDropdown(w.reEmployeeName || '');
         document.getElementById('planStartDate').value = w.planStartDate || '';
         document.getElementById('planEndDate').value = w.planEndDate || '';
         document.getElementById('wpDesc').value = w.description || '';
+        document.getElementById('estCreationBac').value = w.bac != null ? w.bac : '';
+        document.getElementById('estCreationBac').disabled = (w.bac != null);
         document.getElementById('wpModal').classList.add('active');
     }
 
@@ -692,7 +723,7 @@
             projId: PROJECT_ID,
             status: document.getElementById('wpStatus').value,
             parentWpId: parentWpId,
-            reEmployeeName: document.getElementById('reEmployeeName').value.trim() || null,
+            reEmployeeName: document.getElementById('reEmployeeSelect').value.trim() || null,
             planStartDate: document.getElementById('planStartDate').value || null,
             planEndDate: document.getElementById('planEndDate').value || null,
             description: document.getElementById('wpDesc').value || null,

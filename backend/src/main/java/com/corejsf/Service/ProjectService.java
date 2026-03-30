@@ -175,13 +175,14 @@ public class ProjectService {
         if (isOpsOrPm) {
             // Ops Managers and the Project Manager get to see the whole tree
             return em.createQuery(
-                    "SELECT w FROM WorkPackage w WHERE w.project.projId = :projId", WorkPackage.class)
+                    "SELECT w FROM WorkPackage w LEFT JOIN FETCH w.project LEFT JOIN FETCH w.responsibleEmployee WHERE w.project.projId = :projId", WorkPackage.class)
                     .setParameter("projId", projId)
                     .getResultList();
         } else {
             // Normal employees only see the WPs they are actively assigned to
             return em.createQuery(
                     "SELECT DISTINCT w FROM WorkPackage w " +
+                    "LEFT JOIN FETCH w.project LEFT JOIN FETCH w.responsibleEmployee " +
                     "JOIN WorkPackageAssignment wpa ON w.wpId = wpa.workPackage.wpId " +
                     "WHERE w.project.projId = :projId AND wpa.employee.empId = :empId", WorkPackage.class)
                     .setParameter("projId", projId)

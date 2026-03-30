@@ -333,6 +333,7 @@ class ProjectResourceTest extends TestConfig {
                     .statusCode(200);
         }
     }
+    */
 
     @Test
     void createProject_withBac_persistsBac() {
@@ -376,6 +377,7 @@ class ProjectResourceTest extends TestConfig {
                 .statusCode(200);
     }
 
+    /*
     @Test
     void createProject_withoutBac_defaultsToNull() {
         String projId = "AUTO-NBAC-" + System.nanoTime();

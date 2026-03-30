@@ -53,6 +53,12 @@ public class ProjectAndWorkPackageRebacIntegrationTest extends TestConfig {
         memberA2Token = login(MEMBER_A2_ID, DEFAULT_PASSWORD);
         reA2Token = login(RE_A2_ID, DEFAULT_PASSWORD);
         pmProj2Token = login(PM_PROJ2_ID, DEFAULT_PASSWORD);
+
+        // Remove stale WP assignments from previous test runs so visibility tests are accurate
+        given()
+                .header("Authorization", "Bearer " + pmProj1Token)
+                .when()
+                .delete("/workpackages/A.WP-1/employees/" + MEMBER_A2_ID);
     }
 
     private Response postWithToken(String token, String endpoint) {

@@ -3,6 +3,7 @@ package com.corejsf.Service;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -195,21 +196,51 @@ public class WorkPackageService {
         }
     }
 
+    /**
+     * Validates BAC when it is set for the first time on an existing work package (PUT).
+     * Excludes {@code existing} from sibling/root sums so we do not double-count its new BAC.
+     */
+    private void validateBacOnFirstSetViaUpdate(WorkPackage existing, BigDecimal newBac) {
+        WorkPackage parent = existing.getParentWorkPackage();
+        if (parent != null) {
+            List<WorkPackage> siblings = getChildren(parent.getWpId());
+            List<WorkPackage> others = new ArrayList<>();
+            for (WorkPackage c : siblings) {
+                if (!c.getWpId().equals(existing.getWpId())) {
+                    others.add(c);
+                }
+            }
+            validateBacAgainstLimit(
+                    newBac,
+                    parent.getBac(),
+                    "BAC of child work package (" + existing.getWpId() + ") cannot exceed BAC of parent work package.",
+                    others,
+                    "Total BAC of child work packages cannot exceed BAC of parent work package.");
+        } else {
+            List<WorkPackage> existingRootWps = em.createQuery(
+                    "SELECT w FROM WorkPackage w WHERE w.project.projId = :projId AND w.parentWorkPackage IS NULL",
+                    WorkPackage.class)
+                    .setParameter("projId", existing.getProject().getProjId())
+                    .getResultList();
+            List<WorkPackage> otherRoots = new ArrayList<>();
+            for (WorkPackage w : existingRootWps) {
+                if (!w.getWpId().equals(existing.getWpId())) {
+                    otherRoots.add(w);
+                }
+            }
+            validateBacAgainstLimit(
+                    newBac,
+                    existing.getProject().getBac(),
+                    "BAC of work package (" + existing.getWpId() + ") cannot exceed BAC of project.",
+                    otherRoots,
+                    "Total BAC of root work packages cannot exceed BAC of project.");
+        }
+    }
+
     public void updateWorkPackage(String id, WorkPackage wp) {
         WorkPackage existing = findWorkPackage(id);
 
         WorkPackageValidation.validateName(wp.getWpName());
-
-        String parentWpId = wp.getParentWpId();
-        if (parentWpId != null) {
-            WorkPackage parent = em.find(WorkPackage.class, parentWpId);
-            if (parent == null) {
-                throw new NotFoundException("Parent WorkPackage with id " + parentWpId + " not found.");
-            }
-            existing.setParentWorkPackage(parent);
-        } else {
-            existing.setParentWorkPackage(null);
-        }
 
         String reName = wp.getReEmployeeName();
         Integer reEmpId = wp.getReEmployeeId();
@@ -217,6 +248,15 @@ public class WorkPackageService {
             existing.setResponsibleEmployee(findEmployeeByFullName(reName));
         } else if (reEmpId != null) {
             existing.setResponsibleEmployee(findEmployee(reEmpId));
+        }
+
+        if (existing.getBac() != null && wp.getBac() != null
+                && existing.getBac().compareTo(wp.getBac()) != 0) {
+            throw new IllegalArgumentException("BAC cannot be changed after it is set.");
+        }
+        if (existing.getBac() == null && wp.getBac() != null) {
+            validateBacOnFirstSetViaUpdate(existing, wp.getBac());
+            existing.setBac(wp.getBac());
         }
 
         // Map the existing fields

@@ -11,7 +11,10 @@
             <p class="crud-subtitle">Manage all your projects in one place</p>
         </div>
         <button class="btn-primary-crud" onclick="openCreateModal()">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
             New Project
         </button>
     </div>
@@ -32,7 +35,9 @@
                 </tr>
             </thead>
             <tbody id="projectsBody">
-                <tr><td colspan="9" class="loading-cell">Loading projects...</td></tr>
+                <tr>
+                    <td colspan="9" class="loading-cell">Loading projects...</td>
+                </tr>
             </tbody>
         </table>
     </div>
@@ -111,7 +116,8 @@
 
         <div style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #444;">
             <h3 style="font-size: 14px; margin-bottom: 8px;">Current Team Members:</h3>
-            <ul id="currentTeamList" style="list-style-type: none; padding: 0; margin: 0; font-size: 13px; color: #ccc;">
+            <ul id="currentTeamList"
+                style="list-style-type: none; padding: 0; margin: 0; font-size: 13px; color: #ccc;">
                 <li>Loading team...</li>
             </ul>
         </div>
@@ -121,7 +127,7 @@
             <h4 style="margin-bottom: 10px; font-size: 14px; color: #a8b2d1;">+ Assign New PM</h4>
             <div class="form-group">
                 <select id="assignEmpId" required>
-                    </select>
+                </select>
             </div>
             <div class="modal-actions" style="margin-top: 10px;">
                 <button type="submit" class="btn-primary-crud">Assign PM</button>
@@ -135,451 +141,456 @@
             <h4 style="margin-bottom: 10px; font-size: 14px; color: #ff6b6b;">- Remove Existing PM</h4>
             <div class="form-group">
                 <select id="removePmEmpId" required>
-                    </select>
+                </select>
             </div>
             <div class="modal-actions" style="margin-top: 10px;">
-                <button type="submit" class="btn-secondary-crud" style="color: #ff6b6b; border-color: #ff6b6b;">Remove PM</button>
-            </div>
-        </form>
+                <button type="submit" class="btn-secondary-crud" style="color: #ff6b6b; border-color: #ff6b6b;">Remove
+                    PM</button>
+                </div>
+            </form>
+        </div>
     </div>
-</div>
 
-<div class="modal-overlay" id="memberAssignmentModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2 id="memberAssignmentModalTitle">Manage Team Members</h2>
-            <button type="button" class="modal-close" onclick="closeMemberAssignmentModal()">&times;</button>
+    <div class="modal-overlay" id="memberAssignmentModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="memberAssignmentModalTitle">Manage Team Members</h2>
+                <button type="button" class="modal-close" onclick="closeMemberAssignmentModal()">&times;</button>
+            </div>
+
+            <div style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #444;">
+                <h3 style="font-size: 14px; margin-bottom: 8px;">Current Team Members:</h3>
+                <ul id="memberCurrentTeamList"
+                    style="list-style-type: none; padding: 0; margin: 0; font-size: 13px; color: #ccc;">
+                    <li>Loading team...</li>
+                </ul>
+            </div>
+
+            <form id="memberAssignmentForm" onsubmit="handleMemberAssignmentSubmit(event)" style="margin-bottom: 20px;">
+                <input type="hidden" id="memberAssignProjectId" />
+                <h4 style="margin-bottom: 10px; font-size: 14px; color: #a8b2d1;">+ Assign New Member</h4>
+                <div class="form-group">
+                    <select id="memberAssignEmpId" required>
+                    </select>
+                </div>
+                <div class="modal-actions" style="margin-top: 10px;">
+                    <button type="submit" class="btn-primary-crud">Assign Member</button>
+                </div>
+            </form>
+
+            <hr style="border-color: #444; margin-bottom: 20px;" />
+
+            <form id="removeMemberForm" onsubmit="handleRemoveMemberSubmit(event)">
+                <input type="hidden" id="removeMemberProjectId" />
+                <h4 style="margin-bottom: 10px; font-size: 14px; color: #ff6b6b;">- Remove Existing Member</h4>
+                <div class="form-group">
+                    <select id="removeMemberEmpId" required>
+                    </select>
+                </div>
+                <div class="modal-actions" style="margin-top: 10px;">
+                    <button type="submit" class="btn-secondary-crud" style="color: #ff6b6b; border-color: #ff6b6b;">Remove
+                        Member</button>
+                    </div>
+                </form>
+
+            </div>
         </div>
 
-        <div style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #444;">
-            <h3 style="font-size: 14px; margin-bottom: 8px;">Current Team Members:</h3>
-            <ul id="memberCurrentTeamList" style="list-style-type: none; padding: 0; margin: 0; font-size: 13px; color: #ccc;">
-                <li>Loading team...</li>
-            </ul>
-        </div>
+        <div class="toast-container" id="toastContainer"></div>
 
-        <form id="memberAssignmentForm" onsubmit="handleMemberAssignmentSubmit(event)" style="margin-bottom: 20px;">
-            <input type="hidden" id="memberAssignProjectId" />
-            <h4 style="margin-bottom: 10px; font-size: 14px; color: #a8b2d1;">+ Assign New Member</h4>
-            <div class="form-group">
-                <select id="memberAssignEmpId" required>
-                    </select>
-            </div>
-            <div class="modal-actions" style="margin-top: 10px;">
-                <button type="submit" class="btn-primary-crud">Assign Member</button>
-            </div>
-        </form>
-
-        <hr style="border-color: #444; margin-bottom: 20px;" />
-
-        <form id="removeMemberForm" onsubmit="handleRemoveMemberSubmit(event)">
-            <input type="hidden" id="removeMemberProjectId" />
-            <h4 style="margin-bottom: 10px; font-size: 14px; color: #ff6b6b;">- Remove Existing Member</h4>
-            <div class="form-group">
-                <select id="removeMemberEmpId" required>
-                    </select>
-            </div>
-            <div class="modal-actions" style="margin-top: 10px;">
-                <button type="submit" class="btn-secondary-crud" style="color: #ff6b6b; border-color: #ff6b6b;">Remove Member</button>
-            </div>
-        </form>
-
-    </div>
-</div>
-
-<div class="toast-container" id="toastContainer"></div>
-
-@section Scripts {
-<script>
-    const API = '@Model.ApiBaseUrl';
-    const TOKEN = '@Model.JwtToken';
+        @section Scripts {
+            <script>
+                const API = '@Model.ApiBaseUrl';
+                const TOKEN = '@Model.JwtToken';
     
-    // SAFE GLOBAL STATE
-    let allEmployees = []; 
-    let allProjects = [];
+                // SAFE GLOBAL STATE
+                let allEmployees = [];
+                let allProjects = [];
 
-    // ---- EXTRACT USER DATA FROM JWT ----
-    function getJwtPayload() {
-        if (!TOKEN) return {};
-        try {
-            const base64Url = TOKEN.split('.')[1];
-            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-            return JSON.parse(decodeURIComponent(window.atob(base64).split('').map(function(c) {
-                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-            }).join('')));
-        } catch (e) { return {}; }
-    }
-    
-    const payload = getJwtPayload();
-    const CURRENT_USER_ID = payload.empId ? parseInt(payload.empId) : (payload.sub ? parseInt(payload.sub) : null);
-    const CURRENT_USER_ROLE = (payload.groups && payload.groups.length > 0) ? payload.groups[0] : (payload.role || payload.systemRole || '');
-
-    function authFetch(url, options = {}) {
-        options.headers = { ...options.headers, 'Authorization': `Bearer ${TOKEN}` };
-        return fetch(url, options).then(res => {
-            if (res.status === 401) window.location.href = '/Login';
-            return res;
-        });
-    }
-
-    // ---- Load Employees ----
-    async function loadEmployees() {
-        try {
-            const res = await authFetch(`${API}/api/employees`);
-            if (res.ok) allEmployees = await res.json();
-        } catch (err) { console.error("Failed to load employees:", err); }
-    }
-
-    // ---- Load Projects ----
-    async function loadProjects() {
-        try {
-            const res = await authFetch(`${API}/api/projects`);
-            if (!res.ok) throw new Error('Failed to load projects');
-            allProjects = await res.json(); 
-            renderTable(allProjects);
-        } catch (err) {
-            document.getElementById('projectsBody').innerHTML = `<tr><td colspan="9" class="error-cell">Error loading projects: ${err.message}</td></tr>`;
-        }
-    }
-
-    function renderTable(projects) {
-        const tbody = document.getElementById('projectsBody');
-        if (projects.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="9" class="empty-cell">No projects found. Click "New Project" to create one.</td></tr>';
-            return;
-        }
-
-        const canAssignPM = CURRENT_USER_ROLE === 'OPERATIONS_MANAGER';
-        const isActualSupervisor = allEmployees.some(e => e.supervisor_id === CURRENT_USER_ID);
-
-        tbody.innerHTML = projects.map(p => {
-            let pmAssignButton = '';
-            let memberAssignButton = '';
-
-            if (canAssignPM) {
-                pmAssignButton = `
-                    <button class="btn-action btn-assign" onclick="openAssignmentModal('${esc(p.project_id)}')" title="Manage Project Managers">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></svg>
-                    </button>
-                `;
-            }
-
-            if (isActualSupervisor) {
-                memberAssignButton = `
-                    <button class="btn-action btn-assign" onclick="openMemberAssignmentModal('${esc(p.project_id)}')" title="Manage Team Members">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
-                    </button>
-                `;
-            }
-
-            return `
-            <tr>
-                <td><code>${esc(p.project_id)}</code></td>
-                <td class="name-cell">${esc(p.project_name || '')}</td>
-                <td><span class="badge badge-type">${esc(p.project_type || 'N/A')}</span></td>
-                <td><span class="badge ${p.project_status === 'OPEN' ? 'badge-open' : 'badge-archived'}">${esc(p.project_status || 'N/A')}</span></td>
-                <td>${formatDate(p.start_date)}</td>
-                <td>${formatDate(p.end_date)}</td>
-                <td>${p.markup_rate != null ? p.markup_rate.toFixed(2) : '0.00'}</td>
-                <td>${p.project_manager_id || 'N/A'}</td>
-                <td class="actions-cell">
-                    ${pmAssignButton}
-                    ${memberAssignButton}
-                    <a class="btn-action btn-wp" href="/WorkPackages?projectId=${encodeURIComponent(p.project_id)}" title="Work Packages">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-                    </a>
-                    <button class="btn-action btn-edit" onclick="openEditModalById('${esc(p.project_id)}')" title="Edit">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    </button>
-                    <button class="btn-action btn-delete" onclick="deleteProject('${esc(p.project_id)}')" title="Delete">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                    </button>
-                </td>
-            </tr>
-            `;
-        }).join('');
-    }
-
-    // ---- Shared Function to Load Team for Modals ----
-    async function loadCurrentTeam(projectId, listElementId) {
-        const teamList = document.getElementById(listElementId);
-        teamList.innerHTML = '<li>Loading team...</li>';
-        try {
-            const res = await authFetch(`${API}/api/projects/${encodeURIComponent(projectId)}/employees`);
-            if (res.ok) {
-                const team = await res.json();
-                if (team.length === 0) {
-                    teamList.innerHTML = '<li>No employees assigned yet.</li>';
-                } else {
-                    teamList.innerHTML = team.map(e => 
-                        `<li>• ${e.empFirstName} ${e.empLastName} (ID: ${e.empId}) - <strong style="color: #fff;">${e.projectRole || 'MEMBER'}</strong></li>`
-                    ).join('');
+                // ---- EXTRACT USER DATA FROM JWT ----
+                function getJwtPayload() {
+                    if (!TOKEN) return {};
+                    try {
+                        const base64Url = TOKEN.split('.')[1];
+                        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                        return JSON.parse(decodeURIComponent(window.atob(base64).split('').map(function (c) {
+                            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                        }).join('')));
+                    } catch (e) { return {}; }
                 }
-                return team; // Return the team so we can filter for the Remove dropdowns
-            } else {
-                teamList.innerHTML = '<li style="color: red;">Failed to load team.</li>';
-                return [];
-            }
-        } catch (err) {
-            teamList.innerHTML = '<li style="color: red;">Error connecting to server.</li>';
-            return [];
-        }
-    }
+    
+                const payload = getJwtPayload();
+                const CURRENT_USER_ID = payload.empId ? parseInt(payload.empId) : (payload.sub ? parseInt(payload.sub) : null);
+                const CURRENT_USER_ROLE = (payload.groups && payload.groups.length > 0) ? payload.groups[0] : (payload.role || payload.systemRole || '');
 
-    // =========================================================
-    // PM ASSIGNMENT MODAL (For Ops Manager)
-    // =========================================================
-    async function openAssignmentModal(projectId) {
-        document.getElementById('assignProjectId').value = projectId;
-        document.getElementById('removeProjectId').value = projectId;
-        document.getElementById('assignmentModalTitle').textContent = `Manage Project Managers: ${projectId}`;
-        
-        populateDropdown(document.getElementById('assignEmpId'), allEmployees, "No Employees Found");
-        document.getElementById('assignmentModal').classList.add('active');
-        
-        // Wait for team to load, then populate the "Remove" dropdown with ONLY existing PMs
-        const currentTeam = await loadCurrentTeam(projectId, 'currentTeamList');
-        const currentPms = currentTeam.filter(e => e.projectRole === 'PM');
-        populateDropdown(document.getElementById('removePmEmpId'), currentPms, "No PMs assigned to remove");
-    }
+                function authFetch(url, options = {}) {
+                    options.headers = { ...options.headers, 'Authorization': `Bearer ${TOKEN}` };
+                    return fetch(url, options).then(res => {
+                        if (res.status === 401) window.location.href = '/Login';
+                        return res;
+                    });
+                }
 
-    function closeAssignmentModal() {
-        document.getElementById('assignmentModal').classList.remove('active');
-        document.getElementById('assignmentForm').reset();
-        document.getElementById('removeAssignmentForm').reset();
-    }
+                // ---- Load Employees ----
+                async function loadEmployees() {
+                    try {
+                        const res = await authFetch(`${API}/api/employees`);
+                        if (res.ok) allEmployees = await res.json();
+                    } catch (err) { console.error("Failed to load employees:", err); }
+                }
 
-    async function handlePMAssignmentSubmit(e) {
-        e.preventDefault();
-        await submitAssignment(
-            document.getElementById('assignProjectId').value, 
-            document.getElementById('assignEmpId').value, 
-            'PM', 
-            closeAssignmentModal
-        );
-    }
+                // ---- Load Projects ----
+                async function loadProjects() {
+                    try {
+                        const res = await authFetch(`${API}/api/projects`);
+                        if (!res.ok) throw new Error('Failed to load projects');
+                        allProjects = await res.json();
+                        renderTable(allProjects);
+                    } catch (err) {
+                        document.getElementById('projectsBody').innerHTML = `<tr><td colspan="9" class="error-cell">Error loading projects: ${err.message}</td></tr>`;
+                    }
+                }
 
-    async function handleRemovePMSubmit(e) {
-        e.preventDefault();
-        await submitRemoval(
-            document.getElementById('removeProjectId').value, 
-            document.getElementById('removePmEmpId').value, 
-            closeAssignmentModal
-        );
-    }
+                function renderTable(projects) {
+                    const tbody = document.getElementById('projectsBody');
+                    if (projects.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="9" class="empty-cell">No projects found. Click "New Project" to create one.</td></tr>';
+                        return;
+                    }
 
-    // =========================================================
-    // TEAM MEMBER ASSIGNMENT MODAL (For Supervisors)
-    // =========================================================
-    async function openMemberAssignmentModal(projectId) {
-        document.getElementById('memberAssignProjectId').value = projectId;
-        document.getElementById('removeMemberProjectId').value = projectId;
-        document.getElementById('memberAssignmentModalTitle').textContent = `Manage Team Members: ${projectId}`;
+                    const canAssignPM = CURRENT_USER_ROLE === 'OPERATIONS_MANAGER';
+                    const isActualSupervisor = allEmployees.some(e => e.supervisor_id === CURRENT_USER_ID);
+
+                    tbody.innerHTML = projects.map(p => {
+                        let pmAssignButton = '';
+                        let memberAssignButton = '';
+
+                        if (canAssignPM) {
+                            pmAssignButton = `
+                                <button class="btn-action btn-assign" onclick="openAssignmentModal('${esc(p.project_id)}')" title="Manage Project Managers">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></svg>
+                                </button>
+                            `;
+                        }
+
+                        if (isActualSupervisor) {
+                            memberAssignButton = `
+                                <button class="btn-action btn-assign" onclick="openMemberAssignmentModal('${esc(p.project_id)}')" title="Manage Team Members">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
+                                </button>
+                            `;
+                        }
+
+                        return `
+                        <tr>
+                            <td><code>${esc(p.project_id)}</code></td>
+                            <td class="name-cell">${esc(p.project_name || '')}</td>
+                            <td><span class="badge badge-type">${esc(p.project_type || 'N/A')}</span></td>
+                            <td><span class="badge ${p.project_status === 'OPEN' ? 'badge-open' : 'badge-archived'}">${esc(p.project_status || 'N/A')}</span></td>
+                            <td>${formatDate(p.start_date)}</td>
+                            <td>${formatDate(p.end_date)}</td>
+                            <td>${p.markup_rate != null ? p.markup_rate.toFixed(2) : '0.00'}</td>
+                            <td>${p.project_manager_id || 'N/A'}</td>
+                            <td class="actions-cell">
+                                ${pmAssignButton}
+                                ${memberAssignButton}
+                                <a class="btn-action btn-wp" href="/WorkPackages?projectId=${encodeURIComponent(p.project_id)}" title="Work Packages">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                                </a>
+                                <button class="btn-action btn-edit" onclick="openEditModalById('${esc(p.project_id)}')" title="Edit">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                </button>
+                                <button class="btn-action btn-delete" onclick="deleteProject('${esc(p.project_id)}')" title="Delete">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                </button>
+                            </td>
+                        </tr>
+                        `;
+                    }).join('');
+                }
+
+                // ---- Shared Function to Load Team for Modals ----
+                async function loadCurrentTeam(projectId, listElementId) {
+                    const teamList = document.getElementById(listElementId);
+                    teamList.innerHTML = '<li>Loading team...</li>';
+                    try {
+                        const res = await authFetch(`${API}/api/projects/${encodeURIComponent(projectId)}/employees`);
+                        if (res.ok) {
+                            const team = await res.json();
+                            if (team.length === 0) {
+                                teamList.innerHTML = '<li>No employees assigned yet.</li>';
+                            } else {
+                                teamList.innerHTML = team.map(e =>
+                                    `<li>• ${e.empFirstName} ${e.empLastName} (ID: ${e.empId}) - <strong style="color: #fff;">${e.projectRole || 'MEMBER'}</strong></li>`
+                                ).join('');
+                            }
+                            return team; // Return the team so we can filter for the Remove dropdowns
+                        } else {
+                            teamList.innerHTML = '<li style="color: red;">Failed to load team.</li>';
+                            return [];
+                        }
+                    } catch (err) {
+                        teamList.innerHTML = '<li style="color: red;">Error connecting to server.</li>';
+                        return [];
+                    }
+                }
+
+                // =========================================================
+                // PM ASSIGNMENT MODAL (For Ops Manager)
+                // =========================================================
+                async function openAssignmentModal(projectId) {
+                    document.getElementById('assignProjectId').value = projectId;
+                    document.getElementById('removeProjectId').value = projectId;
+                    document.getElementById('assignmentModalTitle').textContent = `Manage Project Managers: ${projectId}`;
         
-        // Populate the "Add" dropdown
-        const directReports = allEmployees.filter(e => e.supervisor_id === CURRENT_USER_ID);
-        populateDropdown(document.getElementById('memberAssignEmpId'), directReports, "No direct reports to assign");
-        document.getElementById('memberAssignmentModal').classList.add('active');
+                    populateDropdown(document.getElementById('assignEmpId'), allEmployees, "No Employees Found");
+                    document.getElementById('assignmentModal').classList.add('active');
         
-        // Wait for current project team to load
-        const currentTeam = await loadCurrentTeam(projectId, 'memberCurrentTeamList');
+                    // Wait for team to load, then populate the "Remove" dropdown with ONLY existing PMs
+                    const currentTeam = await loadCurrentTeam(projectId, 'currentTeamList');
+                    const currentPms = currentTeam.filter(e => e.projectRole === 'PM');
+                    populateDropdown(document.getElementById('removePmEmpId'), currentPms, "No PMs assigned to remove");
+                }
+
+                function closeAssignmentModal() {
+                    document.getElementById('assignmentModal').classList.remove('active');
+                    document.getElementById('assignmentForm').reset();
+                    document.getElementById('removeAssignmentForm').reset();
+                }
+
+                async function handlePMAssignmentSubmit(e) {
+                    e.preventDefault();
+                    await submitAssignment(
+                        document.getElementById('assignProjectId').value,
+                        document.getElementById('assignEmpId').value,
+                        'PM',
+                        closeAssignmentModal
+                    );
+                }
+
+                async function handleRemovePMSubmit(e) {
+                    e.preventDefault();
+                    await submitRemoval(
+                        document.getElementById('removeProjectId').value,
+                        document.getElementById('removePmEmpId').value,
+                        closeAssignmentModal
+                    );
+                }
+
+                // =========================================================
+                // TEAM MEMBER ASSIGNMENT MODAL (For Supervisors)
+                // =========================================================
+                async function openMemberAssignmentModal(projectId) {
+                    document.getElementById('memberAssignProjectId').value = projectId;
+                    document.getElementById('removeMemberProjectId').value = projectId;
+                    document.getElementById('memberAssignmentModalTitle').textContent = `Manage Team Members: ${projectId}`;
         
-        // SMART CROSS-REFERENCE FIX: 
-        // Look up the assigned team members inside the main allEmployees list to find their true supervisor!
-        const assignedDirectReports = currentTeam.filter(teamMember => {
-            const fullEmployeeRecord = allEmployees.find(emp => emp.empId === teamMember.empId);
+                    // Populate the "Add" dropdown
+                    const directReports = allEmployees.filter(e => e.supervisor_id === CURRENT_USER_ID);
+                    populateDropdown(document.getElementById('memberAssignEmpId'), directReports, "No direct reports to assign");
+                    document.getElementById('memberAssignmentModal').classList.add('active');
+        
+                    // Wait for current project team to load
+                    const currentTeam = await loadCurrentTeam(projectId, 'memberCurrentTeamList');
+        
+                    // SMART CROSS-REFERENCE FIX: 
+                    // Look up the assigned team members inside the main allEmployees list to find their true supervisor!
+                    const assignedDirectReports = currentTeam.filter(teamMember => {
+                        const fullEmployeeRecord = allEmployees.find(emp => emp.empId === teamMember.empId);
             
-            // Only allow removal if: 1) They are your direct report, AND 2) They are a MEMBER (not a PM)
-            return fullEmployeeRecord && 
-                   fullEmployeeRecord.supervisor_id === CURRENT_USER_ID && 
-                   teamMember.projectRole === 'MEMBER';
-        });
+                        // Only allow removal if: 1) They are your direct report, AND 2) They are a MEMBER (not a PM)
+                        return fullEmployeeRecord &&
+                            fullEmployeeRecord.supervisor_id === CURRENT_USER_ID &&
+                            teamMember.projectRole === 'MEMBER';
+                    });
         
-        populateDropdown(document.getElementById('removeMemberEmpId'), assignedDirectReports, "No assigned direct reports to remove");
-    }
+                    populateDropdown(document.getElementById('removeMemberEmpId'), assignedDirectReports, "No assigned direct reports to remove");
+                }
 
-    function closeMemberAssignmentModal() {
-        document.getElementById('memberAssignmentModal').classList.remove('active');
-        document.getElementById('memberAssignmentForm').reset();
-        document.getElementById('removeMemberForm').reset();
-    }
+                function closeMemberAssignmentModal() {
+                    document.getElementById('memberAssignmentModal').classList.remove('active');
+                    document.getElementById('memberAssignmentForm').reset();
+                    document.getElementById('removeMemberForm').reset();
+                }
 
-    async function handleMemberAssignmentSubmit(e) {
-        e.preventDefault();
-        await submitAssignment(
-            document.getElementById('memberAssignProjectId').value, 
-            document.getElementById('memberAssignEmpId').value, 
-            'MEMBER', 
-            closeMemberAssignmentModal
-        );
-    }
+                async function handleMemberAssignmentSubmit(e) {
+                    e.preventDefault();
+                    await submitAssignment(
+                        document.getElementById('memberAssignProjectId').value,
+                        document.getElementById('memberAssignEmpId').value,
+                        'MEMBER',
+                        closeMemberAssignmentModal
+                    );
+                }
 
-    async function handleRemoveMemberSubmit(e) {
-        e.preventDefault();
-        await submitRemoval(
-            document.getElementById('removeMemberProjectId').value, 
-            document.getElementById('removeMemberEmpId').value, 
-            closeMemberAssignmentModal
-        );
-    }
+                async function handleRemoveMemberSubmit(e) {
+                    e.preventDefault();
+                    await submitRemoval(
+                        document.getElementById('removeMemberProjectId').value,
+                        document.getElementById('removeMemberEmpId').value,
+                        closeMemberAssignmentModal
+                    );
+                }
 
-    // ---- Helper to populate dropdowns ----
-    function populateDropdown(selectElement, employeeList, emptyMessage) {
-        if (employeeList.length === 0) {
-            selectElement.innerHTML = `<option value="">-- ${emptyMessage} --</option>`;
-            selectElement.disabled = true;
-        } else {
-            selectElement.innerHTML = '<option value="">-- Select Employee --</option>' + 
-                employeeList.map(e => `<option value="${e.empId}">${e.empFirstName} ${e.empLastName} (ID: ${e.empId})</option>`).join('');
-            selectElement.disabled = false;
-        }
-    }
+                // ---- Helper to populate dropdowns ----
+                function populateDropdown(selectElement, employeeList, emptyMessage) {
+                    if (employeeList.length === 0) {
+                        selectElement.innerHTML = `<option value="">-- ${emptyMessage} --</option>`;
+                        selectElement.disabled = true;
+                    } else {
+                        selectElement.innerHTML = '<option value="">-- Select Employee --</option>' +
+                            employeeList.map(e => `<option value="${e.empId}">${e.empFirstName} ${e.empLastName} (ID: ${e.empId})</option>`).join('');
+                        selectElement.disabled = false;
+                    }
+                }
 
-    // ---- Helpers to send API requests ----
-    async function submitAssignment(projectId, empId, role, closeFunction) {
-        if (!empId) return;
-        try {
-            const res = await authFetch(`${API}/api/projects/${encodeURIComponent(projectId)}/employees/${encodeURIComponent(empId)}?role=${encodeURIComponent(role)}`, { method: 'POST' });
-            if (res.status === 403) throw new Error("Access Denied: You do not have permission to assign this user.");
-            if (!res.ok) throw new Error(await res.text() || `HTTP Error ${res.status}`);
+                // ---- Helpers to send API requests ----
+                async function submitAssignment(projectId, empId, role, closeFunction) {
+                    if (!empId) return;
+                    try {
+                        const res = await authFetch(`${API}/api/projects/${encodeURIComponent(projectId)}/employees/${encodeURIComponent(empId)}?role=${encodeURIComponent(role)}`, { method: 'POST' });
+                        if (res.status === 403) throw new Error("Access Denied: You do not have permission to assign this user.");
+                        if (!res.ok) throw new Error(await res.text() || `HTTP Error ${res.status}`);
             
-            closeFunction();
-            showToast('Employee assigned successfully!', 'success');
-            loadProjects();
-        } catch (err) { showToast(err.message, 'error'); }
-    }
+                        closeFunction();
+                        showToast('Employee assigned successfully!', 'success');
+                        loadProjects();
+                    } catch (err) { showToast(err.message, 'error'); }
+                }
 
-    async function submitRemoval(projectId, empId, closeFunction) {
-        if (!empId) return;
-        try {
-            const res = await authFetch(`${API}/api/projects/${encodeURIComponent(projectId)}/employees/${encodeURIComponent(empId)}`, { method: 'DELETE' });
-            if (res.status === 403) throw new Error("Access Denied: You do not have permission to remove this user.");
-            if (!res.ok) throw new Error(await res.text() || `HTTP Error ${res.status}`);
+                async function submitRemoval(projectId, empId, closeFunction) {
+                    if (!empId) return;
+                    try {
+                        const res = await authFetch(`${API}/api/projects/${encodeURIComponent(projectId)}/employees/${encodeURIComponent(empId)}`, { method: 'DELETE' });
+                        if (res.status === 403) throw new Error("Access Denied: You do not have permission to remove this user.");
+                        if (!res.ok) throw new Error(await res.text() || `HTTP Error ${res.status}`);
             
-            closeFunction();
-            showToast('Employee removed successfully!', 'success');
-            loadProjects();
-        } catch (err) { showToast(err.message, 'error'); }
-    }
+                        closeFunction();
+                        showToast('Employee removed successfully!', 'success');
+                        loadProjects();
+                    } catch (err) { showToast(err.message, 'error'); }
+                }
 
-    // ---- Create / Edit Modal Functions ----
-    function openCreateModal() {
-        document.getElementById('editMode').value = 'false';
-        document.getElementById('modalTitle').textContent = 'New Project';
-        document.getElementById('submitBtn').textContent = 'Create Project';
-        document.getElementById('projId').disabled = false;
-        document.getElementById('projectForm').reset();
-        // Prevent past dates on create (backend rejects them)
-        const today = new Date().toISOString().split('T')[0];
-        document.getElementById('startDate').min = today;
-        document.getElementById('endDate').min = today;
-        document.getElementById('projectModal').classList.add('active');
-    }
+                // ---- Create / Edit Modal Functions ----
+                function openCreateModal() {
+                    document.getElementById('editMode').value = 'false';
+                    document.getElementById('modalTitle').textContent = 'New Project';
+                    document.getElementById('submitBtn').textContent = 'Create Project';
+                    document.getElementById('projId').disabled = false;
+                    document.getElementById('projectForm').reset();
+                    // Prevent past dates on create (backend rejects them)
+                    const today = new Date().toISOString().split('T')[0];
+                    document.getElementById('startDate').min = today;
+                    document.getElementById('endDate').min = today;
+                    document.getElementById('projectModal').classList.add('active');
+                }
 
-    function openEditModalById(projectId) {
-        const p = allProjects.find(x => x.project_id === projectId);
-        if (p) openEditModal(p);
-    }
+                function openEditModalById(projectId) {
+                    const p = allProjects.find(x => x.project_id === projectId);
+                    if (p) openEditModal(p);
+                }
 
-    function openEditModal(p) {
-        document.getElementById('editMode').value = 'true';
-        document.getElementById('originalId').value = p.project_id;
-        document.getElementById('modalTitle').textContent = 'Edit Project';
-        document.getElementById('submitBtn').textContent = 'Save Changes';
-        document.getElementById('projId').value = p.project_id;
-        document.getElementById('projId').disabled = true;
-        // Edit allows past dates (backend only validates end >= start on updates)
-        document.getElementById('startDate').min = '';
-        document.getElementById('endDate').min = '';
-        document.getElementById('projName').value = p.project_name || '';
-        document.getElementById('projType').value = p.project_type || 'INTERNAL';
-        document.getElementById('projStatus').value = p.project_status || 'OPEN';
-        document.getElementById('startDate').value = p.start_date || '';
-        document.getElementById('endDate').value = p.end_date || '';
-        document.getElementById('markupRate').value = p.markup_rate != null ? p.markup_rate : 0;
-        document.getElementById('pmId').value = p.project_manager_id || '';
-        document.getElementById('projDesc').value = p.project_desc || '';
-        document.getElementById('projectModal').classList.add('active');
-    }
+                function openEditModal(p) {
+                    document.getElementById('editMode').value = 'true';
+                    document.getElementById('originalId').value = p.project_id;
+                    document.getElementById('modalTitle').textContent = 'Edit Project';
+                    document.getElementById('submitBtn').textContent = 'Save Changes';
+                    document.getElementById('projId').value = p.project_id;
+                    document.getElementById('projId').disabled = true;
+                    // Edit allows past dates (backend only validates end >= start on updates)
+                    document.getElementById('startDate').min = '';
+                    document.getElementById('endDate').min = '';
+                    document.getElementById('projName').value = p.project_name || '';
+                    document.getElementById('projType').value = p.project_type || 'INTERNAL';
+                    document.getElementById('projStatus').value = p.project_status || 'OPEN';
+                    document.getElementById('startDate').value = p.start_date || '';
+                    document.getElementById('endDate').value = p.end_date || '';
+                    document.getElementById('markupRate').value = p.markup_rate != null ? p.markup_rate : 0;
+                    document.getElementById('pmId').value = p.project_manager_id || '';
+                    document.getElementById('projDesc').value = p.project_desc || '';
+                    document.getElementById('projectModal').classList.add('active');
+                }
 
-    function closeModal() {
-        document.getElementById('projectModal').classList.remove('active');
-    }
+                function closeModal() {
+                    document.getElementById('projectModal').classList.remove('active');
+                }
 
-    async function handleSubmit(e) {
-        e.preventDefault();
-        const isEdit = document.getElementById('editMode').value === 'true';
-        const id = isEdit ? document.getElementById('originalId').value : document.getElementById('projId').value;
+                async function handleSubmit(e) {
+                    e.preventDefault();
+                    const isEdit = document.getElementById('editMode').value === 'true';
+                    const id = isEdit ? document.getElementById('originalId').value : document.getElementById('projId').value;
 
-        const body = {
-            project_id: document.getElementById('projId').disabled ? id : document.getElementById('projId').value,
-            project_name: document.getElementById('projName').value,
-            project_type: document.getElementById('projType').value,
-            project_status: document.getElementById('projStatus').value,
-            project_desc: document.getElementById('projDesc').value,
-            start_date: document.getElementById('startDate').value || null,
-            end_date: document.getElementById('endDate').value || null,
-            markup_rate: parseFloat(document.getElementById('markupRate').value) || 0,
-            project_manager_id: parseInt(document.getElementById('pmId').value) || null
-        };
+                    const body = {
+                        project_id: document.getElementById('projId').disabled ? id : document.getElementById('projId').value,
+                        project_name: document.getElementById('projName').value,
+                        project_type: document.getElementById('projType').value,
+                        project_status: document.getElementById('projStatus').value,
+                        project_desc: document.getElementById('projDesc').value,
+                        start_date: document.getElementById('startDate').value || null,
+                        end_date: document.getElementById('endDate').value || null,
+                        markup_rate: parseFloat(document.getElementById('markupRate').value) || 0,
+                        project_manager_id: parseInt(document.getElementById('pmId').value) || null
+                    };
 
-        try {
-            const url = isEdit ? `${API}/api/projects/${encodeURIComponent(id)}` : `${API}/api/projects`;
-            const res = await authFetch(url, {
-                method: isEdit ? 'PUT' : 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
-            });
+                    try {
+                        const url = isEdit ? `${API}/api/projects/${encodeURIComponent(id)}` : `${API}/api/projects`;
+                        const res = await authFetch(url, {
+                            method: isEdit ? 'PUT' : 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(body)
+                        });
             
-            if (!res.ok) {
-                const text = await res.text();
-                throw new Error(text || res.statusText);
-            }
-            // Formally assign PM as a project team member after creation
-            if (!isEdit) {
-                await authFetch(`${API}/api/projects/${encodeURIComponent(id)}/employees/${body.project_manager_id}`, {
-                    method: 'POST'
+                        if (res.status === 403) throw new Error("You don't have permission to create a project.");
+                        if (!res.ok) {
+                            const text = await res.text();
+                            throw new Error(text || res.statusText);
+                        }
+                        
+                        // Formally assign PM as a project team member after creation
+                        if (!isEdit) {
+                            await authFetch(`${API}/api/projects/${encodeURIComponent(id)}/employees/${body.project_manager_id}`, {
+                                method: 'POST'
+                            });
+                        }
+                        closeModal();
+                        showToast(isEdit ? 'Project updated!' : 'Project created!', 'success');
+                        loadProjects();
+                    } catch (err) {
+                        showToast('Error: ' + err.message, 'error');
+                    }
+                }
+
+                // ---- Delete ----
+                async function deleteProject(id) {
+                    if (!confirm(`Delete project "${id}" and all its work packages? This cannot be undone.`)) return;
+                    try {
+                        const res = await authFetch(`${API}/api/projects/${encodeURIComponent(id)}`, { method: 'DELETE' });
+                        if (!res.ok) throw new Error(await res.text());
+                        showToast('Project deleted!', 'success');
+                        loadProjects();
+                    } catch (err) { showToast('Error: ' + err.message, 'error'); }
+                }
+
+                // ---- Helpers ----
+                function esc(str) {
+                    const div = document.createElement('div');
+                    div.textContent = str;
+                    return div.innerHTML;
+                }
+                function formatDate(d) { return d ? d : '—'; }
+                function showToast(msg, type) {
+                    const c = document.getElementById('toastContainer');
+                    const t = document.createElement('div');
+                    t.className = `toast toast-${type}`;
+                    t.textContent = msg;
+                    c.appendChild(t);
+                    setTimeout(() => { t.classList.add('fade-out'); setTimeout(() => t.remove(), 300); }, 3000);
+                }
+
+                // ---- Init ----
+                document.addEventListener('DOMContentLoaded', async () => {
+                    await loadEmployees();
+                    await loadProjects();
                 });
-            }
-            closeModal();
-            showToast(isEdit ? 'Project updated!' : 'Project created!', 'success');
-            loadProjects();
-        } catch (err) { 
-            showToast('Error: ' + err.message, 'error'); 
+            </script>
         }
-    }
-
-    // ---- Delete ----
-    async function deleteProject(id) {
-        if (!confirm(`Delete project "${id}" and all its work packages? This cannot be undone.`)) return;
-        try {
-            const res = await authFetch(`${API}/api/projects/${encodeURIComponent(id)}`, { method: 'DELETE' });
-            if (!res.ok) throw new Error(await res.text());
-            showToast('Project deleted!', 'success');
-            loadProjects();
-        } catch (err) { showToast('Error: ' + err.message, 'error'); }
-    }
-
-    // ---- Helpers ----
-    function esc(str) {
-        const div = document.createElement('div');
-        div.textContent = str;
-        return div.innerHTML;
-    }
-    function formatDate(d) { return d ? d : '—'; }
-    function showToast(msg, type) {
-        const c = document.getElementById('toastContainer');
-        const t = document.createElement('div');
-        t.className = `toast toast-${type}`;
-        t.textContent = msg;
-        c.appendChild(t);
-        setTimeout(() => { t.classList.add('fade-out'); setTimeout(() => t.remove(), 300); }, 3000);
-    }
-
-    // ---- Init ----
-    document.addEventListener('DOMContentLoaded', async () => {
-        await loadEmployees(); 
-        await loadProjects();  
-    });
-</script>
-}

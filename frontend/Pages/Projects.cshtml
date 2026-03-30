@@ -550,6 +550,7 @@
                 body: JSON.stringify(body)
             });
             
+            if (res.status === 403) throw new Error("You don't have permission to create a project.");
             if (!res.ok) {
                 const text = await res.text();
                 throw new Error(text || res.statusText);

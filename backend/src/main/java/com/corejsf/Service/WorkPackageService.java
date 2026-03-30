@@ -42,6 +42,18 @@ public class WorkPackageService {
         return emp;
     }
 
+    private Employee findEmployeeByFullName(String fullName) {
+        try {
+            return em.createQuery(
+                "SELECT e FROM Employee e WHERE LOWER(CONCAT(e.empFirstName, ' ', e.empLastName)) = LOWER(:fullName)",
+                Employee.class)
+                .setParameter("fullName", fullName.trim())
+                .getSingleResult();
+        } catch (NoResultException e) {
+            throw new NotFoundException("Employee with name '" + fullName + "' not found.");
+        }
+    }
+
     public List<WorkPackage> getAllWorkPackages() {
         return em.createQuery("SELECT w FROM WorkPackage w", WorkPackage.class)
                 .getResultList();
@@ -69,8 +81,11 @@ public class WorkPackageService {
         }
         wp.setProject(project);
 
+        String reName = wp.getReEmployeeName();
         Integer reEmpId = wp.getReEmployeeId();
-        if (reEmpId != null) {
+        if (reName != null && !reName.isBlank()) {
+            wp.setResponsibleEmployee(findEmployeeByFullName(reName));
+        } else if (reEmpId != null) {
             wp.setResponsibleEmployee(findEmployee(reEmpId));
         }
 
@@ -120,8 +135,11 @@ public class WorkPackageService {
             existing.setParentWorkPackage(null);
         }
 
+        String reName = wp.getReEmployeeName();
         Integer reEmpId = wp.getReEmployeeId();
-        if (reEmpId != null) {
+        if (reName != null && !reName.isBlank()) {
+            existing.setResponsibleEmployee(findEmployeeByFullName(reName));
+        } else if (reEmpId != null) {
             existing.setResponsibleEmployee(findEmployee(reEmpId));
         }
 

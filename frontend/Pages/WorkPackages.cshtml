@@ -44,7 +44,7 @@
                         <th>Start Date</th>
                         <th>End Date</th>
                         <th>% Complete</th>
-                        <th>RE ID</th>
+                        <th>Responsible Engineer</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -87,8 +87,8 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="reEmployeeId">RE Employee ID *</label>
-                    <input type="number" id="reEmployeeId" required min="1" placeholder="e.g. 1" />
+                    <label for="reEmployeeName">Responsible Engineer *</label>
+                    <input type="text" id="reEmployeeName" required placeholder="e.g. John Smith" />
                 </div>
                 <div class="form-group">
                     <label for="planStartDate">Start Date *</label>
@@ -382,7 +382,7 @@
                 <td>${w.planStartDate || '—'}</td>
                 <td>${w.planEndDate || '—'}</td>
                 <td>${w.percentComplete != null ? w.percentComplete + '%' : '—'}</td>
-                <td>${w.reEmployeeId || '—'}</td>
+                <td>${w.reEmployeeName || '—'}</td>
                 <td class="actions-cell">
                     ${reportButton}
                     ${estimateButton}
@@ -659,7 +659,7 @@
         document.getElementById('parentWpIdSelect').disabled = true;
         document.getElementById('wpName').value = w.wpName || '';
         document.getElementById('wpStatus').value = w.status || 'OPEN_FOR_CHARGES';
-        document.getElementById('reEmployeeId').value = w.reEmployeeId || '';
+        document.getElementById('reEmployeeName').value = w.reEmployeeName || '';
         document.getElementById('planStartDate').value = w.planStartDate || '';
         document.getElementById('planEndDate').value = w.planEndDate || '';
         document.getElementById('wpDesc').value = w.description || '';
@@ -688,7 +688,7 @@
             projId: PROJECT_ID,
             status: document.getElementById('wpStatus').value,
             parentWpId: parentWpId,
-            reEmployeeId: parseInt(document.getElementById('reEmployeeId').value) || null,
+            reEmployeeName: document.getElementById('reEmployeeName').value.trim() || null,
             planStartDate: document.getElementById('planStartDate').value || null,
             planEndDate: document.getElementById('planEndDate').value || null,
             description: document.getElementById('wpDesc').value || null,

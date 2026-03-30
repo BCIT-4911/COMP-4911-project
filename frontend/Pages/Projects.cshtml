@@ -92,6 +92,10 @@
                     <label for="pmId">PM Employee ID *</label>
                     <input type="number" id="pmId" required min="1" placeholder="e.g. 1" />
                 </div>
+                <div class="form-group">
+                    <label for="estBac">BAC (Budget at Completion)</label>
+                    <input type="number" id="estBac" step="0.01" min="0" placeholder="e.g. 5000.00"/>
+                </div>
             </div>
 
             <div class="form-group" style="grid-column: 1/-1;">
@@ -264,6 +268,16 @@
                     tbody.innerHTML = projects.map(p => {
                         let pmAssignButton = '';
                         let memberAssignButton = '';
+                        let reportButton = '';
+
+                        const isPM = p.project_manager_id != null && p.project_manager_id == CURRENT_USER_ID;
+                        if (isPM) {
+                            reportButton = `
+                                <a class="btn-action" href="/EarnedValue?SelectedProjectId=${encodeURIComponent(p.project_id)}" title="Monthly EV Report" style="color: #ffd166;">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                                </a>
+                            `;
+                        }
 
                         if (canAssignPM) {
                             pmAssignButton = `
@@ -292,6 +306,7 @@
                             <td>${p.markup_rate != null ? p.markup_rate.toFixed(2) : '0.00'}</td>
                             <td>${p.project_manager_id || 'N/A'}</td>
                             <td class="actions-cell">
+                                ${reportButton}
                                 ${pmAssignButton}
                                 ${memberAssignButton}
                                 <a class="btn-action btn-wp" href="/WorkPackages?projectId=${encodeURIComponent(p.project_id)}" title="Work Packages">
@@ -477,6 +492,7 @@
                     document.getElementById('modalTitle').textContent = 'New Project';
                     document.getElementById('submitBtn').textContent = 'Create Project';
                     document.getElementById('projId').disabled = false;
+                    document.getElementById('estBac').disabled = false;
                     document.getElementById('projectForm').reset();
                     // Prevent past dates on create (backend rejects them)
                     const today = new Date().toISOString().split('T')[0];
@@ -497,6 +513,7 @@
                     document.getElementById('submitBtn').textContent = 'Save Changes';
                     document.getElementById('projId').value = p.project_id;
                     document.getElementById('projId').disabled = true;
+                    document.getElementById('estBac').disabled = true;
                     // Edit allows past dates (backend only validates end >= start on updates)
                     document.getElementById('startDate').min = '';
                     document.getElementById('endDate').min = '';
@@ -506,6 +523,7 @@
                     document.getElementById('startDate').value = p.start_date || '';
                     document.getElementById('endDate').value = p.end_date || '';
                     document.getElementById('markupRate').value = p.markup_rate != null ? p.markup_rate : 0;
+                    document.getElementById('estBac').value = p.bac != null ? p.bac : '';
                     document.getElementById('pmId').value = p.project_manager_id || '';
                     document.getElementById('projDesc').value = p.project_desc || '';
                     document.getElementById('projectModal').classList.add('active');
@@ -529,7 +547,8 @@
                         start_date: document.getElementById('startDate').value || null,
                         end_date: document.getElementById('endDate').value || null,
                         markup_rate: parseFloat(document.getElementById('markupRate').value) || 0,
-                        project_manager_id: parseInt(document.getElementById('pmId').value) || null
+                        project_manager_id: parseInt(document.getElementById('pmId').value) || null,
+                        bac: parseFloat(document.getElementById('estBac').value) || null
                     };
 
                     try {

@@ -186,13 +186,14 @@ After the database and backend are running, the following users are seeded (pass
 
 | emp_id | First name | Last name  | System role        | Supervisor   |
 |--------|------------|------------|--------------------|--------------|
-| 1      | Wile       | Coyote     | OPERATIONS_MANAGER | —            |
-| 2      | Road       | Runner     | HR                 | Wile Coyote  |
-| 3      | Bugs       | Bunny      | EMPLOYEE           | Wile Coyote  |
-| 4      | Daffy      | Duck       | EMPLOYEE           | Bugs Bunny   |
-| 5      | Tweety     | Bird       | EMPLOYEE           | Bugs Bunny   |
-| 6      | Sylvester  | Cat        | EMPLOYEE           | Bugs Bunny   |
-| 7      | Marvin     | Martian    | EMPLOYEE           | Wile Coyote  |
+| 1      | Wile       | Coyote     | ADMIN              | —            |
+| 2      | Elmer      | Fudd       | OPERATIONS_MANAGER | —            |
+| 3      | Road       | Runner     | HR                 | Elmer Fudd   |
+| 4      | Bugs       | Bunny      | EMPLOYEE           | Elmer Fudd   |
+| 5      | Daffy      | Duck       | EMPLOYEE           | Bugs Bunny   |
+| 6      | Tweety     | Bird       | EMPLOYEE           | Bugs Bunny   |
+| 7      | Sylvester  | Cat        | EMPLOYEE           | Bugs Bunny   |
+| 8      | Marvin     | Martian    | EMPLOYEE           | Elmer Fudd   |
 
 Use **emp_id** and **password** to log in (e.g. `empId: 1`, `password: password` via API or the Login page).
 

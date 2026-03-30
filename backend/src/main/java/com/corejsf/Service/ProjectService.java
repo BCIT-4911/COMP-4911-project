@@ -70,6 +70,7 @@ public class ProjectService {
         ProjectValidation.validateEndDate(project.getEndDate(), project.getStartDate());
         ProjectValidation.validateMarkup(project.getMarkupRate());
         ProjectValidation.validateProjectManagerId(project.getProjectManagerId());
+        ProjectValidation.validateBac(project.getBac());
 
         project.setProjectManager(findEmployee(project.getProjectManagerId()));
         project.setCreatedDate(LocalDateTime.now());
@@ -85,6 +86,7 @@ public class ProjectService {
         ProjectValidation.validateDates(project.getStartDate(), project.getEndDate());
         ProjectValidation.validateMarkup(project.getMarkupRate());
         ProjectValidation.validateProjectManagerId(project.getProjectManagerId());
+        ProjectValidation.validateBac(project.getBac());
 
         existing.setProjName(project.getProjName());
         existing.setDescription(project.getDescription());

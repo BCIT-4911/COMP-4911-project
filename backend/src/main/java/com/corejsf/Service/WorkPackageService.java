@@ -1,5 +1,6 @@
 package com.corejsf.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -54,8 +55,22 @@ public class WorkPackageService {
         return emp;
     }
 
+    private Employee findEmployeeByFullName(String fullName) {
+        try {
+            return em.createQuery(
+                "SELECT e FROM Employee e WHERE LOWER(CONCAT(e.empFirstName, ' ', e.empLastName)) = LOWER(:fullName)",
+                Employee.class)
+                .setParameter("fullName", fullName.trim())
+                .getSingleResult();
+        } catch (NoResultException e) {
+            throw new NotFoundException("Employee with name '" + fullName + "' not found.");
+        }
+    }
+
     public List<WorkPackage> getAllWorkPackages() {
-        return em.createQuery("SELECT w FROM WorkPackage w", WorkPackage.class)
+        return em.createQuery(
+                "SELECT w FROM WorkPackage w LEFT JOIN FETCH w.responsibleEmployee",
+                WorkPackage.class)
                 .getResultList();
     }
 
@@ -83,8 +98,11 @@ public class WorkPackageService {
         }
         wp.setProject(project);
 
+        String reName = wp.getReEmployeeName();
         Integer reEmpId = wp.getReEmployeeId();
-        if (reEmpId != null) {
+        if (reName != null && !reName.isBlank()) {
+            wp.setResponsibleEmployee(findEmployeeByFullName(reName));
+        } else if (reEmpId != null) {
             wp.setResponsibleEmployee(findEmployee(reEmpId));
         }
 
@@ -104,6 +122,8 @@ public class WorkPackageService {
             wp.setParentWorkPackage(null); 
         }
 
+        validateWpWithParentAndProjectBac(wp);
+
         wp.setCreatedDate(LocalDateTime.now());
         wp.setModifiedDate(LocalDateTime.now());
         em.persist(wp);
@@ -116,6 +136,58 @@ public class WorkPackageService {
         }
 
         return wp;
+    }
+
+    private void validateWpWithParentAndProjectBac(WorkPackage wp) {
+        WorkPackage parent = wp.getParentWorkPackage();
+        if (parent != null) {
+            validateWpWithParentBac(wp, parent);
+        } else {
+            validateWpWithProjectBac(wp, wp.getProject());
+        }
+    }
+
+    private void validateWpWithParentBac(WorkPackage wp, WorkPackage parent) {
+        BigDecimal parentBac = parent.getBac();
+        validateBacAgainstLimit(
+                wp.getBac(),
+                parentBac,
+                "BAC of child work package (" + wp.getWpId() + ") cannot exceed BAC of parent work package.",
+                getChildren(parent.getWpId()),
+                "Total BAC of child work packages cannot exceed BAC of parent work package.");
+    }
+
+    private void validateWpWithProjectBac(WorkPackage wp, Project project) {
+        BigDecimal projectBac = project.getBac();
+        validateBacAgainstLimit(
+                wp.getBac(),
+                projectBac,
+                "BAC of work package (" + wp.getWpId() + ") cannot exceed BAC of project.",
+                getChildren(wp.getWpId()),
+                "Total BAC of root work packages cannot exceed BAC of project.");
+    }
+
+    private void validateBacAgainstLimit(
+        BigDecimal bacToValidate,
+        BigDecimal bacLimit,
+        String bacExceededMessage,
+        List<WorkPackage> workPackagesToSum,
+        String totalExceededMessage
+    ) {
+        if (bacToValidate.compareTo(bacLimit) > 0) {
+            throw new IllegalArgumentException(bacExceededMessage);
+        }
+
+        BigDecimal totalBac = bacToValidate;
+        for (WorkPackage workPackage : workPackagesToSum) {
+            if (workPackage.getBac() != null) {
+                totalBac = totalBac.add(workPackage.getBac());
+            }
+        }
+
+        if (totalBac.compareTo(bacLimit) > 0) {
+            throw new IllegalArgumentException(totalExceededMessage);
+        }
     }
 
     public void updateWorkPackage(String id, WorkPackage wp) {
@@ -134,8 +206,11 @@ public class WorkPackageService {
             existing.setParentWorkPackage(null);
         }
 
+        String reName = wp.getReEmployeeName();
         Integer reEmpId = wp.getReEmployeeId();
-        if (reEmpId != null) {
+        if (reName != null && !reName.isBlank()) {
+            existing.setResponsibleEmployee(findEmployeeByFullName(reName));
+        } else if (reEmpId != null) {
             existing.setResponsibleEmployee(findEmployee(reEmpId));
         }
 
@@ -144,7 +219,6 @@ public class WorkPackageService {
         existing.setDescription(wp.getDescription());
         
         // Map the NEW Estimate Fields!
-        existing.setBac(wp.getBac());
         existing.setEac(wp.getEac());
         existing.setPercentComplete(wp.getPercentComplete());
         existing.setBudgetedEffort(wp.getBudgetedEffort());
@@ -197,6 +271,15 @@ public class WorkPackageService {
         }
         WorkPackage workPackage = findWorkPackage(wpId);
         Employee employee = findEmployee(empId);
+
+        TypedQuery<Long> projectAssignQuery = em.createQuery(
+                "SELECT COUNT(pa) FROM ProjectAssignment pa WHERE pa.project.projId = :projId AND pa.employee.empId = :empId",
+                Long.class);
+        projectAssignQuery.setParameter("projId", workPackage.getProject().getProjId());
+        projectAssignQuery.setParameter("empId", empId);
+        if (projectAssignQuery.getSingleResult() == 0) {
+            throw new jakarta.ws.rs.WebApplicationException("Employee must be assigned to the project before being assigned to a work package.", jakarta.ws.rs.core.Response.Status.BAD_REQUEST);
+        }
 
         TypedQuery<Long> query = em.createQuery(
                 "SELECT COUNT(wpa) FROM WorkPackageAssignment wpa WHERE wpa.workPackage.wpId = :wpId AND wpa.employee.empId = :empId",

@@ -191,6 +191,8 @@ After the database and backend are running, the following users are seeded (pass
 | 3      | Bugs       | Bunny      | EMPLOYEE           | Wile Coyote  |
 | 4      | Daffy      | Duck       | EMPLOYEE           | Bugs Bunny   |
 | 5      | Tweety     | Bird       | EMPLOYEE           | Bugs Bunny   |
+| 6      | Sylvester  | Cat        | EMPLOYEE           | Bugs Bunny   |
+| 7      | Marvin     | Martian    | EMPLOYEE           | Wile Coyote  |
 
 Use **emp_id** and **password** to log in (e.g. `empId: 1`, `password: password` via API or the Login page).
 

@@ -4,11 +4,15 @@ import com.corejsf.TestConfig;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 
 import static io.restassured.RestAssured.given;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class ProjectAndWorkPackageRebacIntegrationTest extends TestConfig {
 
     private static int OPS_ID;
@@ -67,6 +71,23 @@ public class ProjectAndWorkPackageRebacIntegrationTest extends TestConfig {
         int status = response.getStatusCode();
         assertTrue(status >= 200 && status < 300,
                 "Expected 2xx success but got " + status + " with body: " + response.getBody().asString());
+    }
+
+    private List<String> getWorkPackageIds(String projId, String token) {
+        List<Map<String, Object>> wps = given()
+                .header("Authorization", "Bearer " + token)
+                .when()
+                .get("/projects/" + projId + "/workpackages")
+                .then()
+                .statusCode(200)
+                .extract()
+                .jsonPath()
+                .getList("$");
+        List<String> ids = new java.util.ArrayList<>();
+        for (Map<String, Object> wp : wps) {
+            ids.add((String) wp.get("wpId"));
+        }
+        return ids;
     }
 
     // PROJECT ASSIGNMENT RBAC
@@ -256,6 +277,88 @@ public class ProjectAndWorkPackageRebacIntegrationTest extends TestConfig {
         )
         .then()
         .statusCode(403);
+    }
+
+    // ----------------------------------------------------------------
+    // WORK PACKAGE VISIBILITY (GET /projects/{id}/workpackages)
+    //
+    // Seed state for PROJ-1:
+    //   A           - no WP assignments
+    //   CA-1.WP-1   - Daffy Duck (RE)
+    //   CA-1.WP-2   - Sylvester Cat (RE), Tweety Bird (MEMBER)
+    //   CA-1.WP-3   - no WP assignments
+    //
+    // @Order(1-6) ensures these read-only tests run BEFORE mutation tests
+    // (assignEmployeeToWorkPackage_asPmOfThatProject_succeeds adds Tweety
+    //  to CA-1.WP-1, which would otherwise corrupt the size==1 assertion).
+    // ----------------------------------------------------------------
+
+    @Test
+    @Order(1)
+    void getWorkPackages_asOpsManager_returnsAllFourWps() {
+        List<String> ids = getWorkPackageIds("PROJ-1", opsToken);
+
+        assertTrue(ids.size() == 4,
+                "Ops Manager should see all 4 WPs in PROJ-1 but got: " + ids);
+        assertTrue(ids.containsAll(java.util.List.of("A", "CA-1.WP-1", "CA-1.WP-2", "CA-1.WP-3")),
+                "Ops Manager is missing expected WP IDs. Got: " + ids);
+    }
+
+    @Test
+    @Order(2)
+    void getWorkPackages_asPmOfProject_returnsAllFourWps() {
+        List<String> ids = getWorkPackageIds("PROJ-1", pmProj1Token);
+
+        assertTrue(ids.size() == 4,
+                "PM of PROJ-1 should see all 4 WPs but got: " + ids);
+        assertTrue(ids.containsAll(java.util.List.of("A", "CA-1.WP-1", "CA-1.WP-2", "CA-1.WP-3")),
+                "PM of PROJ-1 is missing expected WP IDs. Got: " + ids);
+    }
+
+    @Test
+    @Order(3)
+    void getWorkPackages_asReOnWp1_returnsOnlyWp1() {
+        // Daffy Duck is assigned as RE only to CA-1.WP-1
+        List<String> ids = getWorkPackageIds("PROJ-1", reAToken);
+
+        assertTrue(ids.size() == 1,
+                "Daffy Duck (RE on CA-1.WP-1 only) should see exactly 1 WP but got: " + ids);
+        assertTrue(ids.contains("CA-1.WP-1"),
+                "Daffy Duck should see CA-1.WP-1 but got: " + ids);
+    }
+
+    @Test
+    @Order(4)
+    void getWorkPackages_asMemberOnWp2_returnsOnlyWp2() {
+        // Tweety Bird is assigned as MEMBER only to CA-1.WP-2
+        List<String> ids = getWorkPackageIds("PROJ-1", memberA2Token);
+
+        assertTrue(ids.size() == 1,
+                "Tweety Bird (MEMBER on CA-1.WP-2 only) should see exactly 1 WP but got: " + ids);
+        assertTrue(ids.contains("CA-1.WP-2"),
+                "Tweety Bird should see CA-1.WP-2 but got: " + ids);
+    }
+
+    @Test
+    @Order(5)
+    void getWorkPackages_asReOnWp2_returnsOnlyWp2() {
+        // Sylvester Cat is assigned as RE only to CA-1.WP-2
+        List<String> ids = getWorkPackageIds("PROJ-1", reA2Token);
+
+        assertTrue(ids.size() == 1,
+                "Sylvester Cat (RE on CA-1.WP-2 only) should see exactly 1 WP but got: " + ids);
+        assertTrue(ids.contains("CA-1.WP-2"),
+                "Sylvester Cat should see CA-1.WP-2 but got: " + ids);
+    }
+
+    @Test
+    @Order(6)
+    void getWorkPackages_asPmOfDifferentProject_returnsZeroWps() {
+        // Marvin Martian is PM of PROJ-2 and has no WP assignments in PROJ-1
+        List<String> ids = getWorkPackageIds("PROJ-1", pmProj2Token);
+
+        assertTrue(ids.isEmpty(),
+                "Marvin Martian (PM of PROJ-2 only) should see 0 WPs in PROJ-1 but got: " + ids);
     }
 
 }

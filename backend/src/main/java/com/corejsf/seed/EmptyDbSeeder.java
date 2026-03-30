@@ -98,6 +98,7 @@ public class EmptyDbSeeder {
             proj.setCreatedBy(admin);
             proj.setModifiedBy(admin);
             proj.setMarkupRate(new BigDecimal("10.00"));
+            proj.setBac(new BigDecimal("10000.00"));
 
             em.persist(proj);
         }
@@ -122,6 +123,7 @@ public class EmptyDbSeeder {
             proj2.setCreatedBy(admin);
             proj2.setModifiedBy(admin);
             proj2.setMarkupRate(new BigDecimal("10.00"));
+            proj2.setBac(new BigDecimal("15000.00"));
 
             em.persist(proj2);  
         }
@@ -154,17 +156,17 @@ public class EmptyDbSeeder {
 
         em.persist(parent);
 
-        createChild("CA-1.WP-1", "Procure Anvil", proj, parent, admin,
+        createChild("A.WP-1", "Procure Anvil", proj, parent, admin,
                 LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 31),
                 new BigDecimal("1500.00"), new BigDecimal("0.00"));
 
-        createChild("CA-1.WP-2", "Paint Fake Tunnel", proj, parent, admin,
+        createChild("A.WP-2", "Paint Fake Tunnel", proj, parent, admin,
                 LocalDate.of(2026, 2, 1), LocalDate.of(2026, 2, 14),
                 new BigDecimal("1000.00"), new BigDecimal("50.00"));
 
-        createChild("CA-1.WP-3", "Build Road", proj, parent, admin,
+        createChild("A.WP-3", "Build Road", proj, parent, admin,
                 LocalDate.of(2026, 1, 15), LocalDate.of(2026, 3, 1),
-                new BigDecimal("3000.00"), new BigDecimal("35.00"));
+                new BigDecimal("2500.00"), new BigDecimal("35.00"));
 
 
         ProjectAssignment paBugs = new ProjectAssignment();
@@ -177,6 +179,28 @@ public class EmptyDbSeeder {
         proj.setProjectManager(bugsBunny);
         em.merge(proj);
 
+        // Assign WP-level employees to the project so they can navigate to it
+        ProjectAssignment paDaffy = new ProjectAssignment();
+        paDaffy.setEmployee(daffyDuck);
+        paDaffy.setProject(proj);
+        paDaffy.setAssignmentDate(LocalDate.now());
+        paDaffy.setProjectRole(ProjectRole.MEMBER);
+        em.persist(paDaffy);
+
+        ProjectAssignment paTweety = new ProjectAssignment();
+        paTweety.setEmployee(tweetyBird);
+        paTweety.setProject(proj);
+        paTweety.setAssignmentDate(LocalDate.now());
+        paTweety.setProjectRole(ProjectRole.MEMBER);
+        em.persist(paTweety);
+
+        ProjectAssignment paSylvester = new ProjectAssignment();
+        paSylvester.setEmployee(sylvesterCat);
+        paSylvester.setProject(proj);
+        paSylvester.setAssignmentDate(LocalDate.now());
+        paSylvester.setProjectRole(ProjectRole.MEMBER);
+        em.persist(paSylvester);
+
         ProjectAssignment paMarvin = new ProjectAssignment();
         paMarvin.setEmployee(marvinMartian);
         paMarvin.setProject(proj2);
@@ -187,8 +211,8 @@ public class EmptyDbSeeder {
         proj2.setProjectManager(marvinMartian);
         em.merge(proj2);
 
-        WorkPackage wp1 = em.find(WorkPackage.class, "CA-1.WP-1");
-        WorkPackage wp2 = em.find(WorkPackage.class, "CA-1.WP-2");
+        WorkPackage wp1 = em.find(WorkPackage.class, "A.WP-1");
+        WorkPackage wp2 = em.find(WorkPackage.class, "A.WP-2");
         if (wp1 != null) {
             WorkPackageAssignment wpaDaffy = new WorkPackageAssignment();
             wpaDaffy.setEmployee(daffyDuck);

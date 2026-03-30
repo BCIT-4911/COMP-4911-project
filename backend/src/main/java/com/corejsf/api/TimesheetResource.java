@@ -5,6 +5,7 @@ import java.util.List;
 import com.corejsf.DTO.TimesheetRequestDTO;
 import com.corejsf.DTO.TimesheetReturnRequestDTO;
 import com.corejsf.DTO.TimesheetResponseDTO;
+import com.corejsf.Entity.SystemRole;
 import com.corejsf.Entity.TimesheetStatus;
 import com.corejsf.Service.TimesheetService;
 import com.corejsf.Service.RebacService;
@@ -46,16 +47,17 @@ public class TimesheetResource {
                            @QueryParam("status") TimesheetStatus status) {
         int authEmpId = authContext.getEmpId();
 
-        if (empId != null && empId != authEmpId && !rebacService.isSupervisorOf(authEmpId, empId)) {
+        boolean isAdmin = authContext.getSystemRole() == SystemRole.ADMIN;
+        if (empId != null && empId != authEmpId && !isAdmin && !rebacService.isSupervisorOf(authEmpId, empId)) {
             return forbidden();
         }
 
         // Approver queue can only be queried by the approver themself.
-        if (approverId != null && approverId != authEmpId) {
+        if (approverId != null && approverId != authEmpId && !isAdmin) {
             return forbidden();
         }
 
-        Integer effectiveEmpId = (empId != null) ? empId : (approverId == null ? authEmpId : null);
+        Integer effectiveEmpId = isAdmin && empId == null && approverId == null ? null : (empId != null) ? empId : (approverId == null ? authEmpId : null);
         List<TimesheetResponseDTO> list = timesheetService.getAllTimesheets(effectiveEmpId, approverId, status);
         return Response.ok(list).build();
     }
@@ -76,7 +78,7 @@ public class TimesheetResource {
         if (dto == null || dto.getEmpId() == null) {
             return Response.status(Response.Status.BAD_REQUEST).entity("empId is required").build();
         }
-        if (dto.getEmpId().intValue() != authContext.getEmpId()) {
+        if (dto.getEmpId().intValue() != authContext.getEmpId() && authContext.getSystemRole() != SystemRole.ADMIN) {
             return forbidden();
         }
         TimesheetResponseDTO response = timesheetService.createTimesheet(dto);

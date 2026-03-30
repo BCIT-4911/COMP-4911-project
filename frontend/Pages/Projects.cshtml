@@ -253,7 +253,7 @@
             return;
         }
 
-        const canAssignPM = CURRENT_USER_ROLE === 'OPERATIONS_MANAGER';
+        const canAssignPM = CURRENT_USER_ROLE === 'OPERATIONS_MANAGER' || CURRENT_USER_ROLE === 'ADMIN';
         const isActualSupervisor = allEmployees.some(e => e.supervisor_id === CURRENT_USER_ID);
 
         tbody.innerHTML = projects.map(p => {

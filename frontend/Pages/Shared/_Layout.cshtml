@@ -43,13 +43,13 @@
                             <li class="nav-item" id="approverNavItem" style="display:none;">
                                 <a class="nav-link text-dark" asp-page="/Approver/Index">Approver Dashboard</a>
                             </li>
-                            @if (role == "OPERATIONS_MANAGER")
+                            @if (role == "OPERATIONS_MANAGER" || role == "ADMIN")
                             {
                                 <li class="nav-item">
                                     <a class="nav-link text-dark" asp-page="/EarnedValue/Index">Earned Value</a>
                                 </li>
                             }
-                            @if (role == "HR")
+                            @if (role == "HR" || role == "ADMIN")
                             {
                                 <li class="nav-item">
                                     <a class="nav-link text-dark" asp-area="" asp-page="/Employees">Employees</a>

@@ -1,6 +1,6 @@
 package com.corejsf.Api;
 
-import io.restassured.RestAssured;
+import com.corejsf.TestConfig;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.BeforeAll;
@@ -9,25 +9,19 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
-import java.util.List;
-import java.util.Map;
-
 import static io.restassured.RestAssured.given;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class ProjectAndWorkPackageRebacIntegrationTest {
+public class ProjectAndWorkPackageRebacIntegrationTest extends TestConfig {
 
-    private static Integer OPS_ID;
-    private static Integer HR_ID;
-    private static Integer PM_PROJ1_ID;
-    private static Integer RE_A_ID;
-    private static Integer MEMBER_A2_ID;
-    private static Integer RE_A2_ID;
-    private static Integer PM_PROJ2_ID;
-
-    private static final String PASSWORD = "password";
+    private static int OPS_ID;
+    private static int HR_ID;
+    private static int PM_PROJ1_ID;
+    private static int RE_A_ID;
+    private static int MEMBER_A2_ID;
+    private static int RE_A2_ID;
+    private static int PM_PROJ2_ID;
 
     private static String opsToken;
     private static String hrToken;
@@ -39,75 +33,22 @@ public class ProjectAndWorkPackageRebacIntegrationTest {
 
     @BeforeAll
     static void setup() {
-        RestAssured.baseURI = "http://localhost";
-        RestAssured.port = 8080;
-        RestAssured.basePath = "/Project/api";
+        opsToken = loginAsSeedOps();
+        StandardSeedIds ids = resolveStandardSeedIds(opsToken);
+        OPS_ID = ids.opsId();
+        HR_ID = ids.hrId();
+        PM_PROJ1_ID = ids.pmProj1Id();
+        RE_A_ID = ids.daffyId();
+        MEMBER_A2_ID = ids.tweetyId();
+        RE_A2_ID = ids.sylvesterId();
+        PM_PROJ2_ID = ids.marvinPmProj2Id();
 
-        opsToken = login(1, PASSWORD);
-        resolveSeedIds(opsToken);
-        hrToken = login(HR_ID, PASSWORD);
-        pmProj1Token = login(PM_PROJ1_ID, PASSWORD);
-        reAToken = login(RE_A_ID, PASSWORD);
-        memberA2Token = login(MEMBER_A2_ID, PASSWORD);
-        reA2Token = login(RE_A2_ID, PASSWORD);
-        pmProj2Token = login(PM_PROJ2_ID, PASSWORD);
-    }
-
-    private static void resolveSeedIds(String opsToken) {
-        List<Map<String, Object>> employees = given()
-                .header("Authorization", "Bearer " + opsToken)
-                .when()
-                .get("/employees")
-                .then()
-                .statusCode(200)
-                .extract()
-                .jsonPath()
-                .getList("$");
-
-        for (Map<String, Object> e : employees) {
-            String first = (String) e.get("empFirstName");
-            String last = (String) e.get("empLastName");
-            int id = ((Number) e.get("empId")).intValue();
-            if ("Wile".equals(first) && "Coyote".equals(last)) OPS_ID = id;
-            else if ("Road".equals(first) && "Runner".equals(last)) HR_ID = id;
-            else if ("Bugs".equals(first) && "Bunny".equals(last)) PM_PROJ1_ID = id;
-            else if ("Daffy".equals(first) && "Duck".equals(last)) RE_A_ID = id;
-            else if ("Tweety".equals(first) && "Bird".equals(last)) MEMBER_A2_ID = id;
-            else if ("Sylvester".equals(first) && "Cat".equals(last)) RE_A2_ID = id;
-            else if ("Marvin".equals(first) && "Martian".equals(last)) PM_PROJ2_ID = id;
-        }
-        assertNotNull(OPS_ID, "Seed data missing: Wile Coyote. Run: cd sql && docker compose down -v && docker compose up -d");
-        assertNotNull(HR_ID, "Seed data missing: Road Runner");
-        assertNotNull(PM_PROJ1_ID, "Seed data missing: Bugs Bunny");
-        assertNotNull(RE_A_ID, "Seed data missing: Daffy Duck");
-        assertNotNull(MEMBER_A2_ID, "Seed data missing: Tweety Bird");
-        assertNotNull(RE_A2_ID, "Seed data missing: Sylvester Cat");
-        assertNotNull(PM_PROJ2_ID, "Seed data missing: Marvin Martian");
-    }
-
-    private static String login(int empId, String password) {
-        Response response = given()
-                .contentType(ContentType.JSON)
-                .body("""
-                        {
-                          "empId": %d,
-                          "password": "%s"
-                        }
-                        """.formatted(empId, password))
-                .when()
-                .post("/auth/login")
-                .then()
-                .statusCode(200)
-                .extract()
-                .response();
-
-        String token = response.jsonPath().getString("token");
-
-        if (token == null || token.isBlank()) {
-            throw new IllegalStateException("Login succeeded but token was missing for empId=" + empId);
-        }
-
-        return token;
+        hrToken = login(HR_ID, DEFAULT_PASSWORD);
+        pmProj1Token = login(PM_PROJ1_ID, DEFAULT_PASSWORD);
+        reAToken = login(RE_A_ID, DEFAULT_PASSWORD);
+        memberA2Token = login(MEMBER_A2_ID, DEFAULT_PASSWORD);
+        reA2Token = login(RE_A2_ID, DEFAULT_PASSWORD);
+        pmProj2Token = login(PM_PROJ2_ID, DEFAULT_PASSWORD);
     }
 
     private Response postWithToken(String token, String endpoint) {

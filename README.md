@@ -211,33 +211,69 @@ Use **emp_id** and **password** to log in (e.g. `empId: 1`, `password: password`
 
 ## Running Tests
 
-### Unit tests (no server required)
+Source lives in `tests/`; `backend/pom.xml` points `<testSourceDirectory>` at that folder. **JUnit 5** everywhere; API tests use **REST Assured**. Target URL is controlled by JVM properties `api.baseUri` and `api.basePath`, which Surefire sets from Maven properties (defaults: `http://localhost:8080` and `/Project/api`). See `tests/com/corejsf/TestConfig.java`.
 
-From the project root:
+### Unit tests (no server)
+
+`RebacServiceTest`, `JwtUtilTest`, `PasswordHashTest` — pure Java, no HTTP.
 
 ```bash
 cd backend
 mvn test -Dtest=RebacServiceTest,JwtUtilTest,PasswordHashTest
 ```
 
-### Integration tests (backend must be running)
+### API integration tests (HTTP)
 
-1. Start MySQL and the backend (see [Step 3](#step-3-start-the-mysql-database) and [Step 4](#step-4-build-and-run-the-backend)).
-2. **Integration tests require a fresh database.** If you have run the backend before or altered the DB, reset it first:
-   ```bash
-   cd sql
-   docker compose down -v
-   docker compose up -d
-   ```
-   Then restart the backend so the seeder runs.
-3. Run:
+Need a running backend and MySQL with data compatible with `EmptyDbSeeder` (Looney Tunes users, password `password`). Start the stack as in [Step 3](#step-3-start-the-mysql-database) and [Step 4](#step-4-build-and-run-the-backend). If the DB is dirty, reset it (`docker compose down -v && docker compose up -d` in `sql/`) and restart WildFly so the seeder runs.
+
+**After code changes**, redeploy before testing (e.g. `mvn package -DskipTests` while `wildfly:dev` is running, or restart WildFly).
+
+| Class | Focus |
+|-------|--------|
+| `HealthCheckTest` | `GET /greet` with JWT |
+| `AuthEndpointTest` | Login, approver dashboard, direct reports |
+| `AuthFilterIntegrationTest` | Missing/invalid Bearer → 401 |
+| `EmployeeResourceTest` | Employees list/get/create |
+| `LaborGradeResourceTest` | Labor grades list/get |
+| `ProjectResourceTest` | Projects CRUD, close/open, assignments, report, RBAC |
+| `WorkPackageResourceTest` | Work packages CRUD, hierarchy, report |
+| `TimesheetResourceTest` | Draft → submit → approve/return → delete |
+| `ProjectAndWorkPackageRebacIntegrationTest` | Project/WP assignment and open/close ReBAC |
+
+**Commands**
+
+```bash
+# Local WildFly (default Surefire properties)
+cd backend
+mvn test
+```
+
+```bash
+# Remote OKD (ROOT.war: base path /api). Profile avoids broken Windows parsing of unquoted https:// -D flags.
+cd backend
+mvn test -Premote-okd
+```
+
+Profile `remote-okd` in `backend/pom.xml` points at the squad host; change the profile or Maven properties for another URL.
+
+**Manual overrides** (quote each `-D` in PowerShell):
+
+```powershell
+cd backend
+mvn test "-Dapi.baseUri=https://example.com" "-Dapi.basePath=/api"
+```
+
+| Property | When to use |
+|----------|-------------|
+| `api.seedOpsEmpId` | First login uses this emp id (default `1`). Set if your OPS user is not id 1. |
+| `api.relaxedTls` | `true` to force relaxed HTTPS trust (HTTPS targets already use relaxed TLS in `TestConfig`). |
+
+**Subset**
 
 ```bash
 cd backend
-mvn test -Dtest=AuthFilterIntegrationTest,ProjectAndWorkPackageRebacIntegrationTest
+mvn test -Dtest=AuthFilterIntegrationTest,WorkPackageResourceTest
 ```
-
-Integration tests hit `http://localhost:8080/Project/api` and require valid seeded users (see [Seeded users](#seeded-users)). `ProjectAndWorkPackageRebacIntegrationTest` resolves employee IDs from `GET /api/employees` at runtime, so it works with any consistent seed.
 
 
 ## Team Rules and Standards

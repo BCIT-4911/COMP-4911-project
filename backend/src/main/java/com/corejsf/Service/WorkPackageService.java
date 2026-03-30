@@ -1,5 +1,6 @@
 package com.corejsf.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -34,6 +35,18 @@ public class WorkPackageService {
         return wp;
     }
 
+    /**
+     * JSON-B calls {@link WorkPackage#getProjId()} and {@link WorkPackage#getReEmployeeId()} during
+     * response serialization, which touch lazy associations. That happens after this EJB method returns,
+     * so without an active persistence context those reads cause LazyInitializationException (500).
+     * Touch the associations here while the transaction is still open.
+     */
+    private void initializeWorkPackageJsonAssociations(WorkPackage wp) {
+        wp.getProjId();
+        wp.getReEmployeeId();
+        wp.getParentWpId();
+    }
+
     private Employee findEmployee(int id) {
         Employee emp = em.find(Employee.class, id);
         if (emp == null) {
@@ -62,15 +75,9 @@ public class WorkPackageService {
     }
 
     public WorkPackage getWorkPackage(String id) {
-        List<WorkPackage> results = em.createQuery(
-                "SELECT w FROM WorkPackage w LEFT JOIN FETCH w.responsibleEmployee WHERE w.wpId = :id",
-                WorkPackage.class)
-                .setParameter("id", id)
-                .getResultList();
-        if (results.isEmpty()) {
-            throw new NotFoundException("WorkPackage with id " + id + " not found.");
-        }
-        return results.get(0);
+        WorkPackage wp = findWorkPackage(id);
+        initializeWorkPackageJsonAssociations(wp);
+        return wp;
     }
 
     public WorkPackage createWorkPackage(WorkPackage wp) {
@@ -115,6 +122,8 @@ public class WorkPackageService {
             wp.setParentWorkPackage(null); 
         }
 
+        validateWpWithParentAndProjectBac(wp);
+
         wp.setCreatedDate(LocalDateTime.now());
         wp.setModifiedDate(LocalDateTime.now());
         em.persist(wp);
@@ -127,6 +136,58 @@ public class WorkPackageService {
         }
 
         return wp;
+    }
+
+    private void validateWpWithParentAndProjectBac(WorkPackage wp) {
+        WorkPackage parent = wp.getParentWorkPackage();
+        if (parent != null) {
+            validateWpWithParentBac(wp, parent);
+        } else {
+            validateWpWithProjectBac(wp, wp.getProject());
+        }
+    }
+
+    private void validateWpWithParentBac(WorkPackage wp, WorkPackage parent) {
+        BigDecimal parentBac = parent.getBac();
+        validateBacAgainstLimit(
+                wp.getBac(),
+                parentBac,
+                "BAC of child work package (" + wp.getWpId() + ") cannot exceed BAC of parent work package.",
+                getChildren(parent.getWpId()),
+                "Total BAC of child work packages cannot exceed BAC of parent work package.");
+    }
+
+    private void validateWpWithProjectBac(WorkPackage wp, Project project) {
+        BigDecimal projectBac = project.getBac();
+        validateBacAgainstLimit(
+                wp.getBac(),
+                projectBac,
+                "BAC of work package (" + wp.getWpId() + ") cannot exceed BAC of project.",
+                getChildren(wp.getWpId()),
+                "Total BAC of root work packages cannot exceed BAC of project.");
+    }
+
+    private void validateBacAgainstLimit(
+        BigDecimal bacToValidate,
+        BigDecimal bacLimit,
+        String bacExceededMessage,
+        List<WorkPackage> workPackagesToSum,
+        String totalExceededMessage
+    ) {
+        if (bacToValidate.compareTo(bacLimit) > 0) {
+            throw new IllegalArgumentException(bacExceededMessage);
+        }
+
+        BigDecimal totalBac = bacToValidate;
+        for (WorkPackage workPackage : workPackagesToSum) {
+            if (workPackage.getBac() != null) {
+                totalBac = totalBac.add(workPackage.getBac());
+            }
+        }
+
+        if (totalBac.compareTo(bacLimit) > 0) {
+            throw new IllegalArgumentException(totalExceededMessage);
+        }
     }
 
     public void updateWorkPackage(String id, WorkPackage wp) {
@@ -158,7 +219,6 @@ public class WorkPackageService {
         existing.setDescription(wp.getDescription());
         
         // Map the NEW Estimate Fields!
-        existing.setBac(wp.getBac());
         existing.setEac(wp.getEac());
         existing.setPercentComplete(wp.getPercentComplete());
         existing.setBudgetedEffort(wp.getBudgetedEffort());
@@ -299,7 +359,15 @@ public class WorkPackageService {
         if (wp.getParentWorkPackage() == null) {
             throw new NotFoundException("Work package " + id + " has no parent.");
         }
-        return findWorkPackage(wp.getParentWorkPackage().getWpId());
+        String parentWpId = wp.getParentWorkPackage().getWpId();
+        // The persistence context already holds a Hibernate proxy for the parent (loaded when
+        // we navigated the lazy association above). em.find would return that same proxy, and
+        // JSON-B chokes on its synthetic 'hibernateLazyInitializer' property.
+        // Clearing the PC forces a fresh, non-proxied load.
+        em.clear();
+        WorkPackage parent = findWorkPackage(parentWpId);
+        initializeWorkPackageJsonAssociations(parent);
+        return parent;
     }
 
     public String generateReport(String id) {

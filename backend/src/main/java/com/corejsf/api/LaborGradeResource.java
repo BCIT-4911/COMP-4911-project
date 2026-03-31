@@ -73,9 +73,9 @@ public class LaborGradeResource {
                     .entity("weekEnding is required")
                     .build();
         }
-        if ((wpId == null || wpId.isBlank()) && employeeId == null) {
+        if ((projectId == null || projectId.isBlank()) && employeeId == null && (wpId == null || wpId.isBlank())) {
             return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("At least one of wpId or employeeId is required")
+                    .entity("At least one of projectId, employeeId, or wpId is required")
                     .build();
         }
 

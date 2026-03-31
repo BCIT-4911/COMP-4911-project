@@ -1,6 +1,7 @@
 package com.corejsf.Service;
 
 import jakarta.ejb.Stateless;
+import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 
@@ -68,6 +69,9 @@ public class EarnedValueCalculationService {
 
     @PersistenceContext(unitName = "project-management-pu")
     private EntityManager em;
+
+    @Inject
+    private RateHistoryService rateHistoryService;
 
    
 
@@ -362,23 +366,43 @@ public class EarnedValueCalculationService {
         final LocalDate minWeek = weekEndings.get(0);
         final LocalDate maxWeek = weekEndings.get(weekEndings.size() - 1);
 
-        return em.createQuery(
-                "SELECT tr.workPackage.wpId, " +
-                "       tr.timesheet.weekEnding, " +
-                "       SUM((tr.monday + tr.tuesday + tr.wednesday + tr.thursday + tr.friday " +
-                "            + COALESCE(tr.saturday, 0) + tr.sunday) " +
-                "           * tr.laborGrade.chargeRate) " +
+        final List<com.corejsf.Entity.TimesheetRow> rows = em.createQuery(
+                "SELECT tr " +
                 "FROM TimesheetRow tr " +
                 "WHERE tr.workPackage.parentWorkPackage.wpId = :parentWpId " +
                 "  AND tr.timesheet.timesheetStatus = :status " +
-                "  AND tr.timesheet.weekEnding BETWEEN :minWeek AND :maxWeek " +
-                "GROUP BY tr.workPackage.wpId, tr.timesheet.weekEnding",
-                Object[].class)
+                "  AND tr.timesheet.weekEnding BETWEEN :minWeek AND :maxWeek",
+                com.corejsf.Entity.TimesheetRow.class)
                 .setParameter("parentWpId", parentWpId)
                 .setParameter("status", TimesheetStatus.APPROVED)
                 .setParameter("minWeek", minWeek)
                 .setParameter("maxWeek", maxWeek)
                 .getResultList();
+
+        final Map<String, Map<LocalDate, BigDecimal>> groupedCosts = new LinkedHashMap<>();
+        for (final com.corejsf.Entity.TimesheetRow row : rows) {
+            final String wpId = row.getWorkPackage().getWpId();
+            final LocalDate weekEnding = row.getTimesheet().getWeekEnding();
+            final BigDecimal hours = rowHours(row);
+            final BigDecimal effectiveRate = rateHistoryService.getEffectiveRate(row.getLaborGrade(), weekEnding);
+            final BigDecimal cost = hours.multiply(effectiveRate).setScale(2, RoundingMode.HALF_UP);
+
+            groupedCosts
+                    .computeIfAbsent(wpId, ignored -> new LinkedHashMap<>())
+                    .merge(weekEnding, cost, BigDecimal::add);
+        }
+
+        final List<Object[]> result = new ArrayList<>();
+        for (final Map.Entry<String, Map<LocalDate, BigDecimal>> wpEntry : groupedCosts.entrySet()) {
+            for (final Map.Entry<LocalDate, BigDecimal> weekEntry : wpEntry.getValue().entrySet()) {
+                result.add(new Object[] {
+                        wpEntry.getKey(),
+                        weekEntry.getKey(),
+                        weekEntry.getValue().setScale(2, RoundingMode.HALF_UP)
+                });
+            }
+        }
+        return result;
     }
 
     /**
@@ -552,5 +576,15 @@ public class EarnedValueCalculationService {
 
     private BigDecimal nz(final BigDecimal v) {
         return (v == null) ? BigDecimal.ZERO : v;
+    }
+
+    private BigDecimal rowHours(final com.corejsf.Entity.TimesheetRow row) {
+        return nz(row.getMonday())
+                .add(nz(row.getTuesday()))
+                .add(nz(row.getWednesday()))
+                .add(nz(row.getThursday()))
+                .add(nz(row.getFriday()))
+                .add(nz(row.getSaturday()))
+                .add(nz(row.getSunday()));
     }
 }

@@ -36,6 +36,7 @@ public class MonthlyEVReportDTO {
     // Project-level EV totals (sum across all work packages)
     // -----------------------------------------------------------------------
 
+    private BigDecimal projectBac;
     private BigDecimal projectBcws;
     private BigDecimal projectBcwp;
     private BigDecimal projectAcwp;
@@ -45,6 +46,12 @@ public class MonthlyEVReportDTO {
 
     /** Cost Variance at project level: BCWP - ACWP */
     private BigDecimal projectCv;
+
+    /** Estimate at Completion at project level. */
+    private BigDecimal projectEac;
+
+    /** Variance at Completion at project level. */
+    private BigDecimal projectVac;
 
     // -----------------------------------------------------------------------
     // Work-package-level breakdown (AC2)
@@ -60,6 +67,8 @@ public class MonthlyEVReportDTO {
 
         private String wpId;
         private String wpName;
+        private BigDecimal bac;
+        private BigDecimal etc;
 
         /** wp.bac * (elapsed active weeks / total active weeks) up to asOfDate */
         private BigDecimal bcws;
@@ -79,6 +88,12 @@ public class MonthlyEVReportDTO {
         /** BCWP - ACWP */
         private BigDecimal cv;
 
+        /** Estimate at Completion. */
+        private BigDecimal eac;
+
+        /** Variance at Completion. */
+        private BigDecimal vac;
+
         public WorkPackageEVEntry() { }
 
         public String getWpId() { return wpId; }
@@ -86,6 +101,12 @@ public class MonthlyEVReportDTO {
 
         public String getWpName() { return wpName; }
         public void setWpName(String wpName) { this.wpName = wpName; }
+
+        public BigDecimal getBac() { return bac; }
+        public void setBac(BigDecimal bac) { this.bac = bac; }
+
+        public BigDecimal getEtc() { return etc; }
+        public void setEtc(BigDecimal etc) { this.etc = etc; }
 
         public BigDecimal getBcws() { return bcws; }
         public void setBcws(BigDecimal bcws) { this.bcws = bcws; }
@@ -101,6 +122,12 @@ public class MonthlyEVReportDTO {
 
         public BigDecimal getCv() { return cv; }
         public void setCv(BigDecimal cv) { this.cv = cv; }
+
+        public BigDecimal getEac() { return eac; }
+        public void setEac(BigDecimal eac) { this.eac = eac; }
+
+        public BigDecimal getVac() { return vac; }
+        public void setVac(BigDecimal vac) { this.vac = vac; }
     }
 
     // -----------------------------------------------------------------------
@@ -118,6 +145,9 @@ public class MonthlyEVReportDTO {
     public java.time.LocalDate getAsOfDate() { return asOfDate; }
     public void setAsOfDate(java.time.LocalDate asOfDate) { this.asOfDate = asOfDate; }
 
+    public BigDecimal getProjectBac() { return projectBac; }
+    public void setProjectBac(BigDecimal projectBac) { this.projectBac = projectBac; }
+
     public BigDecimal getProjectBcws() { return projectBcws; }
     public void setProjectBcws(BigDecimal projectBcws) { this.projectBcws = projectBcws; }
 
@@ -132,6 +162,12 @@ public class MonthlyEVReportDTO {
 
     public BigDecimal getProjectCv() { return projectCv; }
     public void setProjectCv(BigDecimal projectCv) { this.projectCv = projectCv; }
+
+    public BigDecimal getProjectEac() { return projectEac; }
+    public void setProjectEac(BigDecimal projectEac) { this.projectEac = projectEac; }
+
+    public BigDecimal getProjectVac() { return projectVac; }
+    public void setProjectVac(BigDecimal projectVac) { this.projectVac = projectVac; }
 
     public List<WorkPackageEVEntry> getWorkPackages() { return workPackages; }
     public void setWorkPackages(List<WorkPackageEVEntry> workPackages) { this.workPackages = workPackages; }

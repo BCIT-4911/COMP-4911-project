@@ -391,6 +391,22 @@ public class WorkPackageService {
         em.merge(wp);
     }
 
+    public WorkPackage updateEtc(String id, BigDecimal etc) {
+        if (etc == null) {
+            throw new IllegalArgumentException("etc is required.");
+        }
+        if (etc.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("etc cannot be negative.");
+        }
+
+        WorkPackage wp = findWorkPackage(id);
+        wp.setEtc(etc);
+        wp.setModifiedDate(LocalDateTime.now());
+        em.merge(wp);
+        initializeWorkPackageJsonAssociations(wp);
+        return wp;
+    }
+
     public List<WorkPackage> getChildren(String id) {
         findWorkPackage(id);
         return em.createQuery(

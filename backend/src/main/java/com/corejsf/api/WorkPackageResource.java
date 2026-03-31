@@ -2,6 +2,7 @@ package com.corejsf.api;
 
 import java.util.List;
 
+import com.corejsf.DTO.EtcUpdateDTO;
 import com.corejsf.Entity.Employee;
 import com.corejsf.Entity.SystemRole;
 import com.corejsf.Entity.WorkPackage;
@@ -131,6 +132,19 @@ public class WorkPackageResource {
         }
         workPackageService.open(id);
         return Response.ok().build();
+    }
+
+    @PUT
+    @Path("/{id}/etc")
+    public Response updateEtc(@PathParam("id") String id, EtcUpdateDTO dto) {
+        if (!rebacService.canEditEtc(authContext.getEmpId(), id)) {
+            return forbidden();
+        }
+        if (dto == null) {
+            return Response.status(Response.Status.BAD_REQUEST).entity("etc is required").build();
+        }
+        WorkPackage updated = workPackageService.updateEtc(id, dto.getEtc());
+        return Response.ok(updated).build();
     }
 
     @GET

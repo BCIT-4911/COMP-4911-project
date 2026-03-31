@@ -17,7 +17,10 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
 import com.corejsf.DTO.EarnedValueReportDTO;
+import com.corejsf.DTO.WorkPackageMonthlyPerformanceDTO;
 import com.corejsf.DTO.WorkPackageWeeklyDTO;
+import com.corejsf.Entity.SystemRole;
+import com.corejsf.Entity.WorkPackage;
 import com.corejsf.Service.EarnedValueAggregateInput;
 import com.corejsf.Service.EarnedValueAggregationService;
 import com.corejsf.Service.EarnedValueCalculationService;
@@ -55,6 +58,9 @@ public class EarnedValueResource {
 
     @Inject
     private AuthContext authContext;
+
+    @jakarta.persistence.PersistenceContext(unitName = "project-management-pu")
+    private jakarta.persistence.EntityManager em;
 
    
 
@@ -116,13 +122,9 @@ public class EarnedValueResource {
 
         // Calculate per-WP BCWS, BCWP, and real ACWP from approved timesheets
         final EarnedValueReportDTO calculatedReport = calculationService.calculate(input);
-
         final List<WorkPackageWeeklyDTO> wpDtos = calculatedReport.getWorkPackages();
         final int weekCount = input.getWeekEndings().size();
 
-        // ------------------------------------------------------------------
-        // Roll up per-WP values to project level
-        // ------------------------------------------------------------------
         final Map<Integer, BigDecimal> projBcwsByWeek = initZeroMap(weekCount);
         final Map<Integer, BigDecimal> projBcwpByWeek = initZeroMap(weekCount);
         final Map<Integer, BigDecimal> projAcwpByWeek = initZeroMap(weekCount);
@@ -135,14 +137,10 @@ public class EarnedValueResource {
             }
         }
 
-        // Round project-level maps to 2 decimal places
         roundMap(projBcwsByWeek);
         roundMap(projBcwpByWeek);
         roundMap(projAcwpByWeek);
 
-        // ------------------------------------------------------------------
-        // Assemble the report DTO
-        // ------------------------------------------------------------------
         final EarnedValueReportDTO report = new EarnedValueReportDTO();
         report.setWeekCount(weekCount);
         report.setWorkPackages(wpDtos);
@@ -152,10 +150,6 @@ public class EarnedValueResource {
 
         return Response.ok(report).build();
     }
-
-    // -----------------------------------------------------------------------
-    // Helpers
-    // -----------------------------------------------------------------------
 
     private static Map<Integer, BigDecimal> initZeroMap(final int size) {
         final Map<Integer, BigDecimal> m = new LinkedHashMap<>();
@@ -197,10 +191,11 @@ public class EarnedValueResource {
          // authorization check
         final boolean isOpsManager =
                 rebacService.canCreateProject(authContext.getSystemRole());
+        final boolean isAdmin = authContext.getSystemRole() == SystemRole.ADMIN;
         final boolean isProjectManager =
                 rebacService.canManageProject(authContext.getEmpId(), projectId);
 
-        if (!isOpsManager && !isProjectManager) {
+        if (!isOpsManager && !isAdmin && !isProjectManager) {
             return Response.status(Response.Status.FORBIDDEN)
                     .entity("Access denied")
                     .build();
@@ -216,5 +211,44 @@ public class EarnedValueResource {
                 monthlyEVReportService.generateReport(projectId, asOfDate);
 
         return Response.ok(report).build();
+    }
+
+    @GET
+    @Path("/workpackages/{wpId}/monthly-performance")
+    public Response getWorkPackageMonthlyPerformance(
+            @PathParam("wpId") final String wpId,
+            @QueryParam("asOf") final String asOf) {
+
+        final WorkPackage wp = em.find(WorkPackage.class, wpId);
+        if (wp == null) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity("Work package not found")
+                    .build();
+        }
+
+        final boolean isOpsManager = rebacService.canCreateProject(authContext.getSystemRole());
+        final boolean isAdmin = authContext.getSystemRole() == SystemRole.ADMIN;
+        final boolean isProjectManager = wp.getProject() != null
+                && rebacService.canManageProject(authContext.getEmpId(), wp.getProject().getProjId());
+
+        if (!isOpsManager && !isAdmin && !isProjectManager) {
+            return Response.status(Response.Status.FORBIDDEN)
+                    .entity("Access denied")
+                    .build();
+        }
+
+        final LocalDate asOfDate = (asOf == null || asOf.isBlank())
+                ? LocalDate.now()
+                : LocalDate.parse(asOf);
+
+        try {
+            final WorkPackageMonthlyPerformanceDTO report =
+                    monthlyEVReportService.generateWorkPackageMonthlyPerformance(wpId, asOfDate);
+            return Response.ok(report).build();
+        } catch (IllegalArgumentException ex) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(ex.getMessage())
+                    .build();
+        }
     }
 }

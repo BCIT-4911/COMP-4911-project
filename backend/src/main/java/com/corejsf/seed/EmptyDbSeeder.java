@@ -44,7 +44,6 @@ public class EmptyDbSeeder {
 
         System.out.println("[Seeder] Empty DB detected. Seeding minimum dataset...");
 
-
         LaborGrade lg = em.find(LaborGrade.class, 1);
         if (lg == null) {
             lg = new LaborGrade();
@@ -66,7 +65,7 @@ public class EmptyDbSeeder {
         admin.setEmpFirstName("Wile");
         admin.setEmpLastName("Coyote");
         admin.setEmpPassword(BCrypt.hashpw("password", BCrypt.gensalt()));
-        admin.setSystemRole(SystemRole.OPERATIONS_MANAGER);
+        admin.setSystemRole(SystemRole.ADMIN);
         admin.setESignature(sig);
         admin.setLaborGrade(lg);
         admin.setSupervisor(null);
@@ -74,20 +73,19 @@ public class EmptyDbSeeder {
         admin.setExpectedWeeklyHours(new BigDecimal("40.0"));
         em.persist(admin);
 
-        Employee roadRunner = createEmployee("Road", "Runner", SystemRole.HR, admin, lg);
-        Employee bugsBunny = createEmployee("Bugs", "Bunny", SystemRole.EMPLOYEE, admin, lg);
+        Employee elmerFudd = createEmployee("Elmer", "Fudd", SystemRole.OPERATIONS_MANAGER, null, lg);
+        Employee roadRunner = createEmployee("Road", "Runner", SystemRole.HR, elmerFudd, lg);
+        Employee bugsBunny = createEmployee("Bugs", "Bunny", SystemRole.EMPLOYEE, elmerFudd, lg);
         Employee daffyDuck = createEmployee("Daffy", "Duck", SystemRole.EMPLOYEE, bugsBunny, lg);
         Employee tweetyBird = createEmployee("Tweety", "Bird", SystemRole.EMPLOYEE, bugsBunny, lg);
         Employee sylvesterCat = createEmployee("Sylvester", "Cat", SystemRole.EMPLOYEE, bugsBunny, lg);
-
-    
 
         Project proj = em.find(Project.class, "PROJ-1");
         if (proj == null) {
             proj = new Project();
             proj.setProjId("PROJ-1");
             proj.setProjType(ProjectType.INTERNAL);  
-            proj.setProjectManager(admin);              
+            proj.setProjectManager(elmerFudd);              
             proj.setProjName("Demo Project");
             proj.setDescription("Seed data for Earned Value report");
             proj.setStatus(ProjectStatus.OPEN);      
@@ -95,16 +93,15 @@ public class EmptyDbSeeder {
             proj.setEndDate(LocalDate.of(2026, 3, 31));
             proj.setCreatedDate(LocalDateTime.now());
             proj.setModifiedDate(LocalDateTime.now());
-            proj.setCreatedBy(admin);
-            proj.setModifiedBy(admin);
+            proj.setCreatedBy(elmerFudd);
+            proj.setModifiedBy(elmerFudd);
             proj.setMarkupRate(new BigDecimal("10.00"));
             proj.setBac(new BigDecimal("10000.00"));
 
             em.persist(proj);
         }
 
-
-        Employee marvinMartian = createEmployee("Marvin", "Martian", SystemRole.EMPLOYEE, admin, lg);
+        Employee marvinMartian = createEmployee("Marvin", "Martian", SystemRole.EMPLOYEE, elmerFudd, lg);
 
         // Project 2 for Seed cases
         Project proj2 = em.find(Project.class, "PROJ-2");
@@ -120,8 +117,8 @@ public class EmptyDbSeeder {
             proj2.setEndDate(LocalDate.of(2026, 3, 3));
             proj2.setCreatedDate(LocalDateTime.now());
             proj2.setModifiedDate(LocalDateTime.now());
-            proj2.setCreatedBy(admin);
-            proj2.setModifiedBy(admin);
+            proj2.setCreatedBy(elmerFudd);
+            proj2.setModifiedBy(elmerFudd);
             proj2.setMarkupRate(new BigDecimal("10.00"));
             proj2.setBac(new BigDecimal("15000.00"));
 
@@ -151,23 +148,22 @@ public class EmptyDbSeeder {
 
         parent.setCreatedDate(LocalDateTime.now());
         parent.setModifiedDate(LocalDateTime.now());
-        parent.setCreatedBy(admin);
-        parent.setModifiedBy(admin);
+        parent.setCreatedBy(elmerFudd);
+        parent.setModifiedBy(elmerFudd);
 
         em.persist(parent);
 
-        createChild("A.WP-1", "Procure Anvil", proj, parent, admin,
-                LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 31),
-                new BigDecimal("1500.00"), new BigDecimal("0.00"));
+        createChild("A.WP-1", "Procure Anvil", proj, parent, elmerFudd,
+            LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 31),
+            new BigDecimal("1500.00"), new BigDecimal("0.00"));
 
-        createChild("A.WP-2", "Paint Fake Tunnel", proj, parent, admin,
-                LocalDate.of(2026, 2, 1), LocalDate.of(2026, 2, 14),
-                new BigDecimal("1000.00"), new BigDecimal("50.00"));
+        createChild("A.WP-2", "Paint Fake Tunnel", proj, parent, elmerFudd,
+            LocalDate.of(2026, 2, 1), LocalDate.of(2026, 2, 14),
+            new BigDecimal("1000.00"), new BigDecimal("50.00"));
 
-        createChild("A.WP-3", "Build Road", proj, parent, admin,
-                LocalDate.of(2026, 1, 15), LocalDate.of(2026, 3, 1),
-                new BigDecimal("2500.00"), new BigDecimal("35.00"));
-
+        createChild("A.WP-3", "Build Road", proj, parent, elmerFudd,
+            LocalDate.of(2026, 1, 15), LocalDate.of(2026, 3, 1),
+            new BigDecimal("2500.00"), new BigDecimal("35.00"));
 
         ProjectAssignment paBugs = new ProjectAssignment();
         paBugs.setEmployee(bugsBunny);

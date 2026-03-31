@@ -20,22 +20,28 @@ public class RebacService {
     private EntityManager em;
 
 
+    private boolean isAdmin(int empId) {
+        Employee emp = em.find(Employee.class, empId);
+        return emp != null && emp.getSystemRole() == SystemRole.ADMIN;
+    }
+
     /*
      * Role checks (SystemRole-based, no DB lookup)
      */
     public boolean canCreateProject(SystemRole role) {
-        return role == SystemRole.OPERATIONS_MANAGER;
+        return role == SystemRole.ADMIN || role == SystemRole.OPERATIONS_MANAGER;
     }
 
     public boolean canManageEmployees(SystemRole role) {
         // Allowed Employees to see the directory so PMs can make assignments
-        return role == SystemRole.HR || role == SystemRole.OPERATIONS_MANAGER || role == SystemRole.EMPLOYEE;
+        return role == SystemRole.ADMIN || role == SystemRole.HR || role == SystemRole.OPERATIONS_MANAGER || role == SystemRole.EMPLOYEE;
     }
 
     /**
      * Returns true if empId is the project manager of the given project.
      */
     public boolean canManageProject(int empId, String projId) {
+        if (isAdmin(empId)) return true;
         Project project = em.find(Project.class, projId);
         if (project == null) {
             return false;
@@ -64,6 +70,7 @@ public class RebacService {
      * Returns true if empId is PM of the work package's project.
      */
     public boolean canManageWorkPackage(int empId, String wpId) {
+        if (isAdmin(empId)) return true;
         WorkPackage wp = em.find(WorkPackage.class, wpId);
         if (wp == null || wp.getProject() == null) {
             return false;
@@ -74,6 +81,10 @@ public class RebacService {
     /*
      * Role checks (Employee-based, for backward compatibility)
      */
+    public boolean isAdmin(Employee employee) {
+        return employee != null && employee.getSystemRole() == SystemRole.ADMIN;
+    }
+
     public boolean isOperationsManager(Employee employee) {
         return employee != null && employee.getSystemRole() == SystemRole.OPERATIONS_MANAGER;
     }
@@ -83,11 +94,11 @@ public class RebacService {
     }
 
     public boolean canCreateProject(Employee employee) {
-        return isOperationsManager(employee);
+        return isAdmin(employee) || isOperationsManager(employee);
     }
 
     public boolean canManageEmployees(Employee employee) {
-        return isHr(employee) || isOperationsManager(employee) || (employee != null && employee.getSystemRole() == SystemRole.EMPLOYEE);
+        return isAdmin(employee) || isHr(employee) || isOperationsManager(employee) || (employee != null && employee.getSystemRole() == SystemRole.EMPLOYEE);
     }
 
     /**
@@ -105,6 +116,7 @@ public class RebacService {
      * Returns true if empId can view the timesheet (owner or approver).
      */
     public boolean canViewTimesheet(int empId, int timesheetId) {
+        if (isAdmin(empId)) return true;
         Timesheet ts = em.find(Timesheet.class, timesheetId);
         if (ts == null) return false;
         Integer boxed = Integer.valueOf(empId);
@@ -117,6 +129,7 @@ public class RebacService {
      * Relationship-based checks (empId-based, preferred for Resources)
      */
     public boolean canEditTimesheet(int empId, int timesheetId) {
+        if (isAdmin(empId)) return true;
         Timesheet ts = em.find(Timesheet.class, timesheetId);
         if (ts == null || ts.getEmployee() == null) {
             return false;
@@ -125,6 +138,7 @@ public class RebacService {
     }
 
     public boolean canApproveTimesheet(int empId, int timesheetId) {
+        if (isAdmin(empId)) return true;
         Timesheet ts = em.find(Timesheet.class, timesheetId);
         if (ts == null || ts.getApprover() == null) {
             return false;
@@ -156,6 +170,7 @@ public class RebacService {
     }
 
     public boolean canEditWorkPackage(int empId, String wpId) {
+        if (isAdmin(empId)) return true;
         WorkPackage wp = em.find(WorkPackage.class, wpId);
         if (wp == null) {
             return false;

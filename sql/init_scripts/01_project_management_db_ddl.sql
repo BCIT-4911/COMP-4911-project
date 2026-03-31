@@ -39,7 +39,7 @@ CREATE TABLE Employee(
     emp_first_name VARCHAR(255) NOT NULL,
     emp_last_name VARCHAR(255) NOT NULL,
     emp_password VARCHAR(255) NOT NULL,
-    system_role ENUM('HR', 'OPERATIONS_MANAGER', 'EMPLOYEE'),
+    system_role ENUM('ADMIN', 'HR', 'OPERATIONS_MANAGER', 'EMPLOYEE'),
     emp_e_sig_id INT NOT NULL,
     labor_grade_id INT NOT NULL,
     supervisor_id INT,

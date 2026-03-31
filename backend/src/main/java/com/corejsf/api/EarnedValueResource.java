@@ -56,26 +56,26 @@ public class EarnedValueResource {
    
 
     /**
-     * Returns the full EV report for a control-account parent WP.
+     * Returns the full EV report for a control account (parent WP) and its
+     * child work packages.
      *
-     * The response shape is EarnedValueReportDTO which includes:
-     *   workPackages         — per-WP list, each with acwpByWeek and totalAcwp
-     *   totalAcwpByWeek      — project-level ACWP per week index (sum across all WPs)
-     *   totalBcwsByWeek      — project-level BCWS per week index
-     *   totalBcwpByWeek      — project-level BCWP per week index
-     *   weekCount            — number of week columns in the report
+     * The response includes:
+     *  - Per-WP breakdown with BCWS, BCWP, ACWP per week, plus scalar
+     *    SV, CV, EAC, VAC and BAC for each WP.
+     *  - Project-level per-week totals (BCWS, BCWP, ACWP, SV, CV by week index).
+     *  - Project-level scalar totals: SV, CV, EAC, VAC, BAC.
      *
-     * Example calls:
+     * Example:
      *   GET /api/earned-value?parentWpId=CA-1
      *   GET /api/earned-value?parentWpId=CA-1&asOf=2026-02-15
      *
-     * @param parentWpId the parent (control-account) WP id — required
-     * @param asOf       optional ISO-8601 date string; defaults to today
-     * @return 200 EarnedValueReportDTO, or 400 when parentWpId is missing
+     * @param parentWpId the ID of the parent (control-account) work package
+     * @param asOf       optional ISO-8601 date; defaults to today
+     * @return 200 EarnedValueReportDTO, or 400 if parentWpId is missing
      */
     @GET
     public Response getEVReport(@QueryParam("parentWpId") final String parentWpId,
-                                @QueryParam("asOf")       final String asOf) {
+                                @QueryParam("asOf") final String asOf) {
 
         if (parentWpId == null || parentWpId.isBlank()) {
             return Response.status(Response.Status.BAD_REQUEST)

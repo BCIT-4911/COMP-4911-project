@@ -43,7 +43,8 @@ public abstract class TestConfig {
             int daffyId,
             int tweetyId,
             int sylvesterId,
-            int marvinPmProj2Id
+            int marvinPmProj2Id,
+            int elmerId
     ) {
     }
 
@@ -142,6 +143,7 @@ public abstract class TestConfig {
         Integer tweetyId = null;
         Integer sylvesterId = null;
         Integer marvinId = null;
+        Integer elmerId = null;
 
         for (Map<String, Object> e : employees) {
             String first = (String) e.get("empFirstName");
@@ -149,6 +151,8 @@ public abstract class TestConfig {
             int id = ((Number) e.get("empId")).intValue();
             if ("Wile".equals(first) && "Coyote".equals(last)) {
                 opsId = id;
+            } else if ("Elmer".equals(first) && "Fudd".equals(last)) {
+                elmerId = id;
             } else if ("Road".equals(first) && "Runner".equals(last)) {
                 hrId = id;
             } else if ("Bugs".equals(first) && "Bunny".equals(last)) {
@@ -164,7 +168,8 @@ public abstract class TestConfig {
             }
         }
 
-        assertNotNull(opsId, "Seed data missing: Wile Coyote (OPS). Ensure DB is seeded.");
+        assertNotNull(opsId, "Seed data missing: Wile Coyote (ADMIN). Ensure DB is seeded.");
+        assertNotNull(elmerId, "Seed data missing: Elmer Fudd (OPS)");
         assertNotNull(hrId, "Seed data missing: Road Runner (HR)");
         assertNotNull(pmProj1Id, "Seed data missing: Bugs Bunny (PM PROJ-1)");
         assertNotNull(daffyId, "Seed data missing: Daffy Duck");
@@ -172,6 +177,6 @@ public abstract class TestConfig {
         assertNotNull(sylvesterId, "Seed data missing: Sylvester Cat");
         assertNotNull(marvinId, "Seed data missing: Marvin Martian");
 
-        return new StandardSeedIds(opsId, hrId, pmProj1Id, daffyId, tweetyId, sylvesterId, marvinId);
+        return new StandardSeedIds(opsId, hrId, pmProj1Id, daffyId, tweetyId, sylvesterId, marvinId, elmerId);
     }
 }

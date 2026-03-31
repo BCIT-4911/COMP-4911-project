@@ -20,6 +20,7 @@ import io.restassured.response.Response;
 public class ProjectAndWorkPackageRebacIntegrationTest extends TestConfig {
 
     private static int OPS_ID;
+    private static int ELMER_ID;
     private static int HR_ID;
     private static int PM_PROJ1_ID;
     private static int RE_A_ID;
@@ -28,6 +29,7 @@ public class ProjectAndWorkPackageRebacIntegrationTest extends TestConfig {
     private static int PM_PROJ2_ID;
 
     private static String opsToken;
+    private static String elmerToken;
     private static String hrToken;
     private static String pmProj1Token;
     private static String reAToken;
@@ -40,6 +42,7 @@ public class ProjectAndWorkPackageRebacIntegrationTest extends TestConfig {
         opsToken = loginAsSeedOps();
         StandardSeedIds ids = resolveStandardSeedIds(opsToken);
         OPS_ID = ids.opsId();
+        ELMER_ID = ids.elmerId();
         HR_ID = ids.hrId();
         PM_PROJ1_ID = ids.pmProj1Id();
         RE_A_ID = ids.daffyId();
@@ -47,6 +50,7 @@ public class ProjectAndWorkPackageRebacIntegrationTest extends TestConfig {
         RE_A2_ID = ids.sylvesterId();
         PM_PROJ2_ID = ids.marvinPmProj2Id();
 
+        elmerToken = login(ELMER_ID, DEFAULT_PASSWORD);
         hrToken = login(HR_ID, DEFAULT_PASSWORD);
         pmProj1Token = login(PM_PROJ1_ID, DEFAULT_PASSWORD);
         reAToken = login(RE_A_ID, DEFAULT_PASSWORD);
@@ -172,7 +176,7 @@ public class ProjectAndWorkPackageRebacIntegrationTest extends TestConfig {
     @Test
     void assignEmployeeToWorkPackage_asOpsManager_returns403() {
         postWithToken(
-                opsToken,
+                elmerToken,
                 "/workpackages/A.WP-1/employees/" + MEMBER_A2_ID + "?role=MEMBER"
         )
         .then()

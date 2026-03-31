@@ -112,6 +112,9 @@ public class WorkPackage {
     @Transient
     private Integer reEmployeeIdTransient;
 
+    @Transient
+    private String reEmployeeNameTransient;
+
     public WorkPackage() {
     }
 
@@ -148,6 +151,20 @@ public class WorkPackage {
     @JsonbProperty("reEmployeeId")
     public void setReEmployeeId(Integer reEmployeeId) {
         this.reEmployeeIdTransient = reEmployeeId;
+    }
+
+    @JsonbProperty("reEmployeeName")
+    public String getReEmployeeName() {
+        if (reEmployeeNameTransient != null) return reEmployeeNameTransient;
+        if (responsibleEmployee != null) {
+            return responsibleEmployee.getEmpFirstName() + " " + responsibleEmployee.getEmpLastName();
+        }
+        return null;
+    }
+
+    @JsonbProperty("reEmployeeName")
+    public void setReEmployeeName(String reEmployeeName) {
+        this.reEmployeeNameTransient = reEmployeeName;
     }
 
     // --- Standard getters/setters ---

@@ -64,6 +64,7 @@ CREATE TABLE Project(
     created_by INT,
     modified_by INT,
     markup_rate DECIMAL(5,2),
+    bac DECIMAL(12,2),
     FOREIGN KEY (pm_employee_id) REFERENCES Employee(emp_id)
 );
 

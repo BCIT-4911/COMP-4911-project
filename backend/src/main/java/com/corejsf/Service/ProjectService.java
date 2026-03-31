@@ -70,6 +70,7 @@ public class ProjectService {
         ProjectValidation.validateEndDate(project.getEndDate(), project.getStartDate());
         ProjectValidation.validateMarkup(project.getMarkupRate());
         ProjectValidation.validateProjectManagerId(project.getProjectManagerId());
+        ProjectValidation.validateBac(project.getBac());
 
         project.setProjectManager(findEmployee(project.getProjectManagerId()));
         project.setCreatedDate(LocalDateTime.now());
@@ -85,6 +86,7 @@ public class ProjectService {
         ProjectValidation.validateDates(project.getStartDate(), project.getEndDate());
         ProjectValidation.validateMarkup(project.getMarkupRate());
         ProjectValidation.validateProjectManagerId(project.getProjectManagerId());
+        ProjectValidation.validateBac(project.getBac());
 
         existing.setProjName(project.getProjName());
         existing.setDescription(project.getDescription());
@@ -173,13 +175,15 @@ public class ProjectService {
         if (isOpsOrPm) {
             // Ops Managers and the Project Manager get to see the whole tree
             return em.createQuery(
-                    "SELECT w FROM WorkPackage w WHERE w.project.projId = :projId", WorkPackage.class)
+                    "SELECT w FROM WorkPackage w LEFT JOIN FETCH w.project LEFT JOIN FETCH w.responsibleEmployee LEFT JOIN FETCH w.parentWorkPackage WHERE w.project.projId = :projId", WorkPackage.class)
                     .setParameter("projId", projId)
                     .getResultList();
         } else {
             // Normal employees only see the WPs they are actively assigned to
             return em.createQuery(
                     "SELECT DISTINCT w FROM WorkPackage w " +
+                    "LEFT JOIN FETCH w.project LEFT JOIN FETCH w.responsibleEmployee " +
+                    "LEFT JOIN FETCH w.parentWorkPackage " +
                     "JOIN WorkPackageAssignment wpa ON w.wpId = wpa.workPackage.wpId " +
                     "WHERE w.project.projId = :projId AND wpa.employee.empId = :empId", WorkPackage.class)
                     .setParameter("projId", projId)

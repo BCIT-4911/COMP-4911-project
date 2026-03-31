@@ -130,10 +130,12 @@ public class ProjectService {
         em.merge(project);
 
         em.createQuery(
-            "UPDATE WorkPackage w SET w.status = :closed WHERE w.project.projId = :projId AND w.status != :closed")
-            .setParameter("closed", WorkPackageStatus.CLOSED_FOR_CHARGES)
-            .setParameter("projId", id)
-            .executeUpdate();
+                "UPDATE WorkPackage w SET w.status = :closed "
+                        + "WHERE w.project.projId = :projId AND w.status = :open")
+                .setParameter("closed", WorkPackageStatus.CLOSED_FOR_CHARGES)
+                .setParameter("open", WorkPackageStatus.OPEN_FOR_CHARGES)
+                .setParameter("projId", id)
+                .executeUpdate();
     }
 
     public void openProject(String id) {

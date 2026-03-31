@@ -16,10 +16,7 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-/**
- * Project API tests. Uncomment the block at the bottom when iteration-2 project close cascade,
- * reopen semantics, and project-level BAC are implemented.
- */
+/** Project API tests. */
 @SuppressWarnings("unused")
 class ProjectResourceTest extends TestConfig {
 
@@ -219,9 +216,8 @@ class ProjectResourceTest extends TestConfig {
                 .body(containsString("Project Report"));
     }
 
-    /*
     @Test
-    void closeProject_cascadesClosesToWps() {
+    void closeProject_cascadesClosesOpenWpsOnly() {
         List<?> raw = given()
                 .header("Authorization", "Bearer " + bugsToken)
                 .when()
@@ -262,6 +258,15 @@ class ProjectResourceTest extends TestConfig {
                 .put("/projects/PROJ-1/open")
                 .then()
                 .statusCode(200);
+
+        for (String wpId : wpIds) {
+            given()
+                    .header("Authorization", "Bearer " + bugsToken)
+                    .when()
+                    .put("/workpackages/" + wpId + "/open")
+                    .then()
+                    .statusCode(200);
+        }
     }
 
     @Test
@@ -333,7 +338,6 @@ class ProjectResourceTest extends TestConfig {
                     .statusCode(200);
         }
     }
-    */
 
     @Test
     void createProject_withBac_persistsBac() {

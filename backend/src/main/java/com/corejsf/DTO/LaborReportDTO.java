@@ -7,6 +7,7 @@ import java.util.List;
 public class LaborReportDTO {
 
     private String projectId;
+    private String wpId;
     private Integer employeeId;
     private LocalDate weekEnding;
     private SummaryDTO summary;
@@ -19,6 +20,14 @@ public class LaborReportDTO {
 
     public void setProjectId(String projectId) {
         this.projectId = projectId;
+    }
+
+    public String getWpId() {
+        return wpId;
+    }
+
+    public void setWpId(String wpId) {
+        this.wpId = wpId;
     }
 
     public Integer getEmployeeId() {

@@ -65,17 +65,27 @@ public class LaborGradeResource {
     @GET
     @Path("/report")
     public Response getLaborReport(@QueryParam("projectId") String projectId,
+                                   @QueryParam("wpId") String wpId,
                                    @QueryParam("employeeId") Integer employeeId,
                                    @QueryParam("weekEnding") String weekEnding) {
-        LocalDate parsedWeekEnding = null;
-        if (weekEnding != null && !weekEnding.isBlank()) {
-            try {
-                parsedWeekEnding = LocalDate.parse(weekEnding);
-            } catch (RuntimeException ex) {
-                return Response.status(Response.Status.BAD_REQUEST)
-                        .entity("weekEnding must be in YYYY-MM-DD format")
-                        .build();
-            }
+        if (weekEnding == null || weekEnding.isBlank()) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("weekEnding is required")
+                    .build();
+        }
+        if ((wpId == null || wpId.isBlank()) && employeeId == null) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("At least one of wpId or employeeId is required")
+                    .build();
+        }
+
+        LocalDate parsedWeekEnding;
+        try {
+            parsedWeekEnding = LocalDate.parse(weekEnding);
+        } catch (RuntimeException ex) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("weekEnding must be in YYYY-MM-DD format")
+                    .build();
         }
 
         int authEmpId = authContext.getEmpId();
@@ -99,7 +109,7 @@ public class LaborGradeResource {
             }
         }
 
-        LaborReportDTO report = laborGradeService.generateLaborReport(projectId, effectiveEmployeeId, parsedWeekEnding);
+        LaborReportDTO report = laborGradeService.generateLaborReport(projectId, wpId, effectiveEmployeeId, parsedWeekEnding);
         return Response.ok(report).build();
     }
 }

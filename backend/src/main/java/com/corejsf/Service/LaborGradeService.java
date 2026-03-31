@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -21,6 +22,7 @@ import com.corejsf.DTO.LaborReportRowDTO;
 import com.corejsf.DTO.LaborGradeDTO;
 import com.corejsf.Entity.LaborGrade;
 import com.corejsf.Entity.TimesheetStatus;
+import com.corejsf.Entity.WorkPackage;
 
 @Stateless
 public class LaborGradeService {
@@ -57,7 +59,9 @@ public class LaborGradeService {
                    .collect(Collectors.toList());
     }
 
-    public LaborReportDTO generateLaborReport(String projectId, Integer employeeId, LocalDate weekEnding) {
+    public LaborReportDTO generateLaborReport(String projectId, String wpId, Integer employeeId, LocalDate weekEnding) {
+        Set<String> filteredWpIds = resolveSelectedWorkPackageIds(wpId);
+
         List<Object[]> rawRows = em.createQuery(
                 "SELECT p.projId, " +
                 "       p.projName, " +
@@ -81,11 +85,14 @@ public class LaborGradeService {
                 "JOIN wp.project p " +
                 "JOIN tr.laborGrade lg " +
                 "WHERE (:projectId IS NULL OR p.projId = :projectId) " +
+                "  AND (:filterByWp = FALSE OR wp.wpId IN :wpIds) " +
                 "  AND (:employeeId IS NULL OR e.empId = :employeeId) " +
                 "  AND (:weekEnding IS NULL OR t.weekEnding = :weekEnding) " +
                 "ORDER BY t.weekEnding DESC, e.empLastName, e.empFirstName, wp.wpId, lg.gradeCode",
                 Object[].class)
                 .setParameter("projectId", projectId)
+                .setParameter("filterByWp", !filteredWpIds.isEmpty())
+                .setParameter("wpIds", parameterizeWpIds(filteredWpIds))
                 .setParameter("employeeId", employeeId)
                 .setParameter("weekEnding", weekEnding)
                 .getResultList();
@@ -156,7 +163,7 @@ public class LaborGradeService {
 
         BigDecimal previousWeekHours = BigDecimal.ZERO;
         if (baselineWeekEnding != null) {
-            previousWeekHours = getHoursForWeek(projectId, employeeId, baselineWeekEnding.minusWeeks(1));
+            previousWeekHours = getHoursForWeek(projectId, filteredWpIds, employeeId, baselineWeekEnding.minusWeeks(1));
         }
 
         LaborReportDTO.SummaryDTO summary = new LaborReportDTO.SummaryDTO();
@@ -169,6 +176,7 @@ public class LaborGradeService {
 
         LaborReportDTO report = new LaborReportDTO();
         report.setProjectId(projectId);
+        report.setWpId(wpId);
         report.setEmployeeId(employeeId);
         report.setWeekEnding(weekEnding);
         report.setSummary(summary);
@@ -177,7 +185,7 @@ public class LaborGradeService {
         return report;
     }
 
-    private BigDecimal getHoursForWeek(String projectId, Integer employeeId, LocalDate weekEnding) {
+    private BigDecimal getHoursForWeek(String projectId, Set<String> wpIds, Integer employeeId, LocalDate weekEnding) {
         BigDecimal hours = em.createQuery(
                 "SELECT COALESCE(SUM(COALESCE(tr.monday, 0) + COALESCE(tr.tuesday, 0) + COALESCE(tr.wednesday, 0) + " +
                 "                    COALESCE(tr.thursday, 0) + COALESCE(tr.friday, 0) + COALESCE(tr.saturday, 0) + " +
@@ -188,14 +196,54 @@ public class LaborGradeService {
                 "JOIN tr.workPackage wp " +
                 "JOIN wp.project p " +
                 "WHERE (:projectId IS NULL OR p.projId = :projectId) " +
+                "  AND (:filterByWp = FALSE OR wp.wpId IN :wpIds) " +
                 "  AND (:employeeId IS NULL OR e.empId = :employeeId) " +
                 "  AND t.weekEnding = :weekEnding",
                 BigDecimal.class)
                 .setParameter("projectId", projectId)
+                .setParameter("filterByWp", !wpIds.isEmpty())
+                .setParameter("wpIds", parameterizeWpIds(wpIds))
                 .setParameter("employeeId", employeeId)
                 .setParameter("weekEnding", weekEnding)
                 .getSingleResult();
         return nz(hours);
+    }
+
+    private Set<String> resolveSelectedWorkPackageIds(String wpId) {
+        Set<String> wpIds = new HashSet<>();
+        if (wpId == null || wpId.isBlank()) {
+            return wpIds;
+        }
+
+        WorkPackage selected = em.find(WorkPackage.class, wpId);
+        if (selected == null) {
+            throw new NotFoundException("WorkPackage with id " + wpId + " not found.");
+        }
+
+        wpIds.add(wpId);
+        Set<String> frontier = new HashSet<>();
+        frontier.add(wpId);
+
+        while (!frontier.isEmpty()) {
+            List<String> childIds = em.createQuery(
+                    "SELECT wp.wpId FROM WorkPackage wp WHERE wp.parentWorkPackage.wpId IN :parentIds",
+                    String.class)
+                    .setParameter("parentIds", frontier)
+                    .getResultList();
+
+            frontier = new HashSet<>();
+            for (String childId : childIds) {
+                if (wpIds.add(childId)) {
+                    frontier.add(childId);
+                }
+            }
+        }
+
+        return wpIds;
+    }
+
+    private Collection<String> parameterizeWpIds(Set<String> wpIds) {
+        return wpIds.isEmpty() ? List.of("__NO_MATCH__") : wpIds;
     }
 
     private BigDecimal calculatePercentChange(BigDecimal previousValue, BigDecimal currentValue) {

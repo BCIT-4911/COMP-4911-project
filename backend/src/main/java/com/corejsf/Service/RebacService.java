@@ -71,6 +71,51 @@ public class RebacService {
         return canManageProject(empId, wp.getProject().getProjId());
     }
 
+    // -----------------------------------------------------------------------
+    // EV Report access control (EV Security feature)
+    // -----------------------------------------------------------------------
+
+    /**
+     * Returns true if the caller is allowed to view EV reports for the project
+     * that contains the given parent work package (parentWpId).
+     *
+     * Access rules:
+     *    PM assigned to the project:                           ALLOWED
+     *   PM NOT assigned to the project:                       DENIED
+     *   OPERATIONS_MANAGER (system role):                     ALLOWED
+     *   ADMIN (system role):                                  ALLOWED
+     *   Regular EMPLOYEE, unrelated RE, unrelated HR:         DENIED
+     *
+     * The parentWpId is used rather than a project ID because the existing
+     * weekly EV endpoint is keyed on a work package. We look up the project
+     * from the WP, then delegate to canManageProject for the PM check.
+     *
+     * @param empId       the authenticated employee ID
+     * @param systemRole  the authenticated employee's system role
+     * @param parentWpId  the parent work package ID passed to the EV endpoint
+     * @return true if access is permitted, false otherwise
+     */
+    public boolean canViewEVReport(int empId, SystemRole systemRole, String parentWpId) {
+        // Operations Manager always has access
+        if (systemRole == SystemRole.OPERATIONS_MANAGER) {
+            return true;
+        }
+
+        // Admin always has access
+        if (systemRole == SystemRole.ADMIN) {
+            return true;
+        }
+
+        // For all other roles, the only path to access is being the
+        // PM of the project that owns this work package.
+        // canManageWorkPackage internally calls canManageProject, which checks
+        // both the Project.projectManager field AND the ProjectAssignment table.
+        // EMPLOYEE, HR, and any RE who is not also a PM all fall through
+        // to this check and return false because canManageWorkPackage is PM-onl y.
+        return canManageWorkPackage(empId, parentWpId);
+    }
+
+
     /*
      * Role checks (Employee-based, for backward compatibility)
      */

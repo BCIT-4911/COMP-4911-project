@@ -23,6 +23,9 @@ import com.corejsf.Service.EarnedValueAggregationService;
 import com.corejsf.Service.EarnedValueCalculationService;
 import com.corejsf.Service.MonthlyEVReportService;
 import com.corejsf.Service.RebacService;
+import com.corejsf.DTO.MonthlyEVReportDTO;
+import com.corejsf.DTO.EarnedValueReportDTO;
+
 
 /**
  * REST resource for earned value data.
@@ -64,6 +67,16 @@ public class EarnedValueResource {
      *    SV, CV, EAC, VAC and BAC for each WP.
      *  - Project-level per-week totals (BCWS, BCWP, ACWP, SV, CV by week index).
      *  - Project-level scalar totals: SV, CV, EAC, VAC, BAC.
+    /**
+     * Weekly EV data for a control-account (parent WP) and its children.
+     *
+     * Now protected by ReBAC (EV Security feature):
+     *   - OPERATIONS_MANAGER:           allowed 
+     *   - ADMIN:                        allowed 
+     *   - PM of the project that owns   allowed 
+     *     parentWpId:
+     *   - PM of a different project:    403     
+     *   - EMPLOYEE / HR / unrelated RE: 403     
      *
      * Example:
      *   GET /api/earned-value?parentWpId=CA-1
@@ -83,25 +96,36 @@ public class EarnedValueResource {
                     .build();
         }
 
+        // ReBAC authorization check — delegates to RebacService.canViewEVReport
+        // which encodes all acceptance criteria.
+        if (!rebacService.canViewEVReport(
+                authContext.getEmpId(),
+                authContext.getSystemRole(),
+                parentWpId)) {
+            return Response.status(Response.Status.FORBIDDEN)
+                    .entity("Access denied")
+                    .build();
+        }
+
         final LocalDate asOfDate = (asOf == null || asOf.isBlank())
                 ? null
                 : LocalDate.parse(asOf);
 
         // Build the aggregation input (date range, week-ending list, child WPs)
-        final EarnedValueAggregateInput input =
-                aggregationService.aggregateForParent(parentWpId, asOfDate);
+        final EarnedValueAggregateInput input = aggregationService.aggregateForParent(parentWpId, asOfDate);
 
         // Calculate per-WP BCWS, BCWP, and real ACWP from approved timesheets
-        final List<WorkPackageWeeklyDTO> wpDtos = calculationService.calculate(input);
+        final EarnedValueReportDTO calculatedReport = calculationService.calculate(input);
 
+        final List<WorkPackageWeeklyDTO> wpDtos = calculatedReport.getWorkPackages();
         final int weekCount = input.getWeekEndings().size();
 
         // ------------------------------------------------------------------
         // Roll up per-WP values to project level
         // ------------------------------------------------------------------
-        final Map<Integer, BigDecimal> projBcwsByWeek  = initZeroMap(weekCount);
-        final Map<Integer, BigDecimal> projBcwpByWeek  = initZeroMap(weekCount);
-        final Map<Integer, BigDecimal> projAcwpByWeek  = initZeroMap(weekCount);
+        final Map<Integer, BigDecimal> projBcwsByWeek = initZeroMap(weekCount);
+        final Map<Integer, BigDecimal> projBcwpByWeek = initZeroMap(weekCount);
+        final Map<Integer, BigDecimal> projAcwpByWeek = initZeroMap(weekCount);
 
         for (final WorkPackageWeeklyDTO dto : wpDtos) {
             for (int i = 1; i <= weekCount; i++) {
@@ -124,7 +148,7 @@ public class EarnedValueResource {
         report.setWorkPackages(wpDtos);
         report.setTotalBcwsByWeek(projBcwsByWeek);
         report.setTotalBcwpByWeek(projBcwpByWeek);
-        report.setTotalAcwpByWeek(projAcwpByWeek);  // project-level ACWP 
+        report.setTotalAcwpByWeek(projAcwpByWeek);
 
         return Response.ok(report).build();
     }

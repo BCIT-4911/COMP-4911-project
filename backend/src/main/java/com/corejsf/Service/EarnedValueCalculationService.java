@@ -20,7 +20,6 @@ import com.corejsf.Entity.TimesheetStatus;
 import com.corejsf.Entity.WorkPackage;
 
 /**
-<<<<<<< HEAD
  * Computes BCWS, BCWP, and ACWP for each child work package of a
  * control-account parent WP.
  *
@@ -39,7 +38,6 @@ import com.corejsf.Entity.WorkPackage;
  * ACWP at project level:
  *   - totalAcwpByWeek on EarnedValueReportDTO: weekIndex -> sum across all WPs
  *   - returned from EarnedValueResource alongside the per-WP breakdown
-=======
  * Computes all EV metrics for a control-account and its child work packages.
  *
  * Metrics computed (standard EVM formulas):
@@ -64,7 +62,6 @@ import com.corejsf.Entity.WorkPackage;
  *   VAC   = BAC − EAC            
  *
  * Project-level values are the sums of WP-level values (AC5).
->>>>>>> remotes/origin/feature/earned-value-metrics
  */
 @Stateless
 public class EarnedValueCalculationService {
@@ -72,20 +69,6 @@ public class EarnedValueCalculationService {
     @PersistenceContext(unitName = "project-management-pu")
     private EntityManager em;
 
-<<<<<<< HEAD
-    // -----------------------------------------------------------------------
-    // Public API — returns per-WP DTOs; project-level rollup done in resource
-    // -----------------------------------------------------------------------
-
-    /**
-     * Calculates BCWS, BCWP, and ACWP for every child WP in the given input.
-     *
-     * @param input aggregated input (parent WP id, asOf date, week endings, children)
-     * @return list of WorkPackageWeeklyDTO, one per child WP, in the same order
-     *         as input.getChildWorkPackages()
-     */
-    public List<WorkPackageWeeklyDTO> calculate(final EarnedValueAggregateInput input) {
-=======
    
 
     /**
@@ -96,7 +79,6 @@ public class EarnedValueCalculationService {
      * @return report with per-WP and project-level EV metrics
      */
     public EarnedValueReportDTO calculate(final EarnedValueAggregateInput input) {
->>>>>>> remotes/origin/feature/earned-value-metrics
         if (input == null) {
             throw new IllegalArgumentException("input is required");
         }
@@ -106,32 +88,6 @@ public class EarnedValueCalculationService {
         final List<WorkPackage> children = input.getChildWorkPackages();
         final int weekCount = weekEndings.size();
 
-<<<<<<< HEAD
-        // ------------------------------------------------------------------
-        // Step 1: fetch real ACWP for all child WPs in a single DB query.
-        //
-        // The query groups by (wpId, weekEnding) and sums
-        //   (daily hours total) * laborGrade.chargeRate
-        // filtering to APPROVED timesheets only (AC1, AC2).
-        //
-        // We scope to weekEndings within the report window to avoid pulling
-        // data from outside the report period.
-        // ------------------------------------------------------------------
-        final Map<String, Map<LocalDate, BigDecimal>> acwpByWpAndWeek =
-                fetchApprovedAcwp(input.getParentWpId(), weekEndings);
-
-        // ------------------------------------------------------------------
-        // Step 2: build one DTO per child WP
-        // ------------------------------------------------------------------
-        final List<WorkPackageWeeklyDTO> out = new ArrayList<>();
-        int fallbackIndex = 1;
-
-        for (final WorkPackage wp : children) {
-            final Map<LocalDate, BigDecimal> wpAcwpPerWeek =
-                    acwpByWpAndWeek.getOrDefault(wp.getWpId(), new LinkedHashMap<>());
-
-            out.add(computeForChild(wp, weekEndings, asOf, fallbackIndex, wpAcwpPerWeek));
-=======
         // ----------------------------------------------------------------
         // Step 1: fetch ACWP from approved timesheets for ALL child WPs
         // in one query, grouped by (wpId, weekEnding).
@@ -162,7 +118,6 @@ public class EarnedValueCalculationService {
                     acwpByWpAndWeek.getOrDefault(wp.getWpId(), new LinkedHashMap<>()));
 
             wpDtos.add(dto);
->>>>>>> remotes/origin/feature/earned-value-metrics
             fallbackIndex++;
 
             // Accumulate into project-level per-week maps
@@ -234,7 +189,6 @@ public class EarnedValueCalculationService {
     }
 
     // -----------------------------------------------------------------------
-<<<<<<< HEAD
     // ACWP query — approved timesheets only (AC1, AC2)
     // -----------------------------------------------------------------------
 
@@ -298,8 +252,6 @@ public class EarnedValueCalculationService {
     }
 
     // -----------------------------------------------------------------------
-=======
->>>>>>> remotes/origin/feature/earned-value-metrics
     // Per-WP computation
     // -----------------------------------------------------------------------
 
@@ -308,33 +260,21 @@ public class EarnedValueCalculationService {
             final List<LocalDate> reportWeekEndings,
             final LocalDate asOfDate,
             final int fallbackIndex,
-<<<<<<< HEAD
             final Map<LocalDate, BigDecimal> wpAcwpPerWeek) {
-=======
-            final Map<LocalDate, BigDecimal> acwpPerWeek) {
->>>>>>> remotes/origin/feature/earned-value-metrics
 
         final BigDecimal bac = nz(wp.getBac());
         final BigDecimal pct = nz(wp.getPercentComplete()); // stored as 0..100
 
-<<<<<<< HEAD
         final LocalDate wpStart = wp.getPlanStartDate() != null
                 ? wp.getPlanStartDate() : reportWeekEndings.get(0);
         final LocalDate wpEnd   = wp.getPlanEndDate() != null
                 ? wp.getPlanEndDate() : reportWeekEndings.get(reportWeekEndings.size() - 1);
-=======
-        final LocalDate wpStart = (wp.getPlanStartDate() == null)
-                ? reportWeekEndings.get(0) : wp.getPlanStartDate();
-        final LocalDate wpEnd = (wp.getPlanEndDate() == null)
-                ? reportWeekEndings.get(reportWeekEndings.size() - 1) : wp.getPlanEndDate();
->>>>>>> remotes/origin/feature/earned-value-metrics
 
         final LocalDate activeStartWe = toWeekEndingSunday(wpStart);
         final LocalDate activeEndWe   = toWeekEndingSunday(wpEnd);
 
         final Map<Integer, BigDecimal> bcws = initZeroMap(reportWeekEndings.size());
         final Map<Integer, BigDecimal> bcwp = initZeroMap(reportWeekEndings.size());
-<<<<<<< HEAD
         // ACWP: populated from approved timesheet data (AC1, AC2, AC3)
         final Map<Integer, BigDecimal> acwp = initZeroMap(reportWeekEndings.size());
 
@@ -349,21 +289,6 @@ public class EarnedValueCalculationService {
         // Determine active weeks for BCWS straight-line allocation
         final boolean[] active    = new boolean[reportWeekEndings.size()];
         int             activeWeeks = 0;
-=======
-        final Map<Integer, BigDecimal> acwp = initZeroMap(reportWeekEndings.size());
-
-        // Map ACWP fetched from DB into the week-index map
-        for (int i = 0; i < reportWeekEndings.size(); i++) {
-            final LocalDate we = reportWeekEndings.get(i);
-            final BigDecimal cost = acwpPerWeek.getOrDefault(we,
-                    BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP));
-            acwp.put(i + 1, cost);
-        }
-
-        // Determine which week indices are within the WP's active window
-        final boolean[] active = new boolean[reportWeekEndings.size()];
-        int activeWeeks = 0;
->>>>>>> remotes/origin/feature/earned-value-metrics
         for (int i = 0; i < reportWeekEndings.size(); i++) {
             final LocalDate we = reportWeekEndings.get(i);
             final boolean isActive = !we.isBefore(activeStartWe) && !we.isAfter(activeEndWe);
@@ -404,11 +329,6 @@ public class EarnedValueCalculationService {
         dto.setBcwpByWeek(bcwp);
         dto.setAcwpByWeek(acwp);                   // real values, not zeros
 
-<<<<<<< HEAD
-        dto.setTotalBcws(sumMap(bcws));
-        dto.setTotalBcwp(sumMap(bcwp));
-        dto.setTotalAcwp(sumMap(acwp));             // real total, not zero
-=======
         dto.setTotalBcws(totalBcws);
         dto.setTotalBcwp(totalBcwp);
         dto.setTotalAcwp(totalAcwp);
@@ -417,14 +337,11 @@ public class EarnedValueCalculationService {
         dto.setCv(cv);
         dto.setEac(eac);
         dto.setVac(vac);
->>>>>>> remotes/origin/feature/earned-value-metrics
 
         return dto;
     }
 
     // -----------------------------------------------------------------------
-<<<<<<< HEAD
-=======
     // ACWP — database query
     // -----------------------------------------------------------------------
 
@@ -485,7 +402,6 @@ public class EarnedValueCalculationService {
     }
 
     // -----------------------------------------------------------------------
->>>>>>> remotes/origin/feature/earned-value-metrics
     // BCWS straight-line allocation
     // -----------------------------------------------------------------------
 
@@ -513,20 +429,10 @@ public class EarnedValueCalculationService {
     }
 
     // -----------------------------------------------------------------------
-<<<<<<< HEAD
-    // BCWP allocation 
-    // -----------------------------------------------------------------------
-=======
     // BCWP allocation
     // -----------------------------------------------------------------------
 
-    private void allocateBcwpFromPercentComplete(final BigDecimal bac,
-                                                 final BigDecimal pct,
-                                                 final LocalDate asOfDate,
-                                                 final List<LocalDate> reportWeekEndings,
-                                                 final Map<Integer, BigDecimal> bcwsByWeek,
-                                                 final Map<Integer, BigDecimal> bcwpByWeek) {
->>>>>>> remotes/origin/feature/earned-value-metrics
+
 
     private void allocateBcwpFromPercentComplete(final BigDecimal bac,
                                                   final BigDecimal pct,
@@ -564,20 +470,12 @@ public class EarnedValueCalculationService {
 
         for (int i = 1; i <= reportWeekEndings.size(); i++) {
             if (reportWeekEndings.get(i - 1).isAfter(asOfWe)) continue;
-<<<<<<< HEAD
-=======
-
->>>>>>> remotes/origin/feature/earned-value-metrics
             final BigDecimal plan = bcwsByWeek.get(i);
             if (plan.compareTo(BigDecimal.ZERO) == 0) continue;
 
             lastEarnWeek = i;
             final BigDecimal portion = plan.divide(bcwsToDate, 8, RoundingMode.HALF_UP);
             final BigDecimal earned  = earnedTotal.multiply(portion).setScale(2, RoundingMode.HALF_UP);
-<<<<<<< HEAD
-=======
-
->>>>>>> remotes/origin/feature/earned-value-metrics
             assigned = assigned.add(earned);
             bcwpByWeek.put(i, earned);
         }
@@ -593,9 +491,7 @@ public class EarnedValueCalculationService {
     }
 
     // -----------------------------------------------------------------------
-<<<<<<< HEAD
     // Helpers
-=======
     // EVM formula helpers
     // -----------------------------------------------------------------------
 
@@ -623,7 +519,6 @@ public class EarnedValueCalculationService {
 
     // -----------------------------------------------------------------------
     // Generic helpers
->>>>>>> remotes/origin/feature/earned-value-metrics
     // -----------------------------------------------------------------------
 
     private LocalDate toWeekEndingSunday(final LocalDate date) {

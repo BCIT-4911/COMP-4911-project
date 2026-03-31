@@ -104,13 +104,10 @@ public class WorkPackageWeeklyDTO {
 
     public BigDecimal getTotalAcwp() { return totalAcwp; }
     public void setTotalAcwp(BigDecimal totalAcwp) { this.totalAcwp = totalAcwp; }
-<<<<<<< HEAD
 
     public BigDecimal getEtc() { return etc; }
     public void setEtc(BigDecimal etc) { this.etc = etc; }
-}
-=======
->>>>>>> remotes/origin/feature/earned-value-metrics
+
 
     public BigDecimal getSv() { return sv; }
     public void setSv(BigDecimal sv) { this.sv = sv; }

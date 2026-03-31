@@ -340,6 +340,50 @@ class ProjectResourceTest extends TestConfig {
     }
 
     @Test
+    void openWp_whileProjectArchived_returns400() {
+        given()
+                .header("Authorization", "Bearer " + bugsToken)
+                .when()
+                .put("/projects/PROJ-1/close")
+                .then()
+                .statusCode(200);
+
+        given()
+                .header("Authorization", "Bearer " + bugsToken)
+                .when()
+                .put("/workpackages/A.WP-1/open")
+                .then()
+                .statusCode(400);
+
+        given()
+                .header("Authorization", "Bearer " + bugsToken)
+                .when()
+                .put("/projects/PROJ-1/open")
+                .then()
+                .statusCode(200);
+
+        List<?> raw = given()
+                .header("Authorization", "Bearer " + bugsToken)
+                .when()
+                .get("/projects/PROJ-1/workpackages")
+                .then()
+                .statusCode(200)
+                .extract()
+                .jsonPath()
+                .getList("$");
+        for (Object o : raw) {
+            if (o instanceof Map<?, ?> m && m.get("wpId") instanceof String wpId) {
+                given()
+                        .header("Authorization", "Bearer " + bugsToken)
+                        .when()
+                        .put("/workpackages/" + wpId + "/open")
+                        .then()
+                        .statusCode(200);
+            }
+        }
+    }
+
+    @Test
     void createProject_withBac_persistsBac() {
         String projId = "AUTO-BAC-" + System.nanoTime();
         LocalDate start = LocalDate.now();

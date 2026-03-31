@@ -10,6 +10,7 @@ import com.corejsf.Entity.ProjectAssignment;
 import com.corejsf.Entity.ProjectRole;
 import com.corejsf.Entity.ProjectStatus;
 import com.corejsf.Entity.WorkPackage;
+import com.corejsf.Entity.WorkPackageStatus;
 
 import jakarta.ejb.EJB;
 import jakarta.ejb.Stateless;
@@ -127,6 +128,12 @@ public class ProjectService {
         Project project = findProject(id);
         project.setStatus(ProjectStatus.ARCHIVED);
         em.merge(project);
+
+        em.createQuery(
+            "UPDATE WorkPackage w SET w.status = :closed WHERE w.project.projId = :projId AND w.status != :closed")
+            .setParameter("closed", WorkPackageStatus.CLOSED_FOR_CHARGES)
+            .setParameter("projId", id)
+            .executeUpdate();
     }
 
     public void openProject(String id) {

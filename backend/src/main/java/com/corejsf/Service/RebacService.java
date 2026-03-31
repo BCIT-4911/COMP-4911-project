@@ -201,4 +201,48 @@ public class RebacService {
         return employee != null && canEditWorkPackage(employee.getEmpId(), wpId);
     }
 
+    public boolean canViewProject(final int empId, final String projId) {
+        Employee employee = em.find(Employee.class, empId);
+        if (employee == null) {
+            return false;
+        }
+
+        if (employee.getSystemRole() == SystemRole.OPERATIONS_MANAGER
+                || employee.getSystemRole() == SystemRole.HR) {
+            return true;
+        }
+
+        return canManageProject(empId, projId);
+    }
+
+    public boolean canEditEtc(final int empId, final String wpId) {
+        WorkPackage wp = em.find(WorkPackage.class, wpId);
+        if (wp == null) {
+            return false;
+        }
+
+        Employee employee = em.find(Employee.class, empId);
+        if (employee == null) {
+            return false;
+        }
+
+        if (employee.getSystemRole() == SystemRole.OPERATIONS_MANAGER) {
+            return true;
+        }
+
+        Integer empIdBoxed = Integer.valueOf(empId);
+
+        if (wp.getResponsibleEmployee() != null
+                && empIdBoxed.equals(wp.getResponsibleEmployee().getEmpId())) {
+            return true;
+        }
+
+        // Keep this only if PM is allowed by your policy
+        if (wp.getProject() != null && canManageProject(empId, wp.getProject().getProjId())) {
+            return true;
+        }
+
+        return false;
+    }
+
 }

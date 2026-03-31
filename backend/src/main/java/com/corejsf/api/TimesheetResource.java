@@ -57,7 +57,16 @@ public class TimesheetResource {
             return forbidden();
         }
 
-        Integer effectiveEmpId = isAdmin && empId == null && approverId == null ? null : (empId != null) ? empId : (approverId == null ? authEmpId : null);
+        Integer effectiveEmpId;
+        if (isAdmin && empId == null && approverId == null) {
+            effectiveEmpId = null;
+        } else if (empId != null) {
+            effectiveEmpId = empId;
+        } else if (approverId == null) {
+            effectiveEmpId = authEmpId;
+        } else {
+            effectiveEmpId = null;
+        }
         List<TimesheetResponseDTO> list = timesheetService.getAllTimesheets(effectiveEmpId, approverId, status);
         return Response.ok(list).build();
     }

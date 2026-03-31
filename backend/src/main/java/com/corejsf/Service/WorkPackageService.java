@@ -9,6 +9,7 @@ import java.util.List;
 
 import com.corejsf.Entity.Employee;
 import com.corejsf.Entity.Project;
+import com.corejsf.Entity.ProjectStatus;
 import com.corejsf.Entity.WorkPackage;
 import com.corejsf.Entity.WorkPackageAssignment;
 import com.corejsf.Entity.WorkPackageStatus;
@@ -387,6 +388,11 @@ public class WorkPackageService {
 
     public void open(String id) {
         WorkPackage wp = findWorkPackage(id);
+        if (wp.getProject() != null && wp.getProject().getStatus() == ProjectStatus.ARCHIVED) {
+            throw new jakarta.ws.rs.WebApplicationException(
+                    "Cannot reopen a work package while its project is closed.",
+                    jakarta.ws.rs.core.Response.Status.BAD_REQUEST);
+        }
         wp.setStatus(WorkPackageStatus.OPEN_FOR_CHARGES);
         em.merge(wp);
     }

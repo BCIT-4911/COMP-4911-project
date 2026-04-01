@@ -1,13 +1,13 @@
 package com.corejsf.api;
 
-import com.corejsf.DTO.EmployeeManagerUpdateDto;
-import com.corejsf.DTO.EmployeeSelfUpdateDto;
+import com.corejsf.DTO.employee.EmployeeManagerUpdateDto;
+import com.corejsf.DTO.employee.EmployeeSelfUpdateDto;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.InternalServerErrorException;
 import jakarta.ws.rs.NotFoundException;
 import java.util.List;
 
-import com.corejsf.DTO.EmployeeCreateDTO;
+import com.corejsf.DTO.employee.EmployeeCreateDTO;
 import com.corejsf.Entity.Employee;
 import com.corejsf.Service.EmployeeService;
 import com.corejsf.Service.RebacService;
@@ -91,11 +91,35 @@ public class EmployeeResource {
      * @return a Response containing the created employee with CREATED status.
      */
     @POST
-    public Response create(EmployeeCreateDTO dto) {
-        if (!rebacService.canManageEmployees(authContext.getSystemRole())) {
+    public Response create(EmployeeCreateDTO dto)
+    {
+        if (!rebacService.canManageEmployees(authContext.getSystemRole()))
+        {
             return forbidden();
         }
-        Employee created = employeeService.createEmployee(dto);
+
+        Employee created = null;
+
+        try
+        {
+            created = employeeService.createEmployee(dto);
+        }
+        catch(final BadRequestException ex)
+        {
+            return Response.status(Response.Status.BAD_REQUEST).entity("Bad Request: " + ex.getMessage()).build();
+        }
+        catch(final InternalServerErrorException ex)
+        {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Internal server error - " + ex.getMessage()).build();
+        }
+        catch(final Exception ex)
+        {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Unknown error has occurred when " +
+                                                                                 "trying to create a new employee: " +
+                                                                                 ex.getClass().getName() + " - " +
+                                                                                 ex.getMessage()).build();
+        }
+
         return Response.status(Response.Status.CREATED).entity(created).build();
     }
 

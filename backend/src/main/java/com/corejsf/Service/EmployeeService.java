@@ -1,6 +1,6 @@
 package com.corejsf.Service;
 
-import com.corejsf.DTO.EmployeeManagerUpdateDto;
+import com.corejsf.DTO.employee.EmployeeManagerUpdateDto;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.InternalServerErrorException;
 import java.math.BigDecimal;
@@ -9,8 +9,8 @@ import java.util.List;
 
 import org.mindrot.jbcrypt.BCrypt;
 
-import com.corejsf.DTO.EmployeeCreateDTO;
-import com.corejsf.DTO.EmployeeSelfUpdateDto;
+import com.corejsf.DTO.employee.EmployeeCreateDTO;
+import com.corejsf.DTO.employee.EmployeeSelfUpdateDto;
 
 import com.corejsf.Entity.Employee;
 import com.corejsf.Entity.EmployeeESignature;
@@ -32,6 +32,16 @@ public class EmployeeService {
 
     @PersistenceContext(unitName = "project-management-pu")
     private EntityManager em;
+
+    // These strings are for creation error message
+    private final static String EMPLOYEE_FIRST_NAME_ERROR = "The employee's new first name cannot be null or blank";
+    private final static String EMPLOYEE_LAST_NAME_ERROR = "The employee's new last name cannot be null or blank";
+    private final static String EMPLOYEE_PASSWORD_ERROR = "The employee's new password cannot be null or blank";
+    private final static String EMPLOYEE_SUPERVISOR_ID_ERROR = "The employee's new supervisor ID cannot be null or less than 1.";
+    private final static String EMPLOYEE_SUPERVISOR_ID_NOT_ERROR_PREFIX = "The employee's new supervisor ID cannot be found: ";
+    private final static String EMPLOYEE_LABOUR_GRADE_ID_ERROR = "The employee's new labour grade cannot be null or less than 1.";
+    private final static String EMPLOYEE_LABOUR_GRADE_NOT_ID_FOUND_ERROR_PREFIX = "The employee's new labour grade ID cannot be found: ";
+    private final static String EMPLOYEE_SYSTEM_ROLE_ERROR = "The employee's system role cannot be null";
 
     /**
      * Retrieves all employees.
@@ -60,29 +70,92 @@ public class EmployeeService {
     }
 
     /**
-     * Creates a new employee.
+     * Creates a new employee with field validation.
      *
      * @param dto the data transfer object containing new employee details.
      * @return the created employee.
      */
-    public Employee createEmployee(EmployeeCreateDTO dto) {
-        EmployeeESignature sig = new EmployeeESignature();
-        Employee newEmp = new Employee();
+    public Employee createEmployee(final EmployeeCreateDTO dto)
+    {
+        if (dto.firstName() == null || dto.firstName().isBlank())
+        {
+            throw new BadRequestException(EMPLOYEE_FIRST_NAME_ERROR);
+        }
 
+        if (dto.lastName() == null || dto.lastName().isBlank())
+        {
+            throw new BadRequestException(EMPLOYEE_LAST_NAME_ERROR);
+        }
+
+        if (dto.password() == null || dto.password().isBlank())
+        {
+            throw new BadRequestException(EMPLOYEE_PASSWORD_ERROR);
+        }
+
+        if (dto.supervisorId() == null || dto.supervisorId() < 1)
+        {
+            throw new BadRequestException(EMPLOYEE_SUPERVISOR_ID_ERROR);
+        }
+
+        if (dto.laborGradeId() == null || dto.laborGradeId() < 1)
+        {
+            throw new BadRequestException(EMPLOYEE_LABOUR_GRADE_ID_ERROR);
+        }
+
+        final Employee supervisor = em.find(Employee.class, dto.supervisorId());
+
+        if (supervisor == null)
+        {
+            throw new BadRequestException(EMPLOYEE_SUPERVISOR_ID_NOT_ERROR_PREFIX + dto.supervisorId());
+        }
+
+        final LaborGrade laborGrade = em.find(LaborGrade.class, dto.laborGradeId());
+
+        if (laborGrade == null)
+        {
+            throw new BadRequestException(EMPLOYEE_LABOUR_GRADE_NOT_ID_FOUND_ERROR_PREFIX + dto.laborGradeId());
+        }
+
+        if (dto.systemRole() == null)
+        {
+            throw new BadRequestException(EMPLOYEE_SYSTEM_ROLE_ERROR);
+        }
+
+        EmployeeESignature sig = new EmployeeESignature();
         sig.setSignatureData(new byte[]{0x00});
         sig.setSignedAt(LocalDateTime.now());
-        em.persist(sig);
 
-        newEmp.setEmpFirstName(dto.getFirstName());
-        newEmp.setEmpLastName(dto.getLastName());
-        newEmp.setEmpPassword(BCrypt.hashpw(dto.getPassword(), BCrypt.gensalt()));
-        newEmp.setLaborGrade(em.find(LaborGrade.class, dto.getLaborGradeId()));
-        newEmp.setSupervisor(em.find(Employee.class, dto.getSupervisorId()));
-        newEmp.setVacationSickBalance(new BigDecimal(0));
-        newEmp.setExpectedWeeklyHours(new BigDecimal(40));
-        newEmp.setSystemRole(dto.getSystemRole());
-        newEmp.setESignature(sig);
-        em.persist(newEmp);
+        Employee newEmp = new Employee();
+
+        // Getting the transaction to prepare for database transaction
+        EntityTransaction transaction = em.getTransaction();
+
+        transaction.begin();
+
+        try
+        {
+            em.persist(sig);
+
+            newEmp.setEmpFirstName(dto.firstName());
+            newEmp.setEmpLastName(dto.lastName());
+            newEmp.setEmpPassword(BCrypt.hashpw(dto.password(), BCrypt.gensalt()));
+            newEmp.setLaborGrade(laborGrade);
+            newEmp.setSupervisor(supervisor);
+            newEmp.setVacationSickBalance(new BigDecimal(0));
+            newEmp.setExpectedWeeklyHours(new BigDecimal(40));
+            newEmp.setSystemRole(dto.systemRole());
+            newEmp.setESignature(sig);
+
+            em.persist(newEmp);
+            transaction.commit();
+        }
+        catch(final Exception ex)
+        {
+            transaction.rollback();
+            throw new InternalServerErrorException("Unknown error has occurred when creating an new employee: " +
+                                                   ex.getClass().getName() + " - " + ex.getMessage());
+        }
+
         return newEmp;
     }
 

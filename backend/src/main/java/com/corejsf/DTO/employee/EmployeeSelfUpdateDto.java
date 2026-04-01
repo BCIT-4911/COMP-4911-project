@@ -1,4 +1,4 @@
-package com.corejsf.DTO;
+package com.corejsf.DTO.employee;
 
 import java.io.Serializable;
 

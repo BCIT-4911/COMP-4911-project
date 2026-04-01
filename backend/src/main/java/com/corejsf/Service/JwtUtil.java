@@ -51,9 +51,9 @@ public final class JwtUtil {
     }
 
     /**
-     * Generates a signed JWT containing empId, systemRole, and exp.
+     * Generates a signed JWT containing empId, systemRole, firstName, lastName, and exp.
      */
-    public static String generateToken(int empId, SystemRole role) {
+    public static String generateToken(int empId, SystemRole role, String firstName, String lastName) {
         // Calculate expiration time as a Unix timestamp (seconds since epoch)
         long exp = System.currentTimeMillis() / MILLIS_PER_SECOND + EXPIRATION_SECONDS;
 
@@ -66,6 +66,8 @@ public final class JwtUtil {
         String payloadJson = Json.createObjectBuilder()
                                  .add("empId", empId)
                                  .add("systemRole", role.name())
+                                 .add("firstName", firstName != null ? firstName : "")
+                                 .add("lastName", lastName != null ? lastName : "")
                                  .add("exp", exp)
                                  .build()
                                  .toString();
@@ -133,8 +135,10 @@ public final class JwtUtil {
         int empId = json.getInt("empId");
         String systemRoleStr = json.getString("systemRole");
         SystemRole systemRole = SystemRole.valueOf(systemRoleStr);
+        String firstName = json.containsKey("firstName") ? json.getString("firstName") : "";
+        String lastName = json.containsKey("lastName") ? json.getString("lastName") : "";
 
-        return new JwtClaims(empId, systemRole);
+        return new JwtClaims(empId, systemRole, firstName, lastName);
     }
 
     /**
@@ -172,5 +176,5 @@ public final class JwtUtil {
     }
 
     // Holds the parsed claims from a valid JWT token
-    public record JwtClaims(int empId, SystemRole systemRole) { }
+    public record JwtClaims(int empId, SystemRole systemRole, String firstName, String lastName) { }
 }

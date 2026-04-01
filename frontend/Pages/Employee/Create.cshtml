@@ -1,0 +1,122 @@
+@page
+@model CreateModel
+@using frontend.model
+
+@{
+    ViewData["Title"] = "New Employee";
+    var employees = ViewData["Employees"] as List<Employee> ?? new List<Employee>();
+    var laborGrades = ViewData["LaborGrades"] as List<LaborGrade> ?? new List<LaborGrade>();
+}
+
+<div class="container py-4">
+    <nav aria-label="breadcrumb" class="mb-2">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item">
+                <a asp-page="/Employee/Index" style="color: #607E6C; text-decoration: none;">Employees</a>
+            </li>
+            <li class="breadcrumb-item active" aria-current="page" style="color: #748B75;">New Employee</li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="mb-4">
+        <h1 class="fw-bold" style="color: #607E6C;">Employee Details</h1>
+        <p class="text-muted mb-0">Create employee information</p>
+    </div>
+
+    <!-- Form Card -->
+    <div class="card border-0 rounded-3 p-4 p-md-5" style="background-color: #F5FBEF; border: 1px solid #dce8d5 !important;">
+        <form method="post">
+            <!-- First Name, Last Name -->
+            <div class="row mb-4">
+                <div class="col-md-6 mb-3 mb-md-0">
+                    <label asp-for="employeeDto.firstName" class="form-label fw-semibold" style="color: #333;">First Name</label>
+                    <input type="text" class="form-control rounded-3 border-0 py-2 px-3"
+                           asp-for="employeeDto.firstName"
+                           placeholder="e.g. Julian"
+                           style="background-color: #eef3ea;"
+                           required>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="employeeDto.lastName" class="form-label fw-semibold" style="color: #333;">Last Name</label>
+                    <input type="text" class="form-control rounded-3 border-0 py-2 px-3"
+                           asp-for="employeeDto.lastName"
+                           placeholder="e.g. Thorne"
+                           style="background-color: #eef3ea;"
+                           required>
+                </div>
+            </div>
+
+            <!-- Password -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <label asp-for="employeeDto.password" class="form-label fw-semibold" style="color: #333;">Password</label>
+                    <input type="password" class="form-control rounded-3 border-0 py-2 px-3"
+                           asp-for="employeeDto.password"
+                           placeholder="Enter password"
+                           style="background-color: #eef3ea;"
+                           required>
+                </div>
+            </div>
+
+            <!-- System Role, Labor Grade -->
+            <div class="row mb-4">
+                <div class="col-md-6 mb-3 mb-md-0">
+                    <label asp-for="employeeDto.systemRole" class="form-label fw-semibold" style="color: #333;">Role</label>
+                    <select class="form-select rounded-3 border-0 py-2 px-3"
+                            asp-for="employeeDto.systemRole"
+                            style="background-color: #eef3ea; color: #607E6C;"
+                            required>
+                        <option value="">Select Role</option>
+                        <option value="ADMIN">Admin</option>
+                        <option value="EMPLOYEE">Employee</option>
+                        <option value="OPERATIONS_MANAGER">Operations Manager</option>
+                        <option value="HR">HR</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="employeeDto.laborGradeId" class="form-label fw-semibold" style="color: #333;">Labor Grade</label>
+                    <select class="form-select rounded-3 border-0 py-2 px-3"
+                            asp-for="employeeDto.laborGradeId"
+                            style="background-color: #eef3ea; color: #607E6C;"
+                            required>
+                        <option value="">Select Labor Grade</option>
+                        @foreach (var laborGrade in laborGrades)
+                        {
+                            <option value="@laborGrade.laborGradeId">@laborGrade.gradeCode</option>
+                        }
+                    </select>
+                </div>
+            </div>
+
+            <!-- Supervisor -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <label asp-for="employeeDto.supervisorId" class="form-label fw-semibold" style="color: #333;">Supervisor</label>
+                    <select class="form-select rounded-3 border-0 py-2 px-3"
+                            asp-for="employeeDto.supervisorId"
+                            style="background-color: #eef3ea; color: #607E6C;"
+                            required>
+                        <option value="">Select Supervisor</option>
+                        @foreach (var employee in employees)
+                        {
+                            <option value="@employee.empId">@employee.empFirstName @employee.empLastName</option>
+                        }
+                    </select>
+                </div>
+            </div>
+
+            <!-- Buttons -->
+            <div class="d-flex justify-content-center gap-3 mt-4">
+                <a asp-page="/Employee/Index" class="btn btn-outline-secondary rounded-3 px-4 py-2"
+                   style="border-color: #748B75; color: #748B75;">
+                    Cancel
+                </a>
+                <button type="submit" class="btn text-white rounded-3 px-4 py-2"
+                        style="background-color: #607E6C;">
+                    Save Employee
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

@@ -9,8 +9,10 @@ import com.corejsf.Service.RebacService;
 
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
@@ -90,5 +92,40 @@ public class EmployeeResource {
         }
         Employee created = employeeService.createEmployee(dto);
         return Response.status(Response.Status.CREATED).entity(created).build();
+    }
+
+    /**
+     * Updates an existing employee.
+     * Only accessible to users with employee management permissions.
+     * 
+     * @param id the unique identifier of the employee to update.
+     * @param dto the data transfer object containing updated employee details.
+     * @return a Response containing the updated employee with OK status.
+     */
+    @PUT
+    @Path("/{id}")
+    public Response update(@PathParam("id") int id, EmployeeCreateDTO dto) {
+        if (!rebacService.canManageEmployees(authContext.getSystemRole())) {
+            return forbidden();
+        }
+        Employee updated = employeeService.updateEmployee(id, dto);
+        return Response.ok(updated).build();
+    }
+
+    /**
+     * Deletes an employee by ID.
+     * Only accessible to users with employee management permissions.
+     * 
+     * @param id the unique identifier of the employee to delete.
+     * @return a Response with OK status.
+     */
+    @DELETE
+    @Path("/{id}")
+    public Response delete(@PathParam("id") int id) {
+        if (!rebacService.canManageEmployees(authContext.getSystemRole())) {
+            return forbidden();
+        }
+        employeeService.deleteEmployee(id);
+        return Response.ok().build();
     }
 }

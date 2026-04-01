@@ -100,8 +100,16 @@ public class LoginModel : PageModel
                 var empId = payload.TryGetProperty("empId", out var empIdProp)
                     ? empIdProp.GetRawText()
                     : "";
+                var firstName = payload.TryGetProperty("firstName", out var firstProp)
+                    ? firstProp.GetString() ?? ""
+                    : "";
+                var lastName = payload.TryGetProperty("lastName", out var lastProp)
+                    ? lastProp.GetString() ?? ""
+                    : "";
                 HttpContext.Session.SetString("SystemRole", role);
                 HttpContext.Session.SetString("EmpId", empId);
+                HttpContext.Session.SetString("EmpFirstName", firstName);
+                HttpContext.Session.SetString("EmpLastName", lastName);
             }
             catch { /* ignore decode errors, role/nav will fallback */ }
         }

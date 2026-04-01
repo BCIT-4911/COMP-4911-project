@@ -17,8 +17,10 @@
         <nav class="navbar navbar-expand-lg custom-header py-3">
             <div class="container-fluid px-sm-4 px-2 d-flex align-items-center">
 
-                <a class="navbar-brand header-brand fw-bold mb-0 me-4" asp-area="" asp-page="/Index">Front-end</a>
-                
+                <a class="navbar-brand header-brand mb-0 me-4" asp-area="" asp-page="/Index">
+                    <img src="~/images/logo.png" alt="Logo" class="header-logo" />
+                </a>
+
                 <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse"
                         data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent" aria-expanded="false"
                         aria-label="Toggle navigation">
@@ -29,14 +31,28 @@
                     @{
                         var role = Context.Session.GetString("SystemRole") ?? "";
                         var empId = Context.Session.GetString("EmpId") ?? "";
+                        var empFirstName = Context.Session.GetString("EmpFirstName") ?? "";
+                        var empLastName = Context.Session.GetString("EmpLastName") ?? "";
                         var jwt = Context.Session.GetString("JWT") ?? "";
                         var apiBaseUrl = Config["ApiBaseUrl"] ?? "";
                         var isLoggedIn = !string.IsNullOrEmpty(role) ||
                     !string.IsNullOrEmpty(Context.Session.GetString("JWT"));
+
+                        var lastInitial = "";
+                        if (empLastName.Length > 0)
+                        {
+                            lastInitial = empLastName[0].ToString();
+                        }
+
+                        var displayName = $"{empId}";
+                        if (!string.IsNullOrEmpty(empFirstName))
+                        {
+                            displayName = $"{empFirstName}. {lastInitial} - {empId}";
+                        }
                     }
-                    
+
                     <!-- Nav items -->
-                    <ul class="navbar-nav mx-auto header-nav gap-lg-4 gap-2">
+                    <ul class="navbar-nav header-nav gap-lg-4 gap-2">
                         @if (isLoggedIn)
                         {
                             <li class="nav-item">
@@ -71,7 +87,7 @@
                     {
                         <ul class="navbar-nav ms-auto align-items-center flex-row justify-content-end gap-3 mt-3 mt-lg-0">
                             <li class="nav-item">
-                                <span class="nav-link text-muted">Emp #@empId</span>
+                                <span class="nav-link text-muted">@displayName</span>
                             </li>
 
                             <li class="nav-item ms-lg-2">
@@ -116,13 +132,13 @@
                     document.addEventListener('DOMContentLoaded', () => {
                         const navLinks = document.querySelectorAll('.header-link');
                         const currPath = window.location.pathname.toLowerCase();
-                
+
                         navLinks.forEach(link => {
                             const href = link.getAttribute('href');
                             if (!href) return;
-                    
+
                             const hrefLower = href.toLowerCase();
-                    
+
                             if (currPath === '/' && (hrefLower === '/' || hrefLower === '/index')) {
                                 link.classList.add('active');
                             } else if (currPath === '/index' && (hrefLower === '/' || hrefLower === '/index')) {

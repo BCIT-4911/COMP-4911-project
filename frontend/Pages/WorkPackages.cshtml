@@ -148,7 +148,7 @@
                 </div>
                 <div class="form-group">
                     <label for="estEtc">ETC (Estimate to Completion)</label>
-                    <input type="number" id="estEtc" step="0.01" min="0" placeholder="e.g. 5500.00" />
+                    <input type="number" id="estEtc" step="0.01" min="0" placeholder="e.g. 5500.00" required="true"/>
                 </div>
             </div>
 
@@ -539,6 +539,7 @@
         document.getElementById('estPercentComplete').value = w.percentComplete !== undefined && w.percentComplete !== null ? w.percentComplete : '';
         document.getElementById('estBac').value = w.bac !== undefined && w.bac !== null ? w.bac : '';
         document.getElementById('estEac').value = w.eac !== undefined && w.eac !== null ? w.eac : '';
+        document.getElementById('estEtc').value = w.etc !== undefined && w.etc !== null ? w.etc : '';
         
         document.getElementById('estimateModal').classList.add('active');
     }
@@ -561,7 +562,8 @@
             budgetedEffort: document.getElementById('estBudgetedEffort').value ? parseFloat(document.getElementById('estBudgetedEffort').value) : null,
             percentComplete: document.getElementById('estPercentComplete').value ? parseFloat(document.getElementById('estPercentComplete').value) : null,
             bac: document.getElementById('estBac').value ? parseFloat(document.getElementById('estBac').value) : null,
-            eac: document.getElementById('estEac').value ? parseFloat(document.getElementById('estEac').value) : null
+            eac: document.getElementById('estEac').value ? parseFloat(document.getElementById('estEac').value) : null,
+            etc: document.getElementById('estEtc').value ? parseFloat(document.getElementById('estEtc').value) : null
         };
 
         try {

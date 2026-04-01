@@ -242,6 +242,7 @@ public class WorkPackageService {
         WorkPackage existing = findWorkPackage(id);
 
         WorkPackageValidation.validateName(wp.getWpName());
+        WorkPackageValidation.validateEtc(wp.getEtc());
 
         String reName = wp.getReEmployeeName();
         Integer reEmpId = wp.getReEmployeeId();
@@ -268,6 +269,7 @@ public class WorkPackageService {
         existing.setEac(wp.getEac());
         existing.setPercentComplete(wp.getPercentComplete());
         existing.setBudgetedEffort(wp.getBudgetedEffort());
+        existing.setEtc(wp.getEtc());
 
         existing.setModifiedDate(LocalDateTime.now());
         em.merge(existing);

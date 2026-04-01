@@ -398,12 +398,7 @@ public class WorkPackageService {
     }
 
     public WorkPackage updateEtc(String id, BigDecimal etc) {
-        if (etc == null) {
-            throw new IllegalArgumentException("etc is required.");
-        }
-        if (etc.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException("etc cannot be negative.");
-        }
+        WorkPackageValidation.validateEtc(etc);
 
         WorkPackage wp = findWorkPackage(id);
         wp.setEtc(etc);

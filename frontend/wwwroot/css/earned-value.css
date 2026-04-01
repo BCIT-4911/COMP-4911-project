@@ -13,9 +13,7 @@
 }
 
 body {
-  background:
-    radial-gradient(circle at top left, rgba(146, 173, 148, 0.2), transparent 30%),
-    linear-gradient(180deg, #fbfef8 0%, #f5fbef 100%);
+  background: #ffffff;
 }
 
 .ev-shell {
@@ -264,7 +262,7 @@ body {
   display: grid;
   place-items: center;
   padding: 1.5rem;
-  background: rgba(47, 70, 51, 0.38);
+  background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(10px);
 }
 
@@ -273,7 +271,7 @@ body {
   max-height: calc(100vh - 3rem);
   overflow: auto;
   border-radius: 28px;
-  background: linear-gradient(180deg, #f7fcf2 0%, #f5fbef 100%);
+  background: #ffffff;
   box-shadow: 0 30px 90px rgba(47, 70, 51, 0.25);
 }
 

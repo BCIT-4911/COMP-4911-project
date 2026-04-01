@@ -90,7 +90,8 @@ public class EmployeeService {
      * This update employee function validates all requested fields before processing them to fulfill ACID rules
      *
      * @param id The employee ID
-     * @param dto An EmployeeManagerUpdateDto class which contains the personal details of the employee
+     * @param dto An EmployeeManagerUpdateDto class which contains the personal details of the employee. The manager
+     *            can skip updating certain fields using null value in the data transfer object.
      * @return An updated Employee record to the resource end point
      */
     public Employee updateEmployee(final int id, final EmployeeManagerUpdateDto dto)
@@ -112,18 +113,45 @@ public class EmployeeService {
             throw new BadRequestException("The new last name cannot be blank (filled only with space character).");
         }
 
-        LaborGrade newLaborGrade = em.find(LaborGrade.class, dto.laborGradeId());
-
-        if (dto.laborGradeId() > 0 && newLaborGrade  == null)
+        if (dto.password() != null && dto.password().isBlank())
         {
-            throw new BadRequestException("The new labour grade ID " + dto.laborGradeId() + " is invalid.");
+            throw new BadRequestException("The new password cannot be blank (filled only with space character).");
         }
 
-        Employee newSupervisor = em.find(Employee.class, dto.supervisorId());
+        LaborGrade newLaborGrade = null;
 
-        if (dto.supervisorId() > 0 && newSupervisor == null)
+        if (dto.laborGradeId() != null)
         {
-            throw new BadRequestException("The new supervisor ID " + dto.supervisorId() + " is invalid.");
+            if (dto.laborGradeId() > 0)
+            {
+                if ((newLaborGrade = em.find(LaborGrade.class, dto.laborGradeId())) == null)
+                {
+                    throw new BadRequestException("The new labour grade under id " + dto.laborGradeId() + "could not " +
+                                                  "be found.");
+                }
+            }
+            else
+            {
+                throw new BadRequestException("The new labour grade id should not be equal to or smaller than 0.");
+            }
+        }
+
+        Employee newSupervisor = null;
+
+        if (dto.supervisorId() != null)
+        {
+            if (dto.supervisorId() > 0)
+            {
+                if ((newSupervisor = em.find(Employee.class, dto.supervisorId())) == null)
+                {
+                    throw new BadRequestException("The new supervisor with id " + dto.laborGradeId() + " could not be" +
+                                                  " found.");
+                }
+            }
+            else
+            {
+                throw new BadRequestException("The new supervisor id should not be equal to or smaller than 0.");
+            }
         }
 
         EntityTransaction transaction = em.getTransaction();
@@ -134,20 +162,25 @@ public class EmployeeService {
 
             if(dto.firstName() != null)
             {
-                emp.setEmpFirstName(dto.firstName());
+                emp.setEmpFirstName(dto.firstName().trim());
             }
 
             if(dto.lastName() != null)
             {
-                emp.setEmpLastName(dto.lastName());
+                emp.setEmpLastName(dto.lastName().trim());
             }
 
-            if(dto.supervisorId() > 0)
+            if(dto.password() != null)
+            {
+                emp.setEmpPassword(BCrypt.hashpw(dto.password().trim(), BCrypt.gensalt()));
+            }
+
+            if(newSupervisor != null)
             {
                 emp.setSupervisor(newSupervisor);
             }
 
-            if(dto.laborGradeId() > 0)
+            if(newLaborGrade != null)
             {
                 emp.setLaborGrade(newLaborGrade);
             }

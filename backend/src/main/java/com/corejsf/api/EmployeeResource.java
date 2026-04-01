@@ -3,7 +3,6 @@ package com.corejsf.api;
 import com.corejsf.DTO.EmployeeManagerUpdateDto;
 import com.corejsf.DTO.EmployeeSelfUpdateDto;
 import jakarta.ws.rs.BadRequestException;
-import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.InternalServerErrorException;
 import jakarta.ws.rs.NotFoundException;
 import java.util.List;
@@ -15,10 +14,10 @@ import com.corejsf.Service.RebacService;
 
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
+import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
@@ -182,7 +181,7 @@ public class EmployeeResource {
     @Path("/{id}")
     public Response deleteEmployee(@PathParam("id") final int id)
     {
-        if(rebacService.canManageEmployees(authContext.getSystemRole()))
+        if (!rebacService.canManageEmployees(authContext.getSystemRole()))
         {
             return forbidden();
         }

@@ -49,6 +49,16 @@
                                     <a class="nav-link text-dark" asp-page="/EarnedValue/Index">Earned Value</a>
                                 </li>
                             }
+                            @* Labor Report is visible to OPERATIONS_MANAGER, HR, and any PM
+                               (PM access is enforced server-side by the backend; we show the link
+                               for all logged-in users so PMs can reach it without exposing extra
+                               role logic in the frontend). *@
+                            @if (role == "OPERATIONS_MANAGER" || role == "HR" || role == "EMPLOYEE")
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link text-dark" asp-page="/EarnedValue/LaborReport">Labor Report</a>
+                                </li>
+                            }
                             @if (role == "HR")
                             {
                                 <li class="nav-item">

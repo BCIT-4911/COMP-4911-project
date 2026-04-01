@@ -9,16 +9,73 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/frontend.styles.css" asp-append-version="true" />
+    <style>
+        .custom-navbar {
+            background-color: #f5fbef;
+            border-bottom: 1px solid #e0e8d8;
+            padding: 0.6rem 0;
+        }
+        .custom-navbar .navbar-brand {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #2d5a3d;
+            margin-right: 2.5rem;
+        }
+        .custom-navbar .nav-link {
+            color: #4a5568;
+            font-size: 0.9rem;
+            font-weight: 500;
+            padding: 0.4rem 0.75rem;
+        }
+        .custom-navbar .nav-link:hover {
+            color: #2d5a3d;
+        }
+        .custom-navbar .nav-link.active-link {
+            color: #1a1a1a;
+            font-weight: 600;
+            border-bottom: 2px solid #2d5a3d;
+        }
+        .profile-circle {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background-color: #c8d8c8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #2d5a3d;
+            cursor: pointer;
+            overflow: hidden;
+        }
+        .profile-circle img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .nav-icon {
+            color: #6b7280;
+            font-size: 1rem;
+            cursor: pointer;
+            padding: 0 0.4rem;
+        }
+        .nav-icon:hover { color: #2d5a3d; }
+    </style>
 </head>
 <body>
     <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light border-bottom box-shadow mb-3" style="background-color: #f5fbef;">
+        <nav class="navbar navbar-expand-sm navbar-toggleable-sm custom-navbar mb-3">
             <div class="container">
+                <!-- Brand -->
                 <a class="navbar-brand" asp-area="" asp-page="/Index">frontend</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse"
-                        aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                        data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
+                        aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
+
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
                     @{
                         var role = Context.Session.GetString("SystemRole") ?? "";
@@ -26,50 +83,69 @@
                         var jwt = Context.Session.GetString("JWT") ?? "";
                         var apiBaseUrl = Config["ApiBaseUrl"] ?? "";
                         var isLoggedIn = !string.IsNullOrEmpty(role) || !string.IsNullOrEmpty(Context.Session.GetString("JWT"));
+
+                        // Get initials for profile circle
+                        var empName = Context.Session.GetString("EmpName") ?? "";
+                        var initials = string.IsNullOrEmpty(empName)
+                            ? (string.IsNullOrEmpty(empId) ? "?" : empId.Length >= 2 ? empId.Substring(0, 2) : empId)
+                            : string.Join("", empName.Split(' ').Take(2).Select(w => w[0].ToString().ToUpper()));
                     }
-                    <ul class="navbar-nav flex-grow-1">
+
+                    <!-- Nav links (left side, spaced from brand) -->
+                    <ul class="navbar-nav flex-grow-1" style="margin-left: 1rem;">
                         @if (isLoggedIn)
                         {
                             <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-page="/Index">Home</a>
+                                <a class="nav-link" asp-area="" asp-page="/Index">Home</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-dark" asp-page="/Timesheets/Index">Timesheet</a>
+                                <a class="nav-link" asp-area="" asp-page="/Projects">Projects</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-page="/Projects">Projects</a>
+                                <a class="nav-link" asp-page="/Timesheets/Index">Timesheet</a>
                             </li>
                             <li class="nav-item" id="approverNavItem" style="display:none;">
-                                <a class="nav-link text-dark" asp-page="/Approver/Index">Approver Dashboard</a>
+                                <a class="nav-link" asp-page="/Approver/Index">Approver Dashboard</a>
                             </li>
                             @if (role == "OPERATIONS_MANAGER")
                             {
                                 <li class="nav-item">
-                                    <a class="nav-link text-dark" asp-page="/EarnedValue/Index">Earned Value</a>
+                                    <a class="nav-link" asp-page="/EarnedValue/Index">Earned Value</a>
                                 </li>
                             }
                             @if (role == "HR")
                             {
                                 <li class="nav-item">
-                                    <a class="nav-link text-dark" asp-area="" asp-page="/Employees">Employees</a>
+                                    <a class="nav-link" asp-area="" asp-page="/Employees">Employees</a>
                                 </li>
                             }
                         }
                         else
                         {
                             <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-page="/Login">Login</a>
+                                <a class="nav-link" asp-area="" asp-page="/Login">Login</a>
                             </li>
                         }
                     </ul>
+
+                    <!-- Right side: icons + profile -->
                     @if (isLoggedIn)
                     {
-                        <ul class="navbar-nav">
+                        <ul class="navbar-nav align-items-center gap-2">
                             <li class="nav-item">
-                                <span class="nav-link text-muted">Emp #@empId</span>
+                                <span class="nav-icon" title="Notifications">&#128276;</span>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-dark" asp-page="/Login" asp-page-handler="Logout">Logout</a>
+                                <span class="nav-icon" title="Settings">&#9881;</span>
+                            </li>
+                            <li class="nav-item">
+                                <div class="profile-circle" title="Emp #@empId">
+                                    @initials
+                                </div>
+                            </li>
+                            <li class="nav-item ms-2">
+                                <a class="nav-link" style="font-size: 0.85rem; color: #6b7280;"
+                                   asp-page="/Login" asp-page-handler="Logout">Logout</a>
                             </li>
                         </ul>
 
@@ -105,6 +181,7 @@
             </div>
         </nav>
     </header>
+
     <div class="container">
         <main role="main" class="pb-3">
             @RenderBody()
@@ -123,5 +200,4 @@
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>
-
 </html>

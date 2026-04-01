@@ -71,6 +71,38 @@ public class RebacService {
         return canManageProject(empId, wp.getProject().getProjId());
     }
 
+
+    /**
+     * Very similar to canEditWorkPackage, except a project manager cannot
+     * charge to a work package unless even they are assigned to it
+     */
+    public boolean canChargeToWorkPackage(int empId, String wpId) {
+        WorkPackage wp = em.find(WorkPackage.class, wpId);
+        if (wp == null) {
+            return false;
+        }
+
+        // Are they the primary Responsible Employee?
+        Integer empIdBoxed = Integer.valueOf(empId);
+        if (wp.getResponsibleEmployee() != null && empIdBoxed.equals(wp.getResponsibleEmployee().getEmpId())) {
+            return true;
+        }
+
+        // Are they assigned as an RE in the WorkPackageAssignment table?
+        Long reCount = em.createQuery(
+                        "SELECT COUNT(wpa) FROM WorkPackageAssignment wpa " +
+                                "WHERE wpa.workPackage.wpId = :wpId " +
+                                "AND wpa.employee.empId = :empId " +
+                                "AND wpa.wpRole = :role", Long.class)
+                .setParameter("wpId", wpId)
+                .setParameter("empId", empId)
+                .setParameter("role", WpRole.RE)
+                .getSingleResult();
+
+        return reCount != null && reCount > 0;
+
+    }
+
     /*
      * Role checks (Employee-based, for backward compatibility)
      */

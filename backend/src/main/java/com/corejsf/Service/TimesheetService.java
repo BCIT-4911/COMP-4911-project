@@ -2,7 +2,9 @@ package com.corejsf.Service;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import jakarta.ejb.Stateless;
 import jakarta.inject.Inject;
@@ -23,6 +25,7 @@ import com.corejsf.Entity.Timesheet;
 import com.corejsf.Entity.TimesheetRow;
 import com.corejsf.Entity.TimesheetStatus;
 import com.corejsf.Entity.WorkPackage;
+import com.corejsf.Entity.WorkPackageType;
 
 
 @Stateless
@@ -227,7 +230,21 @@ public class TimesheetService {
         ts.setReturnComment(null);
 
         em.merge(ts);
-        return toResponseDTO(ts, findRows(id));
+
+        // Lock structure of any leaf WPs charged by this timesheet (first approved charge)
+        List<TimesheetRow> rows = findRows(id);
+        Set<String> processedWpIds = new HashSet<>();
+        for (TimesheetRow row : rows) {
+            WorkPackage wp = row.getWorkPackage();
+            if (wp.getWpType() == WorkPackageType.LOWEST_LEVEL
+                    && !Boolean.TRUE.equals(wp.getStructureLocked())
+                    && processedWpIds.add(wp.getWpId())) {
+                wp.setStructureLocked(true);
+                em.merge(wp);
+            }
+        }
+
+        return toResponseDTO(ts, rows);
     }
 
     public TimesheetResponseDTO returnTimesheet(int id, TimesheetReturnRequestDTO dto) {

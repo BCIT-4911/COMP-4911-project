@@ -242,7 +242,6 @@ public class WorkPackageService {
         WorkPackage existing = findWorkPackage(id);
 
         WorkPackageValidation.validateName(wp.getWpName());
-        WorkPackageValidation.validateEtc(wp.getEtc());
 
         String reName = wp.getReEmployeeName();
         Integer reEmpId = wp.getReEmployeeId();

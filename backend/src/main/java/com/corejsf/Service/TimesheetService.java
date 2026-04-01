@@ -290,7 +290,7 @@ public class TimesheetService {
         List<TimesheetRow> rows = new ArrayList<>();
         for (TimesheetRowRequestDTO rowDto : rowDTOs) {
             WorkPackage wp = findWorkPackage(rowDto.getWpId());
-            TimesheetValidation.validateWorkPackageChargeable(wp);
+            runValidation(() -> TimesheetValidation.validateWorkPackageChargeable(wp));
 
             LaborGrade lg = findLaborGrade(rowDto.getLaborGradeId());
 

@@ -155,6 +155,37 @@ public class RebacService {
                 .getResultList();
     }
 
+    /**
+     * Identical to canEditPackage except that PM's don't get special privileges
+     */
+    public boolean canChargeToPackage(int empId, String wpId) {
+        //Find the work package from the database
+        WorkPackage wp = em.find(WorkPackage.class, wpId);
+        if (wp == null) {
+            return false;
+        }
+
+        //Are they the primary RE?
+        Integer empIdBoxed = Integer.valueOf(empId);
+        if (wp.getResponsibleEmployee() != null && empIdBoxed.equals(wp.getResponsibleEmployee().getEmpId())) {
+            return true;
+        }
+
+        //Are they assigned as an RE in the WorkPackageAssignment table?
+        Long reCount = em.createQuery(
+                        "SELECT COUNT(wpa) FROM WorkPackageAssignment wpa " +
+                                "WHERE wpa.workPackage.wpId = :wpId " +
+                                "AND wpa.employee.empId = :empId " +
+                                "AND wpa.wpRole = :role", Long.class)
+                .setParameter("wpId", wpId)
+                .setParameter("empId", empId)
+                .setParameter("role", WpRole.RE)
+                .getSingleResult();
+
+        return reCount != null && reCount > 0;
+
+    }
+
     public boolean canEditWorkPackage(int empId, String wpId) {
         WorkPackage wp = em.find(WorkPackage.class, wpId);
         if (wp == null) {

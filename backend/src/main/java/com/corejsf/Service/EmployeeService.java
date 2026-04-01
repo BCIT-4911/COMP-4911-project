@@ -74,4 +74,41 @@ public class EmployeeService {
         em.persist(newEmp);
         return newEmp;
     }
+
+    /**
+     * Updates an existing employee.
+     * @param id the ID of the employee to update.
+     * @param dto the data transfer object containing updated employee details.
+     * @return the updated employee.
+     * @throws NotFoundException if the employee with the specified ID is not found.
+     */
+    public Employee updateEmployee(int id, EmployeeCreateDTO dto) {
+        Employee emp = em.find(Employee.class, id);
+        if (emp == null) {
+            throw new NotFoundException("Employee with id " + id + " not found.");
+        }
+        emp.setEmpFirstName(dto.getFirstName());
+        emp.setEmpLastName(dto.getLastName());
+        emp.setEmpPassword(BCrypt.hashpw(dto.getPassword(), BCrypt.gensalt()));
+        emp.setLaborGrade(em.find(LaborGrade.class, dto.getLaborGradeId()));
+        emp.setSupervisor(em.find(Employee.class, dto.getSupervisorId()));
+        emp.setVacationSickBalance(new BigDecimal(0));
+        emp.setExpectedWeeklyHours(new BigDecimal(40));
+        emp.setSystemRole(dto.getSystemRole());
+        em.persist(emp);
+        return emp;
+    }
+
+    /**
+     * Deletes an employee by ID.
+     * @param id the ID of the employee to delete.
+     * @throws NotFoundException if the employee with the specified ID is not found.
+     */
+    public void deleteEmployee(int id) {
+        Employee emp = em.find(Employee.class, id);
+        if (emp == null) {
+            throw new NotFoundException("Employee with id " + id + " not found.");
+        }
+        em.remove(emp);
+    }
 }

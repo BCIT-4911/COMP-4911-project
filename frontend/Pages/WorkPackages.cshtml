@@ -146,6 +146,10 @@
                     <label for="estEac">EAC (Estimate at Completion)</label>
                     <input type="number" id="estEac" step="0.01" min="0" placeholder="e.g. 5500.00" />
                 </div>
+                <div class="form-group">
+                    <label for="estEtc">ETC (Estimate to Completion)</label>
+                    <input type="number" id="estEtc" step="0.01" min="0" placeholder="e.g. 5500.00" />
+                </div>
             </div>
 
             <div class="modal-actions">
@@ -372,12 +376,24 @@
 
             // Estimate Button Visibility: Only PMs and the specific RE of this WP can see it
             if (canAssign || w.reEmployeeId === CURRENT_USER_ID) {
+                if (w.reEmployeeId === CURRENT_USER_ID && !canAssign) {
+                    document.getElementById("estEtc").disabled = false;
+                    document.getElementById("estEac").disabled = true;
+                    document.getElementById("estPercentComplete").disabled = true;
+                    document.getElementById("estBudgetedEffort").disabled = true;
+                } else {
+                    document.getElementById("estEtc").disabled = false;
+                    document.getElementById("estEac").disabled = false;
+                    document.getElementById("estPercentComplete").disabled = false;
+                    document.getElementById("estBudgetedEffort").disabled = false;
+                }
+
                 estimateButton = `
                     <button class="btn-action btn-assign" onclick="openEstimateModal('${esc(w.wpId)}')" title="Update EVM Estimates" style="color: #64ffda;">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
                     </button>
                 `;
-            }
+            } 
 
             return `
             <tr>
@@ -452,12 +468,24 @@
             }
 
             if (canAssign || n.reEmployeeId === CURRENT_USER_ID) {
+                if (n.reEmployeeId === CURRENT_USER_ID && !canAssign) {
+                    document.getElementById("estEtc").disabled = false;
+                    document.getElementById("estEac").disabled = true;
+                    document.getElementById("estPercentComplete").disabled = true;
+                    document.getElementById("estBudgetedEffort").disabled = true;
+                } else {
+                    document.getElementById("estEtc").disabled = false;
+                    document.getElementById("estEac").disabled = false;
+                    document.getElementById("estPercentComplete").disabled = false;
+                    document.getElementById("estBudgetedEffort").disabled = false;
+                }
+
                 estimateButton = `
                     <button class="btn-action btn-assign" onclick="openEstimateModal('${esc(n.wpId)}')" title="Update EVM Estimates" style="color: #64ffda;">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
                     </button>
                 `;
-            }
+            } 
 
             return `
             <li class="tree-item ${n.children && n.children.length > 0 ? 'has-children' : ''}">

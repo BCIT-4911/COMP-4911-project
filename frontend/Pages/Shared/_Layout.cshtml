@@ -81,6 +81,12 @@
                                 </li>
                             }
                         }
+                        else
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link header-link" asp-area="" asp-page="/Login">Login</a>
+                            </li>
+                        }
                     </ul>
 
                     <!--  Icons and userid-->
@@ -97,31 +103,31 @@
                         </ul>
 
                         <script>
-                                                (function () {
-                                                    const token = '@jwt';
-                                                    const apiBaseUrl = '@apiBaseUrl';
-                                                    if (!token || !apiBaseUrl) return;
+                            (function () {
+                                const token = '@jwt';
+                                const apiBaseUrl = '@apiBaseUrl';
+                                if (!token || !apiBaseUrl) return;
 
-                                                    const cached = sessionStorage.getItem('canAccessApprover');
-                                                    if (cached === 'true') {
-                                                        document.getElementById('approverNavItem').style.display = '';
-                                                        return;
-                                                    }
-                                                    if (cached === 'false') return;
+                                const cached = sessionStorage.getItem('canAccessApprover');
+                                if (cached === 'true') {
+                                    document.getElementById('approverNavItem').style.display = '';
+                                    return;
+                                }
+                                if (cached === 'false') return;
 
-                                                    fetch(`${apiBaseUrl}/api/auth/can-access-approver-dashboard`, {
-                                                        headers: { 'Authorization': `Bearer ${token}` }
-                                                    })
-                                                        .then(r => r.ok ? r.json() : null)
-                                                        .then(data => {
-                                                            const allowed = data && data.allowed;
-                                                            sessionStorage.setItem('canAccessApprover', String(allowed));
-                                                            if (allowed) {
-                                                                document.getElementById('approverNavItem').style.display = '';
-                                                            }
-                                                        })
-                                                        .catch(() => { });
-                                                })();
+                                fetch(`${apiBaseUrl}/api/auth/can-access-approver-dashboard`, {
+                                    headers: { 'Authorization': `Bearer ${token}` }
+                                })
+                                    .then(r => r.ok ? r.json() : null)
+                                    .then(data => {
+                                        const allowed = data && data.allowed;
+                                        sessionStorage.setItem('canAccessApprover', String(allowed));
+                                        if (allowed) {
+                                            document.getElementById('approverNavItem').style.display = '';
+                                        }
+                                    })
+                                    .catch(() => { });
+                            })();
                         </script>
                     }
                 </div>
@@ -130,25 +136,25 @@
 
         <!--Highlights current nav link-->
         <script>
-                    document.addEventListener('DOMContentLoaded', () => {
-                        const navLinks = document.querySelectorAll('.header-link');
-                        const currPath = window.location.pathname.toLowerCase();
+            document.addEventListener('DOMContentLoaded', () => {
+                const navLinks = document.querySelectorAll('.header-link');
+                const currPath = window.location.pathname.toLowerCase();
 
-                        navLinks.forEach(link => {
-                            const href = link.getAttribute('href');
-                            if (!href) return;
+                navLinks.forEach(link => {
+                    const href = link.getAttribute('href');
+                    if (!href) return;
 
-                            const hrefLower = href.toLowerCase();
+                    const hrefLower = href.toLowerCase();
 
-                            if (currPath === '/' && (hrefLower === '/' || hrefLower === '/index')) {
-                                link.classList.add('active');
-                            } else if (currPath === '/index' && (hrefLower === '/' || hrefLower === '/index')) {
-                                link.classList.add('active');
-                            } else if (hrefLower !== '/' && hrefLower !== '/index' && currPath.startsWith(hrefLower)) {
-                                link.classList.add('active');
-                            }
-                        });
-                    });
+                    if (currPath === '/' && (hrefLower === '/' || hrefLower === '/index')) {
+                        link.classList.add('active');
+                    } else if (currPath === '/index' && (hrefLower === '/' || hrefLower === '/index')) {
+                        link.classList.add('active');
+                    } else if (hrefLower !== '/' && hrefLower !== '/index' && currPath.startsWith(hrefLower)) {
+                        link.classList.add('active');
+                    }
+                });
+            });
         </script>
     </header>
     <div class="container">

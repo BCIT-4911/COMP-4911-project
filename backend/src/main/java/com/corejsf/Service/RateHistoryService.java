@@ -9,7 +9,6 @@ import com.corejsf.Entity.RateHistory;
 
 import jakarta.ejb.Stateless;
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.NoResultException;
 import jakarta.persistence.PersistenceContext;
 
 @Stateless
@@ -41,12 +40,7 @@ public class RateHistoryService {
             .getResultList();
 
         if (matches.isEmpty()) {
-            throw new NoResultException(
-                "No effective rate found for labor grade "
-                + laborGrade.getGradeCode()
-                + " on "
-                + targetDate
-            );
+            return laborGrade.getChargeRate();
         }
 
         return matches.get(0).getChargeRate();

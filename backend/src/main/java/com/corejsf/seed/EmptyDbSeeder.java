@@ -255,6 +255,8 @@ public class EmptyDbSeeder {
         } else {
             System.out.println("[Seeder] Base seed already present, ensuring labor report demo data.");
         }
+
+        seedCrossReportDemoData();
     }
 
     private Employee createEmployee(String firstName, String lastName, SystemRole role, Employee supervisor, LaborGrade lg) {
@@ -328,6 +330,157 @@ public class EmptyDbSeeder {
         rateHistory.setStartDate(startDate);
         rateHistory.setEndDate(endDate);
         em.persist(rateHistory);
+    }
+
+    private void seedCrossReportDemoData() {
+        Employee admin = em.find(Employee.class, 1);
+        if (admin == null) {
+            return;
+        }
+
+        LaborGrade baseGrade = findOrCreateLaborGrade("E1", "85.00");
+        LaborGrade foremanTwo = findOrCreateLaborGrade("F2", "120.00");
+        LaborGrade journeyman = findOrCreateLaborGrade("JM", "105.00");
+        LaborGrade specialist = findOrCreateLaborGrade("SP", "110.00");
+        LaborGrade foremanOne = findOrCreateLaborGrade("F1", "115.00");
+
+        ensureRateHistory(baseGrade, "75.00", LocalDate.of(2025, 1, 1), LocalDate.of(2025, 12, 31));
+        ensureRateHistory(baseGrade, "85.00", LocalDate.of(2026, 1, 1), null);
+
+        Employee bugsBunny = findOrCreateEmployee("Bugs", "Bunny", SystemRole.EMPLOYEE, admin, baseGrade);
+        Employee daffyDuck = findOrCreateEmployee("Daffy", "Duck", SystemRole.EMPLOYEE, bugsBunny, baseGrade);
+        Employee tweetyBird = findOrCreateEmployee("Tweety", "Bird", SystemRole.EMPLOYEE, bugsBunny, baseGrade);
+        Employee sylvesterCat = findOrCreateEmployee("Sylvester", "Cat", SystemRole.EMPLOYEE, bugsBunny, baseGrade);
+        Employee marvinMartian = findOrCreateEmployee("Marvin", "Martian", SystemRole.EMPLOYEE, admin, baseGrade);
+        Employee roadRunner = findOrCreateEmployee("Road", "Runner", SystemRole.HR, admin, baseGrade);
+
+        ensureProjectOneDemo(admin, bugsBunny, daffyDuck, tweetyBird, sylvesterCat, baseGrade);
+        ensureProjectTwoDemo(admin, marvinMartian, roadRunner, baseGrade);
+        ensureLaborProjectDemo(admin, foremanTwo, journeyman, specialist, foremanOne);
+    }
+
+    private void ensureProjectOneDemo(Employee admin,
+                                      Employee bugsBunny,
+                                      Employee daffyDuck,
+                                      Employee tweetyBird,
+                                      Employee sylvesterCat,
+                                      LaborGrade baseGrade) {
+        Project proj = em.find(Project.class, "PROJ-1");
+        if (proj == null) {
+            return;
+        }
+
+        assignProjectMember(proj, bugsBunny, ProjectRole.PM);
+        proj.setProjectManager(bugsBunny);
+        em.merge(proj);
+
+        assignProjectMember(proj, daffyDuck);
+        assignProjectMember(proj, tweetyBird);
+        assignProjectMember(proj, sylvesterCat);
+
+        WorkPackage parent = findOrCreateSummaryWorkPackage(
+                "A", "Control Account A", proj, admin,
+                LocalDate.of(2026, 1, 1), LocalDate.of(2026, 3, 31),
+                new BigDecimal("5000.00"), new BigDecimal("25.00"));
+
+        WorkPackage wp1 = findOrCreateChildWorkPackage(
+                "A.WP-1", "Procure Anvil", proj, parent, daffyDuck,
+                LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 31),
+                new BigDecimal("1500.00"), new BigDecimal("15.00"));
+        WorkPackage wp2 = findOrCreateChildWorkPackage(
+                "A.WP-2", "Paint Fake Tunnel", proj, parent, sylvesterCat,
+                LocalDate.of(2026, 2, 1), LocalDate.of(2026, 2, 14),
+                new BigDecimal("1000.00"), new BigDecimal("50.00"));
+        WorkPackage wp3 = findOrCreateChildWorkPackage(
+                "A.WP-3", "Build Road", proj, parent, tweetyBird,
+                LocalDate.of(2026, 1, 15), LocalDate.of(2026, 3, 1),
+                new BigDecimal("2500.00"), new BigDecimal("35.00"));
+
+        assignWorkPackageMember(wp1, daffyDuck, WpRole.RE);
+        assignWorkPackageMember(wp2, sylvesterCat, WpRole.RE);
+        assignWorkPackageMember(wp3, tweetyBird, WpRole.RE);
+
+        LocalDate weekEnding = LocalDate.of(2026, 3, 8);
+        findOrCreateTimesheetWithSingleRow(daffyDuck, admin, weekEnding, TimesheetStatus.APPROVED, wp1, baseGrade, "32.0");
+        findOrCreateTimesheetWithSingleRow(sylvesterCat, admin, weekEnding, TimesheetStatus.APPROVED, wp2, baseGrade, "28.0");
+        findOrCreateTimesheetWithSingleRow(tweetyBird, admin, weekEnding, TimesheetStatus.SUBMITTED, wp3, baseGrade, "18.0");
+    }
+
+    private void ensureProjectTwoDemo(Employee admin,
+                                      Employee marvinMartian,
+                                      Employee roadRunner,
+                                      LaborGrade baseGrade) {
+        Project proj2 = em.find(Project.class, "PROJ-2");
+        if (proj2 == null) {
+            return;
+        }
+
+        assignProjectMember(proj2, marvinMartian, ProjectRole.PM);
+        proj2.setProjectManager(marvinMartian);
+        em.merge(proj2);
+
+        assignProjectMember(proj2, roadRunner);
+
+        WorkPackage parent = findOrCreateSummaryWorkPackage(
+                "B", "Control Account B", proj2, marvinMartian,
+                LocalDate.of(2026, 1, 3), LocalDate.of(2026, 3, 3),
+                new BigDecimal("6000.00"), new BigDecimal("40.00"));
+
+        WorkPackage wp1 = findOrCreateChildWorkPackage(
+                "B.WP-1", "Survey Site", proj2, parent, marvinMartian,
+                LocalDate.of(2026, 1, 3), LocalDate.of(2026, 1, 31),
+                new BigDecimal("1800.00"), new BigDecimal("100.00"));
+        WorkPackage wp2 = findOrCreateChildWorkPackage(
+                "B.WP-2", "Pour Concrete", proj2, parent, roadRunner,
+                LocalDate.of(2026, 2, 1), LocalDate.of(2026, 2, 20),
+                new BigDecimal("2200.00"), new BigDecimal("65.00"));
+        WorkPackage wp3 = findOrCreateChildWorkPackage(
+                "B.WP-3", "Final Inspection", proj2, parent, marvinMartian,
+                LocalDate.of(2026, 2, 21), LocalDate.of(2026, 3, 3),
+                new BigDecimal("2000.00"), new BigDecimal("25.00"));
+
+        assignWorkPackageMember(wp1, marvinMartian, WpRole.RE);
+        assignWorkPackageMember(wp2, roadRunner, WpRole.RE);
+        assignWorkPackageMember(wp3, marvinMartian, WpRole.MEMBER);
+
+        LocalDate weekEnding = LocalDate.of(2026, 3, 8);
+        findOrCreateTimesheetWithSingleRow(marvinMartian, admin, weekEnding, TimesheetStatus.APPROVED, wp1, baseGrade, "14.0");
+        findOrCreateTimesheetWithSingleRow(roadRunner, admin, weekEnding, TimesheetStatus.APPROVED, wp2, baseGrade, "22.0");
+        findOrCreateTimesheetWithSingleRow(marvinMartian, admin, weekEnding, TimesheetStatus.SUBMITTED, wp3, baseGrade, "10.0");
+    }
+
+    private void ensureLaborProjectDemo(Employee admin,
+                                        LaborGrade foremanTwo,
+                                        LaborGrade journeyman,
+                                        LaborGrade specialist,
+                                        LaborGrade foremanOne) {
+        seedLaborReportDemo();
+
+        Employee marcus = findOrCreateEmployee("Marcus", "Aurelius", SystemRole.EMPLOYEE, admin, foremanTwo);
+        Employee elena = findOrCreateEmployee("Elena", "Fisher", SystemRole.EMPLOYEE, admin, journeyman);
+        Employee james = findOrCreateEmployee("James", "Holden", SystemRole.EMPLOYEE, admin, specialist);
+        Employee sarah = findOrCreateEmployee("Sarah", "Connor", SystemRole.EMPLOYEE, admin, foremanOne);
+
+        Project project = em.find(Project.class, "LABOR-1");
+        if (project == null) {
+            return;
+        }
+
+        WorkPackage foundations = findOrCreateLeafWorkPackage("LABOR-1.WP-1", "Foundations - Section A", project, marcus);
+        WorkPackage electrical = findOrCreateLeafWorkPackage("LABOR-1.WP-2", "Electrical Wiring - Level 4", project, elena);
+        WorkPackage hvac = findOrCreateLeafWorkPackage("LABOR-1.WP-3", "HVAC Duct Installation", project, james);
+        WorkPackage plumbing = findOrCreateLeafWorkPackage("LABOR-1.WP-4", "Plumbing - Master Bath", project, sarah);
+
+        updateWorkPackageForEarnedValue(foundations, marcus, LocalDate.of(2026, 1, 1), LocalDate.of(2026, 2, 15), "55000.00", "42.00");
+        updateWorkPackageForEarnedValue(electrical, elena, LocalDate.of(2026, 1, 10), LocalDate.of(2026, 2, 28), "70000.00", "58.00");
+        updateWorkPackageForEarnedValue(hvac, james, LocalDate.of(2026, 2, 1), LocalDate.of(2026, 3, 15), "60000.00", "47.00");
+        updateWorkPackageForEarnedValue(plumbing, sarah, LocalDate.of(2026, 2, 10), LocalDate.of(2026, 3, 20), "65000.00", "63.00");
+
+        LocalDate currentWeek = LocalDate.of(2026, 3, 8);
+        findOrCreateTimesheetWithSingleRow(marcus, admin, currentWeek, TimesheetStatus.APPROVED, foundations, foremanTwo, "36.0");
+        findOrCreateTimesheetWithSingleRow(elena, admin, currentWeek, TimesheetStatus.APPROVED, electrical, journeyman, "30.0");
+        findOrCreateTimesheetWithSingleRow(james, admin, currentWeek, TimesheetStatus.SUBMITTED, hvac, specialist, "34.0");
+        findOrCreateTimesheetWithSingleRow(sarah, admin, currentWeek, TimesheetStatus.APPROVED, plumbing, foremanOne, "41.0");
     }
 
     private void seedLaborReportDemo() {
@@ -406,6 +559,28 @@ public class EmptyDbSeeder {
         return laborGrade;
     }
 
+    private void ensureRateHistory(LaborGrade laborGrade,
+                                   String chargeRate,
+                                   LocalDate startDate,
+                                   LocalDate endDate) {
+        Long count = em.createQuery(
+                "SELECT COUNT(rh) FROM RateHistory rh " +
+                "WHERE rh.laborGrade = :laborGrade " +
+                "  AND rh.startDate = :startDate " +
+                "  AND ((:endDate IS NULL AND rh.endDate IS NULL) OR rh.endDate = :endDate)",
+                Long.class)
+                .setParameter("laborGrade", laborGrade)
+                .setParameter("startDate", startDate)
+                .setParameter("endDate", endDate)
+                .getSingleResult();
+
+        if (count != null && count > 0) {
+            return;
+        }
+
+        createRateHistory(laborGrade, chargeRate, startDate, endDate);
+    }
+
     private Employee findOrCreateEmployee(String firstName, String lastName, SystemRole role, Employee supervisor, LaborGrade laborGrade) {
         List<Employee> existing = em.createQuery(
                 "SELECT e FROM Employee e WHERE e.empFirstName = :firstName AND e.empLastName = :lastName",
@@ -449,7 +624,134 @@ public class EmptyDbSeeder {
         return workPackage;
     }
 
+    private WorkPackage findOrCreateSummaryWorkPackage(String wpId,
+                                                       String name,
+                                                       Project project,
+                                                       Employee responsibleEmployee,
+                                                       LocalDate startDate,
+                                                       LocalDate endDate,
+                                                       BigDecimal bac,
+                                                       BigDecimal percentComplete) {
+        WorkPackage existing = em.find(WorkPackage.class, wpId);
+        if (existing != null) {
+            updateSummaryWorkPackage(existing, project, responsibleEmployee, startDate, endDate, bac, percentComplete);
+            return existing;
+        }
+
+        WorkPackage workPackage = new WorkPackage();
+        workPackage.setWpId(wpId);
+        workPackage.setWpName(name);
+        workPackage.setDescription(name);
+        workPackage.setProject(project);
+        workPackage.setParentWorkPackage(null);
+        workPackage.setWpType(WorkPackageType.SUMMARY);
+        workPackage.setStatus(WorkPackageStatus.OPEN_FOR_CHARGES);
+        workPackage.setStructureLocked(false);
+        workPackage.setBudgetedEffort(BigDecimal.ZERO);
+        workPackage.setBcws(BigDecimal.ZERO);
+        workPackage.setCreatedDate(LocalDateTime.now());
+        workPackage.setModifiedDate(LocalDateTime.now());
+        workPackage.setCreatedBy(responsibleEmployee);
+        workPackage.setModifiedBy(responsibleEmployee);
+        updateSummaryWorkPackage(workPackage, project, responsibleEmployee, startDate, endDate, bac, percentComplete);
+        em.persist(workPackage);
+        return workPackage;
+    }
+
+    private WorkPackage findOrCreateChildWorkPackage(String wpId,
+                                                     String name,
+                                                     Project project,
+                                                     WorkPackage parent,
+                                                     Employee responsibleEmployee,
+                                                     LocalDate startDate,
+                                                     LocalDate endDate,
+                                                     BigDecimal bac,
+                                                     BigDecimal percentComplete) {
+        WorkPackage existing = em.find(WorkPackage.class, wpId);
+        if (existing != null) {
+            updateChildWorkPackage(existing, project, parent, responsibleEmployee, startDate, endDate, bac, percentComplete);
+            return existing;
+        }
+
+        WorkPackage workPackage = new WorkPackage();
+        workPackage.setWpId(wpId);
+        workPackage.setWpName(name);
+        workPackage.setDescription(name);
+        workPackage.setCreatedDate(LocalDateTime.now());
+        workPackage.setCreatedBy(responsibleEmployee);
+        updateChildWorkPackage(workPackage, project, parent, responsibleEmployee, startDate, endDate, bac, percentComplete);
+        em.persist(workPackage);
+        return workPackage;
+    }
+
+    private void updateSummaryWorkPackage(WorkPackage workPackage,
+                                          Project project,
+                                          Employee responsibleEmployee,
+                                          LocalDate startDate,
+                                          LocalDate endDate,
+                                          BigDecimal bac,
+                                          BigDecimal percentComplete) {
+        workPackage.setProject(project);
+        workPackage.setParentWorkPackage(null);
+        workPackage.setWpType(WorkPackageType.SUMMARY);
+        workPackage.setStatus(WorkPackageStatus.OPEN_FOR_CHARGES);
+        workPackage.setStructureLocked(false);
+        workPackage.setBudgetedEffort(BigDecimal.ZERO);
+        workPackage.setBcws(BigDecimal.ZERO);
+        workPackage.setPlanStartDate(startDate);
+        workPackage.setPlanEndDate(endDate);
+        workPackage.setResponsibleEmployee(responsibleEmployee);
+        workPackage.setBac(bac);
+        workPackage.setPercentComplete(percentComplete);
+        workPackage.setModifiedDate(LocalDateTime.now());
+        workPackage.setModifiedBy(responsibleEmployee);
+    }
+
+    private void updateChildWorkPackage(WorkPackage workPackage,
+                                        Project project,
+                                        WorkPackage parent,
+                                        Employee responsibleEmployee,
+                                        LocalDate startDate,
+                                        LocalDate endDate,
+                                        BigDecimal bac,
+                                        BigDecimal percentComplete) {
+        workPackage.setProject(project);
+        workPackage.setParentWorkPackage(parent);
+        workPackage.setWpType(WorkPackageType.LOWEST_LEVEL);
+        workPackage.setStatus(WorkPackageStatus.OPEN_FOR_CHARGES);
+        workPackage.setStructureLocked(false);
+        workPackage.setBudgetedEffort(new BigDecimal("40.00"));
+        workPackage.setBcws(BigDecimal.ZERO);
+        workPackage.setPlanStartDate(startDate);
+        workPackage.setPlanEndDate(endDate);
+        workPackage.setResponsibleEmployee(responsibleEmployee);
+        workPackage.setBac(bac);
+        workPackage.setPercentComplete(percentComplete);
+        workPackage.setModifiedDate(LocalDateTime.now());
+        workPackage.setModifiedBy(responsibleEmployee);
+    }
+
+    private void updateWorkPackageForEarnedValue(WorkPackage workPackage,
+                                                 Employee responsibleEmployee,
+                                                 LocalDate startDate,
+                                                 LocalDate endDate,
+                                                 String bac,
+                                                 String percentComplete) {
+        workPackage.setPlanStartDate(startDate);
+        workPackage.setPlanEndDate(endDate);
+        workPackage.setResponsibleEmployee(responsibleEmployee);
+        workPackage.setBac(new BigDecimal(bac));
+        workPackage.setPercentComplete(new BigDecimal(percentComplete));
+        workPackage.setStatus(WorkPackageStatus.OPEN_FOR_CHARGES);
+        workPackage.setModifiedDate(LocalDateTime.now());
+        workPackage.setModifiedBy(responsibleEmployee);
+    }
+
     private void assignProjectMember(Project project, Employee employee) {
+        assignProjectMember(project, employee, ProjectRole.MEMBER);
+    }
+
+    private void assignProjectMember(Project project, Employee employee, ProjectRole role) {
         Long count = em.createQuery(
                 "SELECT COUNT(pa) FROM ProjectAssignment pa WHERE pa.project.projId = :projId AND pa.employee.empId = :empId",
                 Long.class)
@@ -464,11 +766,15 @@ public class EmptyDbSeeder {
         assignment.setEmployee(employee);
         assignment.setProject(project);
         assignment.setAssignmentDate(LocalDate.now());
-        assignment.setProjectRole(ProjectRole.MEMBER);
+        assignment.setProjectRole(role);
         em.persist(assignment);
     }
 
     private void assignWorkPackageMember(WorkPackage workPackage, Employee employee) {
+        assignWorkPackageMember(workPackage, employee, WpRole.MEMBER);
+    }
+
+    private void assignWorkPackageMember(WorkPackage workPackage, Employee employee, WpRole role) {
         Long count = em.createQuery(
                 "SELECT COUNT(wpa) FROM WorkPackageAssignment wpa WHERE wpa.workPackage.wpId = :wpId AND wpa.employee.empId = :empId",
                 Long.class)
@@ -483,7 +789,7 @@ public class EmptyDbSeeder {
         assignment.setEmployee(employee);
         assignment.setWorkPackage(workPackage);
         assignment.setAssignmentDate(LocalDate.now());
-        assignment.setWpRole(WpRole.MEMBER);
+        assignment.setWpRole(role);
         em.persist(assignment);
     }
 

@@ -34,15 +34,15 @@ public class LaborReportModel : PageModel
     // Bound filter properties — populated from the GET query string
     // -----------------------------------------------------------------------
 
-    /// Selected project ID filter. Empty string = All Projects.
+    // Selected project ID filter. Empty string = All Projects.
     [BindProperty(SupportsGet = true)]
     public string SelectedProjectId { get; set; } = "";
 
-    /// Selected employee ID filter. 0 = All Employees.
+    // Selected employee ID filter. 0 = All Employees.
     [BindProperty(SupportsGet = true)]
     public int? SelectedEmployeeId { get; set; }
 
-    /// Week-ending date in YYYY-MM-DD format (required to run report).
+    // Week-ending date in YYYY-MM-DD format (required to run report).
     [BindProperty(SupportsGet = true)]
     public string WeekEnding { get; set; } = "";
 
@@ -57,13 +57,13 @@ public class LaborReportModel : PageModel
     // Report results — null until the user runs the report
     // -----------------------------------------------------------------------
 
-    /// True when a valid report has been loaded from the API.
+    // True when a valid report has been loaded from the API.
     public bool HasResults { get; set; } = false;
 
     public LaborReportSummaryVm? Summary { get; set; }
     public List<LaborReportRowVm> Rows { get; set; } = new();
 
-    /// Total hours shown in the TOTALS footer row.
+    // Total hours shown in the TOTALS footer row.
     public decimal TotalHours { get; set; }
 
     public string? ErrorMessage { get; set; }

@@ -242,6 +242,7 @@ public class WorkPackageService {
         WorkPackage existing = findWorkPackage(id);
 
         WorkPackageValidation.validateName(wp.getWpName());
+        WorkPackageValidation.validateEtc(wp.getEtc());
 
         String reName = wp.getReEmployeeName();
         Integer reEmpId = wp.getReEmployeeId();
@@ -268,6 +269,7 @@ public class WorkPackageService {
         existing.setEac(wp.getEac());
         existing.setPercentComplete(wp.getPercentComplete());
         existing.setBudgetedEffort(wp.getBudgetedEffort());
+        existing.setEtc(wp.getEtc());
 
         existing.setModifiedDate(LocalDateTime.now());
         em.merge(existing);
@@ -398,12 +400,7 @@ public class WorkPackageService {
     }
 
     public WorkPackage updateEtc(String id, BigDecimal etc) {
-        if (etc == null) {
-            throw new IllegalArgumentException("etc is required.");
-        }
-        if (etc.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException("etc cannot be negative.");
-        }
+        WorkPackageValidation.validateEtc(etc);
 
         WorkPackage wp = findWorkPackage(id);
         wp.setEtc(etc);

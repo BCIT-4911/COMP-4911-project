@@ -1,7 +1,9 @@
+using System.Globalization;
+using System.Net.Http.Headers;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using System.Text.Json;
-using frontend.data;
 
 namespace frontend.Pages.EarnedValue;
 
@@ -9,75 +11,6 @@ public class IndexModel : PageModel
 {
     private readonly IConfiguration _config;
     private readonly IHttpClientFactory _httpClientFactory;
-    public int MonthCount { get; set; } = 6;
-
-    // Filters (stubbed)
-    public int SelectedProjectId { get; set; } = 1;
-    public int SelectedControlAccountId { get; set; } = 1;
-
-    public List<Option> Projects { get; set; } = new();
-    public List<Option> ControlAccounts { get; set; } = new();
-
-    // Header info (stubbed)
-    public string ControlAccountTitle { get; set; } = "Roadrunner";
-    public string ControlAccountManager { get; set; } = "Wile E. Coyote";
-    public decimal BAC { get; set; } = 10000;
-
-    public List<WorkPackageVm> WorkPackages { get; set; } = new();
-
-    public Dictionary<int, decimal> TotalBCWSByMonth { get; set; } = new();
-    public Dictionary<int, decimal> TotalBCWPByMonth { get; set; } = new();
-    public Dictionary<int, decimal> SVByMonth { get; set; } = new();
-    public Dictionary<int, decimal> CVByMonth { get; set; } = new();
-
-    // public void OnGet()
-    // {
-    //     Projects = new() { new(1, "Demo Project") };
-    //     ControlAccounts = new() { new(1, "Control Account A") };
-
-    //     // Demo data (replace with real backend later)
-    //     WorkPackages = new List<WorkPackageVm>
-    //     {
-    //         new(1,"Procure Anvil","0/100")
-    //         {
-    //             BCWS = new() { [5]=1500 },
-    //             BCWP = new() { } // none earned yet
-    //         },
-    //         new(2,"Paint Fake Tunnel","50/50")
-    //         {
-    //             BCWS = new() { [3]=500, [4]=500 },
-    //             BCWP = new() { [4]=500 } // example earned
-    //         },
-    //         new(3,"Build Road","Units Complete")
-    //         {
-    //             BCWS = new() { [1]=600,[2]=600,[3]=600,[4]=600,[5]=600 },
-    //             BCWP = new() { [1]=600,[2]=600,[3]=300 } // example partial earned
-    //         },
-    //         new(4,"Build ASM","Milestones")
-    //         {
-    //             BCWS = new() { [2]=1000,[3]=1000,[4]=1000 },
-    //             BCWP = new() { [2]=1000 } // first milestone achieved
-    //         },
-    //         new(5,"Install ASM","% Complete")
-    //         {
-    //             BCWS = new() { [4]=500,[5]=500,[6]=500 },
-    //             BCWP = new() { [4]=250 } // 50% of first slice
-    //         },
-    //     };
-
-    //     // Totals by month
-    //     for (int m = 1; m <= MonthCount; m++)
-    //     {
-    //         TotalBCWSByMonth[m] = WorkPackages.Sum(wp => wp.BCWS.TryGetValue(m, out var v) ? v : 0);
-    //         TotalBCWPByMonth[m] = WorkPackages.Sum(wp => wp.BCWP.TryGetValue(m, out var v) ? v : 0);
-
-    //         SVByMonth[m] = TotalBCWPByMonth[m] - TotalBCWSByMonth[m];
-
-    //         // CV placeholder (ACWP not wired yet)
-    //         var acwp = 0m;
-    //         CVByMonth[m] = TotalBCWPByMonth[m] - acwp;
-    //     }
-    // }
 
     public IndexModel(IConfiguration config, IHttpClientFactory httpClientFactory)
     {
@@ -85,92 +18,284 @@ public class IndexModel : PageModel
         _httpClientFactory = httpClientFactory;
     }
 
+    [BindProperty(SupportsGet = true)]
+    public string SelectedProjectId { get; set; } = "";
+
+    [BindProperty(SupportsGet = true)]
+    public string SelectedWorkPackageId { get; set; } = "";
+
+    public string ApiBaseUrl { get; private set; } = "";
+    public string ProjectName { get; private set; } = "";
+    public string ErrorMessage { get; private set; } = "";
+    public bool HasReport => Report != null;
+    public bool HasWorkPackageFilter => WorkPackageOptions.Count > 0;
+
+    public List<ProjectOptionVm> Projects { get; private set; } = new();
+    public List<WorkPackageOptionVm> WorkPackageOptions { get; private set; } = new();
+    public MonthlyReportVm? Report { get; private set; }
+    public MonthlyReportVm? DisplayReport => Report?.FilterByWorkPackage(SelectedWorkPackageId);
+
     public async Task<IActionResult> OnGetAsync()
     {
         var token = HttpContext.Session.GetString("JWT");
         if (string.IsNullOrWhiteSpace(token))
-            return RedirectToPage("/Login");
-
-        Projects = new() { new(1, "Demo Project") };
-        ControlAccounts = new() { new(1, "Control Account A") };
-
-        var apiBaseUrl = _config["ApiBaseUrl"] ?? "http://localhost:8080/Project";
-        var apiUrl = apiBaseUrl + "/api/earned-value?parentWpId=CA-1";
-
-        var http = _httpClientFactory.CreateClient();
-        http.DefaultRequestHeaders.Authorization =
-            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-        var response = await http.GetAsync(apiUrl);
-
-        if (!response.IsSuccessStatusCode)
         {
-            Console.WriteLine("API FAILED: " + response.StatusCode);
+            return RedirectToPage("/Login");
+        }
+
+        ApiBaseUrl = _config["ApiBaseUrl"] ?? "http://localhost:8080/Project";
+        var client = _httpClientFactory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        Projects = await LoadProjectsAsync(client);
+
+        if (string.IsNullOrWhiteSpace(SelectedProjectId))
+        {
             return Page();
         }
 
-        var json = await response.Content.ReadAsStringAsync();
+        var selectedProject = Projects.FirstOrDefault(p => p.Id == SelectedProjectId);
+        ProjectName = selectedProject?.Name ?? SelectedProjectId;
 
-        var options = new JsonSerializerOptions
+        var asOf = DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        var reportUrl = $"{ApiBaseUrl}/api/earned-value/projects/{Uri.EscapeDataString(SelectedProjectId)}/monthly-report?asOf={asOf}";
+
+        try
         {
-            PropertyNameCaseInsensitive = true
-        };
-
-        var data = JsonSerializer.Deserialize<List<WorkPackageApiDto>>(json, options);
-
-        if (data == null) return Page();
-
-        WorkPackages.Clear();
-
-        foreach (var wp in data)
-        {
-            var vm = new WorkPackageVm(
-            wp.number,
-            wp.description!,
-            wp.evMethod!
-            )
+            var response = await client.GetAsync(reportUrl);
+            if (!response.IsSuccessStatusCode)
             {
-                BCWS = wp.bcwsByWeek ?? new(),
-                BCWP = wp.bcwpByWeek ?? new()
-            };
+                ErrorMessage = $"Unable to load report ({(int)response.StatusCode}).";
+                return Page();
+            }
 
-            WorkPackages.Add(vm);
+            var json = await response.Content.ReadAsStringAsync();
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var dto = JsonSerializer.Deserialize<MonthlyEvReportDto>(json, options);
 
+            if (dto == null)
+            {
+                ErrorMessage = "The report response was empty.";
+                return Page();
+            }
+
+            ProjectName = string.IsNullOrWhiteSpace(dto.ProjectName) ? ProjectName : dto.ProjectName;
+            Report = MapReport(dto);
+            WorkPackageOptions = Report.WorkPackages
+                .Select(wp => new WorkPackageOptionVm(wp.WpId, wp.Description))
+                .OrderBy(wp => wp.Name)
+                .ToList();
         }
-        // determine week count dynamically
-        MonthCount = WorkPackages
-            .SelectMany(w => w.BCWS.Keys)
-            .DefaultIfEmpty(0)
-            .Max();
-
-        // totals
-        for (int m = 1; m <= MonthCount; m++)
+        catch
         {
-            TotalBCWSByMonth[m] = WorkPackages.Sum(wp => wp.BCWS.TryGetValue(m, out var v) ? v : 0);
-            TotalBCWPByMonth[m] = WorkPackages.Sum(wp => wp.BCWP.TryGetValue(m, out var v) ? v : 0);
-
-            SVByMonth[m] = TotalBCWPByMonth[m] - TotalBCWSByMonth[m];
-            CVByMonth[m] = TotalBCWPByMonth[m]; // ACWP = 0 for now
+            ErrorMessage = "Unable to connect to the report service.";
         }
 
         return Page();
     }
 
-    public record Option(int Id, string Name);
-
-    public class WorkPackageVm
+    public async Task<IActionResult> OnGetWorkPackageModalAsync(string wpId, string? asOf = null)
     {
-        public int Number { get; }
-        public string Description { get; }
-        public string EvMethod { get; }
-
-        public Dictionary<int, decimal> BCWS { get; set; } = new();
-        public Dictionary<int, decimal> BCWP { get; set; } = new();
-
-        public WorkPackageVm(int number, string desc, string evMethod)
+        var token = HttpContext.Session.GetString("JWT");
+        if (string.IsNullOrWhiteSpace(token))
         {
-            Number = number;
-            Description = desc;
-            EvMethod = evMethod;
+            return Unauthorized();
         }
+
+        if (string.IsNullOrWhiteSpace(wpId))
+        {
+            return BadRequest(new { message = "A work package is required." });
+        }
+
+        ApiBaseUrl = _config["ApiBaseUrl"] ?? "http://localhost:8080/Project";
+        var client = _httpClientFactory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var effectiveAsOf = string.IsNullOrWhiteSpace(asOf)
+            ? DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+            : asOf;
+        var modalUrl =
+            $"{ApiBaseUrl}/api/earned-value/workpackages/{Uri.EscapeDataString(wpId)}/monthly-performance?asOf={Uri.EscapeDataString(effectiveAsOf)}";
+
+        try
+        {
+            var response = await client.GetAsync(modalUrl);
+            if (!response.IsSuccessStatusCode)
+            {
+                return StatusCode((int)response.StatusCode, new { message = "Unable to load work package details." });
+            }
+
+            var json = await response.Content.ReadAsStringAsync();
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var dto = JsonSerializer.Deserialize<WorkPackageMonthlyPerformanceDto>(json, options);
+
+            if (dto == null)
+            {
+                return StatusCode(502, new { message = "The work package detail response was empty." });
+            }
+
+            return new JsonResult(dto);
+        }
+        catch
+        {
+            return StatusCode(503, new { message = "Unable to connect to the work package detail service." });
+        }
+    }
+
+    private async Task<List<ProjectOptionVm>> LoadProjectsAsync(HttpClient client)
+    {
+        var response = await client.GetAsync($"{ApiBaseUrl}/api/projects");
+        if (!response.IsSuccessStatusCode)
+        {
+            return new List<ProjectOptionVm>();
+        }
+
+        var json = await response.Content.ReadAsStringAsync();
+        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        var projects = JsonSerializer.Deserialize<List<ProjectOptionDto>>(json, options) ?? new List<ProjectOptionDto>();
+
+        return projects
+            .Where(p => !string.IsNullOrWhiteSpace(p.ProjId))
+            .Select(p => new ProjectOptionVm(
+                p.ProjId!,
+                string.IsNullOrWhiteSpace(p.ProjName) ? p.ProjId! : p.ProjName!))
+            .OrderBy(p => p.Name)
+            .ToList();
+    }
+
+    private static MonthlyReportVm MapReport(MonthlyEvReportDto dto)
+    {
+        var rows = (dto.WorkPackages ?? new List<MonthlyWorkPackageDto>())
+            .Select(wp => new WorkPackageRowVm(
+                wp.WpId ?? "",
+                wp.WpName ?? "",
+                InferEvMethod(wp.WpId),
+                wp.Bac,
+                wp.Bcws,
+                wp.Bcwp,
+                wp.Acwp,
+                wp.Etc,
+                wp.Sv,
+                wp.Cv))
+            .ToList();
+
+        return new MonthlyReportVm(
+            dto.ProjectBac,
+            dto.ProjectBcws,
+            dto.ProjectBcwp,
+            dto.ProjectAcwp,
+            rows);
+    }
+
+    private static string InferEvMethod(string? wpId)
+    {
+        return wpId switch
+        {
+            "A.WP-1" => "Percent Complete",
+            "A.WP-2" => "0 / 100",
+            "A.WP-3" => "Units Completed",
+            _ => "Tracked Value"
+        };
+    }
+
+    public record ProjectOptionVm(string Id, string Name);
+    public record WorkPackageOptionVm(string Id, string Name);
+
+    public record MonthlyReportVm(
+        decimal ProjectBac,
+        decimal ProjectBcws,
+        decimal ProjectBcwp,
+        decimal ProjectAcwp,
+        List<WorkPackageRowVm> WorkPackages)
+    {
+        public decimal TotalSv => WorkPackages.Sum(wp => wp.Sv);
+        public decimal TotalCv => WorkPackages.Sum(wp => wp.Cv);
+
+        public MonthlyReportVm FilterByWorkPackage(string? wpId)
+        {
+            if (string.IsNullOrWhiteSpace(wpId))
+            {
+                return this;
+            }
+
+            var filteredRows = WorkPackages
+                .Where(wp => string.Equals(wp.WpId, wpId, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            if (filteredRows.Count == 0)
+            {
+                return this;
+            }
+
+            return new MonthlyReportVm(
+                filteredRows.Sum(wp => wp.Bac),
+                filteredRows.Sum(wp => wp.Bcws),
+                filteredRows.Sum(wp => wp.Bcwp),
+                filteredRows.Sum(wp => wp.Acwp),
+                filteredRows);
+        }
+    }
+
+    public record WorkPackageRowVm(
+        string WpId,
+        string Description,
+        string EvMethod,
+        decimal Bac,
+        decimal Bcws,
+        decimal Bcwp,
+        decimal Acwp,
+        decimal Etc,
+        decimal Sv,
+        decimal Cv);
+
+    public class ProjectOptionDto
+    {
+        [JsonPropertyName("project_id")]
+        public string? ProjId { get; set; }
+
+        [JsonPropertyName("project_name")]
+        public string? ProjName { get; set; }
+    }
+
+    public class MonthlyEvReportDto
+    {
+        public string? ProjectId { get; set; }
+        public string? ProjectName { get; set; }
+        public decimal ProjectBac { get; set; }
+        public decimal ProjectBcws { get; set; }
+        public decimal ProjectBcwp { get; set; }
+        public decimal ProjectAcwp { get; set; }
+        public List<MonthlyWorkPackageDto>? WorkPackages { get; set; }
+    }
+
+    public class MonthlyWorkPackageDto
+    {
+        public string? WpId { get; set; }
+        public string? WpName { get; set; }
+        public decimal Bac { get; set; }
+        public decimal Bcws { get; set; }
+        public decimal Bcwp { get; set; }
+        public decimal Acwp { get; set; }
+        public decimal Etc { get; set; }
+        public decimal Sv { get; set; }
+        public decimal Cv { get; set; }
+    }
+
+    public class WorkPackageMonthlyPerformanceDto
+    {
+        public string? WpId { get; set; }
+        public string? WpName { get; set; }
+        public string? ProjectId { get; set; }
+        public string? AsOfDate { get; set; }
+        public decimal Bac { get; set; }
+        public decimal Etc { get; set; }
+        public decimal Eac { get; set; }
+        public decimal Vac { get; set; }
+        public List<string>? Months { get; set; }
+        public List<decimal>? BcwsByMonth { get; set; }
+        public List<decimal>? BcwpByMonth { get; set; }
+        public List<decimal>? AcwpByMonth { get; set; }
+        public List<decimal>? SvByMonth { get; set; }
+        public List<decimal>? CvByMonth { get; set; }
     }
 }

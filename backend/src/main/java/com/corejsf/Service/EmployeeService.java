@@ -109,6 +109,63 @@ public class EmployeeService {
         if (emp == null) {
             throw new NotFoundException("Employee with id " + id + " not found.");
         }
+
+        List<String> reasons = new java.util.ArrayList<>();
+
+        Long subordinateCount = em.createQuery(
+                "SELECT COUNT(e) FROM Employee e WHERE e.supervisor.empId = :empId", Long.class)
+                .setParameter("empId", id)
+                .getSingleResult();
+        if (subordinateCount > 0) {
+            reasons.add("supervisor of " + subordinateCount + " employee(s)");
+        }
+
+        Long projectAssignmentCount = em.createQuery(
+                "SELECT COUNT(pa) FROM ProjectAssignment pa WHERE pa.employee.empId = :empId", Long.class)
+                .setParameter("empId", id)
+                .getSingleResult();
+        if (projectAssignmentCount > 0) {
+            reasons.add("assigned to " + projectAssignmentCount + " project(s)");
+        }
+
+        Long wpAssignmentCount = em.createQuery(
+                "SELECT COUNT(wpa) FROM WorkPackageAssignment wpa WHERE wpa.employee.empId = :empId", Long.class)
+                .setParameter("empId", id)
+                .getSingleResult();
+        if (wpAssignmentCount > 0) {
+            reasons.add("assigned to " + wpAssignmentCount + " work package(s)");
+        }
+
+        Long timesheetCount = em.createQuery(
+                "SELECT COUNT(t) FROM Timesheet t WHERE t.employee.empId = :empId", Long.class)
+                .setParameter("empId", id)
+                .getSingleResult();
+        if (timesheetCount > 0) {
+            reasons.add("has " + timesheetCount + " timesheet(s)");
+        }
+
+        Long pmCount = em.createQuery(
+                "SELECT COUNT(p) FROM Project p WHERE p.projectManager.empId = :empId", Long.class)
+                .setParameter("empId", id)
+                .getSingleResult();
+        if (pmCount > 0) {
+            reasons.add("project manager of " + pmCount + " project(s)");
+        }
+
+        Long reCount = em.createQuery(
+                "SELECT COUNT(wp) FROM WorkPackage wp WHERE wp.responsibleEmployee.empId = :empId", Long.class)
+                .setParameter("empId", id)
+                .getSingleResult();
+        if (reCount > 0) {
+            reasons.add("responsible engineer on " + reCount + " work package(s)");
+        }
+
+        if (!reasons.isEmpty()) {
+            throw new IllegalStateException(
+                    "Cannot delete employee (ID " + id + "): " + String.join(", ", reasons)
+                    + ". Remove these associations first.");
+        }
+
         em.remove(emp);
     }
 }

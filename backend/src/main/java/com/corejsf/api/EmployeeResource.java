@@ -125,7 +125,13 @@ public class EmployeeResource {
         if (!rebacService.canManageEmployees(authContext.getSystemRole())) {
             return forbidden();
         }
-        employeeService.deleteEmployee(id);
-        return Response.ok().build();
+        try {
+            employeeService.deleteEmployee(id);
+            return Response.ok().build();
+        } catch (IllegalStateException e) {
+            return Response.status(Response.Status.CONFLICT)
+                    .entity(e.getMessage())
+                    .build();
+        }
     }
 }

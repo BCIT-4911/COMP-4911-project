@@ -8,6 +8,22 @@
 }
 
 <div class="container py-4">
+    @if (TempData["DeleteError"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show rounded-3 mb-4" role="alert"
+             style="border-color: #d9534f;">
+            <strong>Delete failed:</strong> @TempData["DeleteError"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["UpdateSuccess"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show rounded-3 mb-4" role="alert"
+             style="border-color: #607E6C;">
+            <strong>Success:</strong> @TempData["UpdateSuccess"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-start mb-4">
         <div>

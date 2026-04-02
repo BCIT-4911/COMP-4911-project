@@ -112,6 +112,7 @@ public class UpdateModel : PageModel
             return await OnGetAsync(id);
         }
 
+        TempData["UpdateSuccess"] = $"Updated employee (ID {id})";
         return RedirectToPage("/Employee/Index");
     }
 }

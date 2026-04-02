@@ -160,6 +160,22 @@ public class EmployeeService {
             reasons.add("responsible engineer on " + reCount + " work package(s)");
         }
 
+        Long timeSheetCount = em.createQuery(
+                "SELECT COUNT(ts) FROM Timesheet ts WHERE ts.employee.empId = :empId", Long.class)
+                .setParameter("empId", id)
+                .getSingleResult();
+        if (timeSheetCount > 0) {
+            reasons.add("has " + timeSheetCount + " timesheet(s)");
+        }
+
+        Long timeSheetApprovalCount = em.createQuery(
+                "SELECT COUNT(tsa) FROM TimesheetApproval tsa WHERE tsa.approver.empId = :empId", Long.class)
+                .setParameter("empId", id)
+                .getSingleResult();
+        if (timeSheetApprovalCount > 0) {
+            reasons.add("has " + timeSheetApprovalCount + " timesheet approval(s)");
+        }
+
         if (!reasons.isEmpty()) {
             throw new IllegalStateException(
                     "Cannot delete employee (ID " + id + "): " + String.join(", ", reasons)

@@ -56,6 +56,8 @@ public class UpdateModel : PageModel
                 employeeDto.firstName = employee.empFirstName;
                 employeeDto.lastName = employee.empLastName;
                 employeeDto.systemRole = employee.systemRole;
+                employeeDto.supervisorId = employee.supervisorId ?? 0;
+                employeeDto.laborGradeId = employee.laborGradeId ?? 0;
             }
         }
 

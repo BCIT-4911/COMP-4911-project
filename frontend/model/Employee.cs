@@ -12,4 +12,10 @@ public class Employee
     public string? systemRole { get; set; }
     public decimal vacationSickBalance { get; set; }
     public decimal expectedWeeklyHours { get; set; }
+
+    [System.Text.Json.Serialization.JsonPropertyName("supervisor_id")]
+    public int? supervisorId { get; set; }
+
+    [System.Text.Json.Serialization.JsonPropertyName("labor_grade_id")]
+    public int? laborGradeId { get; set; }
 }

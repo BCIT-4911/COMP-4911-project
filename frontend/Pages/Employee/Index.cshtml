@@ -76,7 +76,7 @@
                 @foreach (var employee in employees)
                 {
                     <tr class="employee-row" data-name="@employee.empFirstName @employee.empLastName"
-                        data-id="@employee.empId" data-role="@employee.systemRole">
+                        data-id="OA-@employee.empId.ToString().PadLeft(4, '0')" data-role="@employee.systemRole">
                         <td class="py-3 px-4 align-middle" style="border-bottom: 1px solid #eef3ea;">
                             <span class="fw-semibold" style="color: #333;">
                                 @employee.empFirstName @employee.empLastName

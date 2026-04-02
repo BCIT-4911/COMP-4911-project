@@ -427,8 +427,9 @@ public class WorkPackageService {
         if (workPackage.getResponsibleEmployee() != null
                 && workPackage.getResponsibleEmployee().getEmpId() == empId) {
             throw new jakarta.ws.rs.WebApplicationException(
-                    "Cannot remove the Responsible Engineer from the work package. Change the RE first.",
-                    jakarta.ws.rs.core.Response.Status.BAD_REQUEST);
+                    jakarta.ws.rs.core.Response.status(jakarta.ws.rs.core.Response.Status.BAD_REQUEST)
+                            .entity("Cannot remove the Responsible Engineer from the work package. Change the RE first.")
+                            .build());
         }
 
         TypedQuery<WorkPackageAssignment> query = em.createQuery(

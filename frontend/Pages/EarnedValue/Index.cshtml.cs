@@ -92,7 +92,7 @@ public class IndexModel : PageModel
             return RedirectToPage("/Login");
 
         var role = HttpContext.Session.GetString("SystemRole");
-        if (role != "OPERATIONS_MANAGER" && role != "ADMIN")
+        if (role == "HR")
             return RedirectToPage("/Index");
 
         Projects = new() { new(1, "Demo Project") };

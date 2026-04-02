@@ -21,6 +21,10 @@ public class ProjectsModel : PageModel
         if (string.IsNullOrWhiteSpace(token))
             return RedirectToPage("/Login");
 
+        var role = HttpContext.Session.GetString("SystemRole");
+        if (role != "OPERATIONS_MANAGER" && role != "ADMIN")
+            return RedirectToPage("/Index");
+
         ApiBaseUrl = _config["ApiBaseUrl"] ?? "";
         JwtToken = token;
         return Page();

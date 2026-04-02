@@ -91,6 +91,10 @@ public class IndexModel : PageModel
         if (string.IsNullOrWhiteSpace(token))
             return RedirectToPage("/Login");
 
+        var role = HttpContext.Session.GetString("SystemRole");
+        if (role != "OPERATIONS_MANAGER" && role != "ADMIN")
+            return RedirectToPage("/Index");
+
         Projects = new() { new(1, "Demo Project") };
         ControlAccounts = new() { new(1, "Control Account A") };
 

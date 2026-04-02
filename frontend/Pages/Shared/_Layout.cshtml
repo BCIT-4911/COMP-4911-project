@@ -59,9 +59,12 @@
                             <li class="nav-item">
                                 <a class="nav-link header-link" asp-area="" asp-page="/Index">Home</a>
                             </li>
-                            <li class="nav-item">
-                                <a class="nav-link header-link" asp-area="" asp-page="/Projects">Projects</a>
-                            </li>
+                            @if (role == "OPERATIONS_MANAGER" || role == "ADMIN")
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link header-link" asp-area="" asp-page="/Projects">Projects</a>
+                                </li>
+                            }
                             <li class="nav-item">
                                 <a class="nav-link header-link" asp-page="/Timesheets/Index">Timesheet</a>
                             </li>

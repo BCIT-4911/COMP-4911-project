@@ -146,6 +146,10 @@
                     <label for="estEac">EAC (Estimate at Completion)</label>
                     <input type="number" id="estEac" step="0.01" min="0" placeholder="e.g. 5500.00" />
                 </div>
+                <div class="form-group">
+                    <label for="estEtc">ETC (Estimate to Completion)</label>
+                    <input type="number" id="estEtc" step="0.01" min="0" placeholder="e.g. 5500.00" required="true"/>
+                </div>
             </div>
 
             <div class="modal-actions">
@@ -238,6 +242,23 @@
     }
     const CURRENT_USER_ID = getUserId();
 
+    function getUserRole() {
+        if (!TOKEN) return '';
+        try {
+            const base64Url = TOKEN.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const payload = JSON.parse(decodeURIComponent(window.atob(base64).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join('')));
+            return (payload.groups && payload.groups.length > 0) ? payload.groups[0] : (payload.role || payload.systemRole || '');
+        } catch (e) { return ''; }
+    }
+    const CURRENT_USER_ROLE = getUserRole();
+
+    function isOpsManagerOrAdmin() {
+        return CURRENT_USER_ROLE === 'OPERATIONS_MANAGER' || CURRENT_USER_ROLE === 'ADMIN';
+    }
+
     function authFetch(url, options = {}) {
         options.headers = { ...options.headers, 'Authorization': `Bearer ${TOKEN}` };
         return fetch(url, options).then(res => {
@@ -288,7 +309,14 @@
     }
 
     async function loadWorkPackages() {
-        document.getElementById('newWpBtn').disabled = false;
+        const canCreateWp = isOpsManagerOrAdmin() || canUserAssign();
+        const newWpBtn = document.getElementById('newWpBtn');
+        if (canCreateWp) {
+            newWpBtn.disabled = false;
+            newWpBtn.style.display = '';
+        } else {
+            newWpBtn.style.display = 'none';
+        }
         try {
             const res = await authFetch(`${API}/api/projects/${encodeURIComponent(PROJECT_ID)}/workpackages`);
             if (!res.ok) throw new Error('Failed to load work packages');
@@ -352,6 +380,8 @@
 
         const canAssign = canUserAssign();
 
+        const isPrivileged = isOpsManagerOrAdmin();
+
         tbody.innerHTML = wps.map(w => {
             let assignButton = '';
             let estimateButton = '';
@@ -372,12 +402,29 @@
 
             // Estimate Button Visibility: Only PMs and the specific RE of this WP can see it
             if (canAssign || w.reEmployeeId === CURRENT_USER_ID) {
+                if (w.reEmployeeId === CURRENT_USER_ID && !canAssign) {
+                    document.getElementById("estEtc").disabled = false;
+                    document.getElementById("estEac").disabled = true;
+                    document.getElementById("estPercentComplete").disabled = true;
+                    document.getElementById("estBudgetedEffort").disabled = true;
+                } else {
+                    document.getElementById("estEtc").disabled = false;
+                    document.getElementById("estEac").disabled = false;
+                    document.getElementById("estPercentComplete").disabled = false;
+                    document.getElementById("estBudgetedEffort").disabled = false;
+                }
+
                 estimateButton = `
                     <button class="btn-action btn-assign" onclick="openEstimateModal('${esc(w.wpId)}')" title="Update EVM Estimates" style="color: #64ffda;">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
                     </button>
                 `;
-            }
+            } 
+
+            // Edit: Ops Manager, Admin, PM of this project, or RE of this WP
+            const canEditWp = isPrivileged || canAssign || w.reEmployeeId === CURRENT_USER_ID;
+            // Delete: Ops Manager, Admin, or PM of this project
+            const canDeleteWp = isPrivileged || canAssign;
 
             return `
             <tr>
@@ -394,12 +441,14 @@
                     ${reportButton}
                     ${estimateButton}
                     ${assignButton}
+                    ${canEditWp ? `
                     <button class="btn-action btn-edit" onclick="openEditModalById('${esc(w.wpId)}')" title="Edit">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    </button>
+                    </button>` : ''}
+                    ${canDeleteWp ? `
                     <button class="btn-action btn-delete" onclick="deleteWP('${esc(w.wpId)}')" title="Delete">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                    </button>
+                    </button>` : ''}
                 </td>
             </tr>
             `;
@@ -432,6 +481,7 @@
 
     function renderTreeNodes(nodes) {
         const canAssign = canUserAssign();
+        const isPrivileged = isOpsManagerOrAdmin();
 
         return nodes.map(n => {
             let assignButton = '';
@@ -452,12 +502,27 @@
             }
 
             if (canAssign || n.reEmployeeId === CURRENT_USER_ID) {
+                if (n.reEmployeeId === CURRENT_USER_ID && !canAssign) {
+                    document.getElementById("estEtc").disabled = false;
+                    document.getElementById("estEac").disabled = true;
+                    document.getElementById("estPercentComplete").disabled = true;
+                    document.getElementById("estBudgetedEffort").disabled = true;
+                } else {
+                    document.getElementById("estEtc").disabled = false;
+                    document.getElementById("estEac").disabled = false;
+                    document.getElementById("estPercentComplete").disabled = false;
+                    document.getElementById("estBudgetedEffort").disabled = false;
+                }
+
                 estimateButton = `
                     <button class="btn-action btn-assign" onclick="openEstimateModal('${esc(n.wpId)}')" title="Update EVM Estimates" style="color: #64ffda;">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
                     </button>
                 `;
-            }
+            } 
+
+            const canEditWp = isPrivileged || canAssign || n.reEmployeeId === CURRENT_USER_ID;
+            const canDeleteWp = isPrivileged || canAssign;
 
             return `
             <li class="tree-item ${n.children && n.children.length > 0 ? 'has-children' : ''}">
@@ -465,19 +530,21 @@
                     <span class="badge badge-type">${esc(n.wpId)}</span>
                     <p>${esc(n.wpName || '')}</p>
                     <span>
-                        <span class="badge badge-type">${typeDisplay(n.wpType)}</span> 
+                        <span class="badge badge-type">${typeDisplay(n.wpType)}</span>
                         <span class="badge ${statusClass(n.status)}">${statusDisplay(n.status)}</span>
                     </span>
                     <div>
                         ${reportButton}
                         ${estimateButton}
                         ${assignButton}
+                        ${canEditWp ? `
                         <button class="btn-action btn-edit" onclick="openEditModalById('${esc(n.wpId)}')" title="Edit">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                        </button>
+                        </button>` : ''}
+                        ${canDeleteWp ? `
                         <button class="btn-action btn-delete" onclick="deleteWP('${esc(n.wpId)}')" title="Delete">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                        </button>
+                        </button>` : ''}
                     </div>
                 </div>
                 ${n.children && n.children.length > 0 ? `<ul class="tree-list">${renderTreeNodes(n.children)}</ul>` : ''}
@@ -511,6 +578,7 @@
         document.getElementById('estPercentComplete').value = w.percentComplete !== undefined && w.percentComplete !== null ? w.percentComplete : '';
         document.getElementById('estBac').value = w.bac !== undefined && w.bac !== null ? w.bac : '';
         document.getElementById('estEac').value = w.eac !== undefined && w.eac !== null ? w.eac : '';
+        document.getElementById('estEtc').value = w.etc !== undefined && w.etc !== null ? w.etc : '';
         
         document.getElementById('estimateModal').classList.add('active');
     }
@@ -533,7 +601,8 @@
             budgetedEffort: document.getElementById('estBudgetedEffort').value ? parseFloat(document.getElementById('estBudgetedEffort').value) : null,
             percentComplete: document.getElementById('estPercentComplete').value ? parseFloat(document.getElementById('estPercentComplete').value) : null,
             bac: document.getElementById('estBac').value ? parseFloat(document.getElementById('estBac').value) : null,
-            eac: document.getElementById('estEac').value ? parseFloat(document.getElementById('estEac').value) : null
+            eac: document.getElementById('estEac').value ? parseFloat(document.getElementById('estEac').value) : null,
+            etc: document.getElementById('estEtc').value ? parseFloat(document.getElementById('estEtc').value) : null
         };
 
         try {
@@ -567,15 +636,12 @@
 
         const currentTeam = await loadCurrentWpTeam(wpId);
 
-        const wp = allWps.find(w => w.wpId === wpId);
         const assignedIds = new Set(currentTeam.map(e => e.empId));
-        if (wp && wp.reEmployeeId) {
-            assignedIds.add(wp.reEmployeeId);
-        }
         const available = projectTeam.filter(e => !assignedIds.has(e.empId));
         populateDropdown(assignSelect, available, "All project members already assigned");
 
-        populateDropdown(document.getElementById('removeEmpId'), currentTeam, "No assigned members to remove");
+        const removable = currentTeam.filter(e => e.wpRole !== 'RE');
+        populateDropdown(document.getElementById('removeEmpId'), removable, "No assigned members to remove");
     }
 
     async function loadCurrentWpTeam(wpId) {
@@ -586,21 +652,9 @@
             const res = await authFetch(`${API}/api/workpackages/${encodeURIComponent(wpId)}/employees`);
             if (res.ok) {
                 const team = await res.json();
-                const wp = allWps.find(w => w.wpId === wpId);
                 let rowsHtml = team.map(e =>
                     `<li>• ${esc(e.empFirstName)} ${esc(e.empLastName)} (ID: ${e.empId}) - <strong style="color: #fff;">${esc(e.wpRole || 'MEMBER')}</strong></li>`
                 ).join('');
-
-                if (wp && wp.reEmployeeId && !team.some(e => e.empId === wp.reEmployeeId)) {
-                    const re = projectTeam.find(e => e.empId === wp.reEmployeeId);
-                    if (re) {
-                        const reLine = `<li>• ${esc(re.empFirstName)} ${esc(re.empLastName)} (ID: ${re.empId}) - <strong style="color: #fff;">RE</strong></li>`;
-                        rowsHtml = reLine + rowsHtml;
-                    } else if (wp.reEmployeeName) {
-                        const reLine = `<li>• ${esc(wp.reEmployeeName)} (ID: ${wp.reEmployeeId}) - <strong style="color: #fff;">RE</strong></li>`;
-                        rowsHtml = reLine + rowsHtml;
-                    }
-                }
 
                 if (!rowsHtml) {
                     teamList.innerHTML = '<li>No employees assigned yet.</li>';

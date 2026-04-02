@@ -69,7 +69,7 @@ public class EmptyDbSeeder {
             admin.setEmpFirstName("Wile");
             admin.setEmpLastName("Coyote");
             admin.setEmpPassword(BCrypt.hashpw("password", BCrypt.gensalt()));
-            admin.setSystemRole(SystemRole.OPERATIONS_MANAGER);
+            admin.setSystemRole(SystemRole.ADMIN);
             admin.setESignature(sig);
             admin.setLaborGrade(lg);
             admin.setSupervisor(null);
@@ -77,8 +77,10 @@ public class EmptyDbSeeder {
             admin.setExpectedWeeklyHours(new BigDecimal("40.0"));
             em.persist(admin);
 
-            Employee roadRunner = createEmployee("Road", "Runner", SystemRole.HR, admin, lg);
-            Employee bugsBunny = createEmployee("Bugs", "Bunny", SystemRole.EMPLOYEE, admin, lg);
+            Employee elmerFudd = createEmployee("Elmer", "Fudd", SystemRole.OPERATIONS_MANAGER, null, lg);
+
+            Employee roadRunner = createEmployee("Road", "Runner", SystemRole.HR, elmerFudd, lg);
+            Employee bugsBunny = createEmployee("Bugs", "Bunny", SystemRole.EMPLOYEE, elmerFudd, lg);
             Employee daffyDuck = createEmployee("Daffy", "Duck", SystemRole.EMPLOYEE, bugsBunny, lg);
             Employee tweetyBird = createEmployee("Tweety", "Bird", SystemRole.EMPLOYEE, bugsBunny, lg);
             Employee sylvesterCat = createEmployee("Sylvester", "Cat", SystemRole.EMPLOYEE, bugsBunny, lg);
@@ -90,7 +92,7 @@ public class EmptyDbSeeder {
                 proj = new Project();
                 proj.setProjId("PROJ-1");
                 proj.setProjType(ProjectType.INTERNAL);  
-                proj.setProjectManager(admin);              
+                proj.setProjectManager(elmerFudd);              
                 proj.setProjName("Demo Project");
                 proj.setDescription("Seed data for Earned Value report");
                 proj.setStatus(ProjectStatus.OPEN);      
@@ -98,8 +100,8 @@ public class EmptyDbSeeder {
                 proj.setEndDate(LocalDate.of(2026, 3, 31));
                 proj.setCreatedDate(LocalDateTime.now());
                 proj.setModifiedDate(LocalDateTime.now());
-                proj.setCreatedBy(admin);
-                proj.setModifiedBy(admin);
+                proj.setCreatedBy(elmerFudd);
+                proj.setModifiedBy(elmerFudd);
                 proj.setMarkupRate(new BigDecimal("10.00"));
                 proj.setBac(new BigDecimal("10000.00"));
 
@@ -107,7 +109,7 @@ public class EmptyDbSeeder {
             }
 
 
-            Employee marvinMartian = createEmployee("Marvin", "Martian", SystemRole.EMPLOYEE, admin, lg);
+            Employee marvinMartian = createEmployee("Marvin", "Martian", SystemRole.EMPLOYEE, elmerFudd, lg);
 
             // Project 2 for Seed cases
             Project proj2 = em.find(Project.class, "PROJ-2");
@@ -148,29 +150,36 @@ public class EmptyDbSeeder {
             parent.setPlanStartDate(LocalDate.of(2026, 1, 1));
             parent.setPlanEndDate(LocalDate.of(2026, 3, 31));
 
-            parent.setResponsibleEmployee(admin); 
+            parent.setResponsibleEmployee(elmerFudd); 
             parent.setBac(new BigDecimal("5000.00"));
             parent.setPercentComplete(new BigDecimal("25.00"));
 
             parent.setCreatedDate(LocalDateTime.now());
             parent.setModifiedDate(LocalDateTime.now());
-            parent.setCreatedBy(admin);
-            parent.setModifiedBy(admin);
+            parent.setCreatedBy(elmerFudd);
+            parent.setModifiedBy(elmerFudd);
 
             em.persist(parent);
 
-            createChild("A.WP-1", "Procure Anvil", proj, parent, admin,
+            createChild("A.WP-1", "Procure Anvil", proj, parent, daffyDuck,
                     LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 31),
                     new BigDecimal("1500.00"), new BigDecimal("0.00"));
 
-            createChild("A.WP-2", "Paint Fake Tunnel", proj, parent, admin,
+            createChild("A.WP-2", "Paint Fake Tunnel", proj, parent, sylvesterCat,
                     LocalDate.of(2026, 2, 1), LocalDate.of(2026, 2, 14),
                     new BigDecimal("1000.00"), new BigDecimal("50.00"));
 
-            createChild("A.WP-3", "Build Road", proj, parent, admin,
+            createChild("A.WP-3", "Build Road", proj, parent, elmerFudd,
                     LocalDate.of(2026, 1, 15), LocalDate.of(2026, 3, 1),
                     new BigDecimal("2500.00"), new BigDecimal("35.00"));
 
+
+            ProjectAssignment paElmer = new ProjectAssignment();
+            paElmer.setEmployee(elmerFudd);
+            paElmer.setProject(proj);
+            paElmer.setAssignmentDate(LocalDate.now());
+            paElmer.setProjectRole(ProjectRole.MEMBER);
+            em.persist(paElmer);
 
             ProjectAssignment paBugs = new ProjectAssignment();
             paBugs.setEmployee(bugsBunny);
@@ -182,7 +191,6 @@ public class EmptyDbSeeder {
             proj.setProjectManager(bugsBunny);
             em.merge(proj);
 
-            // Assign WP-level employees to the project so they can navigate to it
             ProjectAssignment paDaffy = new ProjectAssignment();
             paDaffy.setEmployee(daffyDuck);
             paDaffy.setProject(proj);
@@ -224,8 +232,16 @@ public class EmptyDbSeeder {
             proj2.setMarkupRate(new BigDecimal("10.00"));
             proj2.setBac(new BigDecimal("15000.00"));
 
+            WorkPackageAssignment wpaElmerParent = new WorkPackageAssignment();
+            wpaElmerParent.setEmployee(elmerFudd);
+            wpaElmerParent.setWorkPackage(parent);
+            wpaElmerParent.setAssignmentDate(LocalDate.now());
+            wpaElmerParent.setWpRole(WpRole.RE);
+            em.persist(wpaElmerParent);
+
             WorkPackage wp1 = em.find(WorkPackage.class, "A.WP-1");
             WorkPackage wp2 = em.find(WorkPackage.class, "A.WP-2");
+            WorkPackage wp3 = em.find(WorkPackage.class, "A.WP-3");
             if (wp1 != null) {
                 WorkPackageAssignment wpaDaffy = new WorkPackageAssignment();
                 wpaDaffy.setEmployee(daffyDuck);
@@ -249,6 +265,14 @@ public class EmptyDbSeeder {
                 wpaTweety.setAssignmentDate(LocalDate.now());
                 wpaTweety.setWpRole(WpRole.MEMBER);
                 em.persist(wpaTweety);
+            }
+            if (wp3 != null) {
+                WorkPackageAssignment wpaElmerWp3 = new WorkPackageAssignment();
+                wpaElmerWp3.setEmployee(elmerFudd);
+                wpaElmerWp3.setWorkPackage(wp3);
+                wpaElmerWp3.setAssignmentDate(LocalDate.now());
+                wpaElmerWp3.setWpRole(WpRole.RE);
+                em.persist(wpaElmerWp3);
             }
 
             System.out.println("[Seeder] Seed complete: LaborGrade + Signature + Employee + Project + A + children + HR/PM/RE/MEMBER.");

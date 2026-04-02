@@ -59,11 +59,19 @@ public final class WorkPackageValidation {
     }
 
     public static void validateBac(final BigDecimal bac) {
-        if (bac == null) {
-            throw new IllegalArgumentException("BAC cannot be null.");
+        validateBigDecimalEV(bac, "BAC");
+    }
+
+    public static void validateEtc(final BigDecimal etc) {
+        validateBigDecimalEV(etc, "ETC");
+    }
+
+    private static void validateBigDecimalEV(final BigDecimal value, final String fieldName) {
+        if (value == null) {
+            throw new IllegalArgumentException(fieldName + " cannot be null.");
         }
-        if (bac.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException("BAC cannot be negative.");
+        if (value.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException(fieldName + " cannot be negative.");
         }
     }
 }

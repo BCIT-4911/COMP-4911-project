@@ -56,7 +56,7 @@ class EarnedValueResourceTest extends TestConfig {
                 .statusCode(200)
                 .extract()
                 .jsonPath()
-                .getList("$");
+                .getList("workPackages");
         assertFalse(list.isEmpty(), "Expected non-empty EV rows for parent A");
     }
 
@@ -89,13 +89,13 @@ class EarnedValueResourceTest extends TestConfig {
                 .get("/earned-value?parentWpId=A")
                 .then()
                 .statusCode(200)
-                .body("[0].bcwsByWeek", notNullValue())
-                .body("[0].bcwpByWeek", notNullValue())
-                .body("[0].totalBcws", notNullValue())
-                .body("[0].totalBcwp", notNullValue())
+                .body("workPackages[0].bcwsByWeek", notNullValue())
+                .body("workPackages[0].bcwpByWeek", notNullValue())
+                .body("workPackages[0].totalBcws", notNullValue())
+                .body("workPackages[0].totalBcwp", notNullValue())
                 .extract()
                 .jsonPath()
-                .getMap("[0]");
+                .getMap("workPackages[0]");
         assertNotNull(first.get("bcwsByWeek"));
         assertNotNull(first.get("bcwpByWeek"));
         assertNotNull(first.get("totalBcws"));

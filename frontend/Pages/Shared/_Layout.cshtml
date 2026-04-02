@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="https://cdn.datatables.net/2.3.7/css/dataTables.bootstrap5.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/frontend.styles.css" asp-append-version="true" />
+    @await RenderSectionAsync("Head", required: false)
 </head>
 
 <body>
@@ -68,13 +69,20 @@
                             <li class="nav-item" id="approverNavItem" style="display:none;">
                                 <a class="nav-link header-link" asp-page="/Approver/Index">Approver Dashboard</a>
                             </li>
-                            @if (role == "OPERATIONS_MANAGER" || role == "ADMIN")
+                            <li class="nav-item" id="earnedValueNavItem" style="display:none;">
+                                <a class="nav-link text-dark" asp-page="/EarnedValue/Index">Earned Value</a>
+                            </li>
+                            @* Labor Report is visible to OPERATIONS_MANAGER, HR, and any PM
+                               (PM access is enforced server-side by the backend; we show the link
+                               for all logged-in users so PMs can reach it without exposing extra
+                               role logic in the frontend). *@
+                            @if (role == "OPERATIONS_MANAGER" || role == "HR" || role == "EMPLOYEE")
                             {
                                 <li class="nav-item">
                                     <a class="nav-link header-link" asp-page="/EarnedValue/Index">Earned Value</a>
                                 </li>
                             }
-                            @if (role == "HR" || role == "ADMIN")
+                            @if (role == "HR")
                             {
                                 <li class="nav-item">
                                     <a class="nav-link header-link" asp-area="" asp-page="/Employee/Index">Employees</a>
@@ -106,25 +114,78 @@
                             (function () {
                                 const token = '@jwt';
                                 const apiBaseUrl = '@apiBaseUrl';
+                                const role = '@role';
+                                const currentEmpId = '@empId';
                                 if (!token || !apiBaseUrl) return;
 
-                                const cached = sessionStorage.getItem('canAccessApprover');
-                                if (cached === 'true') {
-                                    document.getElementById('approverNavItem').style.display = '';
+                                const approverNavItem = document.getElementById('approverNavItem');
+                                const earnedValueNavItem = document.getElementById('earnedValueNavItem');
+
+                                const approverCache = sessionStorage.getItem('canAccessApprover');
+                                if (approverCache === 'true' && approverNavItem) {
+                                    approverNavItem.style.display = '';
+                                }
+                                if (approverCache !== 'true' && approverCache !== 'false') {
+                                    fetch(`${apiBaseUrl}/api/auth/can-access-approver-dashboard`, {
+                                        headers: { 'Authorization': `Bearer ${token}` }
+                                    })
+                                        .then(r => r.ok ? r.json() : null)
+                                        .then(data => {
+                                            const allowed = data && data.allowed;
+                                            sessionStorage.setItem('canAccessApprover', String(allowed));
+                                            if (allowed && approverNavItem) {
+                                                approverNavItem.style.display = '';
+                                            }
+                                        })
+                                        .catch(() => {});
+                                }
+
+                                const showEarnedValue = () => {
+                                    if (earnedValueNavItem) {
+                                        earnedValueNavItem.style.display = '';
+                                    }
+                                };
+
+                                if (role === 'OPERATIONS_MANAGER' || role === 'ADMIN') {
+                                    showEarnedValue();
                                     return;
                                 }
-                                if (cached === 'false') return;
 
-                                fetch(`${apiBaseUrl}/api/auth/can-access-approver-dashboard`, {
+                                const evCacheKey = `canAccessEarnedValue:${currentEmpId}`;
+                                const earnedValueCache = sessionStorage.getItem(evCacheKey);
+                                if (earnedValueCache === 'true') {
+                                    showEarnedValue();
+                                    return;
+                                }
+                                if (earnedValueCache === 'false') {
+                                    return;
+                                }
+
+                                const asOf = new Date().toISOString().slice(0, 10);
+                                fetch(`${apiBaseUrl}/api/projects`, {
                                     headers: { 'Authorization': `Bearer ${token}` }
                                 })
-                                    .then(r => r.ok ? r.json() : null)
-                                    .then(data => {
-                                        const allowed = data && data.allowed;
-                                        sessionStorage.setItem('canAccessApprover', String(allowed));
-                                        if (allowed) {
-                                            document.getElementById('approverNavItem').style.display = '';
+                                    .then(r => r.ok ? r.json() : [])
+                                    .then(async projects => {
+                                        for (const project of projects) {
+                                            const projectId = project.project_id || project.projId;
+                                            if (!projectId) {
+                                                continue;
+                                            }
+
+                                            const evResponse = await fetch(
+                                                `${apiBaseUrl}/api/earned-value/projects/${encodeURIComponent(projectId)}/monthly-report?asOf=${asOf}`,
+                                                { headers: { 'Authorization': `Bearer ${token}` } }
+                                            );
+
+                                            if (evResponse.ok) {
+                                                sessionStorage.setItem(evCacheKey, 'true');
+                                                showEarnedValue();
+                                                return;
+                                            }
                                         }
+
+                                        sessionStorage.setItem(evCacheKey, 'false');
                                     })
                                     .catch(() => { });
                             })();

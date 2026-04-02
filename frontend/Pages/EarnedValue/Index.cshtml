@@ -4,176 +4,186 @@
     ViewData["Title"] = "Earned Value Report";
 }
 
-<div class="container py-4">
-    <div class="d-flex align-items-center justify-content-between mb-3">
-        <div>
-            <h1 class="display-6 mb-0">Earned Value Report</h1>
-            <div class="text-muted">BCWS / BCWP planned vs earned by month</div>
-        </div>
+@section Head {
+    <link rel="stylesheet" href="~/css/earned-value.css" asp-append-version="true" />
+}
 
-        <form method="get" class="d-flex gap-2 align-items-end">
+@functions {
+    private static string Money(decimal value) => string.Format(System.Globalization.CultureInfo.InvariantCulture, "${0:N0}", value);
+    private static string SignedMoney(decimal value) => string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0}{1:N0}", value >= 0 ? "+" : "-", Math.Abs(value));
+    private static string VarianceClass(decimal value) => value < 0 ? "ev-var-negative" : "ev-var-positive";
+}
+
+<div class="ev-shell">
+    <section class="ev-hero">
+        <h1 class="ev-title">Earned Value Report</h1>
+        <p class="ev-subtitle">Track project performance and budget compliance across active work packages.</p>
+    </section>
+
+    <section class="ev-filter-panel">
+        <form method="get" class="ev-filter-form">
             <div>
-                <label class="form-label">Project</label>
-                <select class="form-select" asp-for="SelectedProjectId">
-                    @foreach (var p in Model.Projects)
+                <label class="ev-field-label" asp-for="SelectedProjectId">Project</label>
+                <select class="ev-select" asp-for="SelectedProjectId">
+                    <option value="">Select a project</option>
+                    @foreach (var project in Model.Projects)
                     {
-                        <option value="@p.Id">@p.Name</option>
+                        <option value="@project.Id">@project.Name</option>
                     }
                 </select>
             </div>
 
             <div>
-                <label class="form-label">Control Account</label>
-                <select class="form-select" asp-for="SelectedControlAccountId">
-                    @foreach (var ca in Model.ControlAccounts)
+                <label class="ev-field-label" asp-for="SelectedWorkPackageId">Work Package</label>
+                <select class="ev-select" asp-for="SelectedWorkPackageId" disabled="@(!Model.HasWorkPackageFilter)">
+                    <option value="">All Work Packages</option>
+                    @foreach (var workPackage in Model.WorkPackageOptions)
                     {
-                        <option value="@ca.Id">@ca.Name</option>
+                        <option value="@workPackage.Id">@workPackage.Name</option>
                     }
                 </select>
             </div>
 
-            <button class="btn btn-primary" type="submit">View</button>
+            <button type="submit" class="ev-button">View Report</button>
         </form>
-    </div>
 
-    <div class="card shadow-sm mb-3">
-        <div class="card-body">
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <div class="fw-semibold">Control Account Title</div>
-                    <div>@Model.ControlAccountTitle</div>
-                </div>
-                <div class="col-md-6">
-                    <div class="fw-semibold">Control Account Manager</div>
-                    <div>@Model.ControlAccountManager</div>
-                </div>
-                <div class="col-md-6">
-                    <div class="fw-semibold">Budget (BAC)</div>
-                    <div>$@Model.BAC.ToString("0,0")</div>
-                </div>
-                <div class="col-md-6">
-                    <div class="fw-semibold">EV Techniques</div>
-                    <div class="text-muted">0/100, 50/50, Units Complete, % Complete, Milestones</div>
-                </div>
+        @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+        {
+            <div class="ev-error">@Model.ErrorMessage</div>
+        }
+    </section>
+
+    @if (!Model.HasReport)
+    {
+        <section class="ev-empty">
+            <div class="ev-empty-title">Choose a project to generate the report</div>
+            <p class="mb-0">The table and performance cards will appear here after you select a project and click <strong>View Report</strong>.</p>
+        </section>
+    }
+    else
+    {
+        <section class="ev-report" data-ev-root data-as-of="@DateTime.Today.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)">
+            <div class="ev-summary-grid">
+                <article class="ev-card">
+                    <div class="ev-card-label">BAC</div>
+                    <div class="ev-card-value">@Money(Model.DisplayReport!.ProjectBac)</div>
+                    <div class="ev-card-note">Budget At Completion</div>
+                </article>
+
+                <article class="ev-card">
+                    <div class="ev-card-label">BCWS</div>
+                    <div class="ev-card-value">@Money(Model.DisplayReport!.ProjectBcws)</div>
+                    <div class="ev-card-note">Planned Value (PV)</div>
+                </article>
+
+                <article class="ev-card">
+                    <div class="ev-card-label">BCWP</div>
+                    <div class="ev-card-value">@Money(Model.DisplayReport!.ProjectBcwp)</div>
+                    <div class="ev-card-note">Earned Value (EV)</div>
+                </article>
+
+                <article class="ev-card">
+                    <div class="ev-card-label">ACWP</div>
+                    <div class="ev-card-value">@Money(Model.DisplayReport!.ProjectAcwp)</div>
+                    <div class="ev-card-note">Actual Cost (AC)</div>
+                </article>
             </div>
-        </div>
-    </div>
 
-    <div class="card shadow-sm">
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-bordered align-middle small">
-                    <thead class="table-light">
+            <div class="ev-table-shell">
+                <table class="ev-table">
+                    <thead>
                         <tr>
-                            <th style="width:60px;">WP#</th>
-                            <th style="min-width:220px;">Work Description</th>
-                            <th style="width:120px;">EV Method</th>
-                            <th style="width:90px;">Type</th>
-                            @for (int m = 1; m <= Model.MonthCount; m++)
-                            {
-                                <th class="text-center" style="width:90px;">Month @m</th>
-                            }
-                            <th class="text-end" style="width:110px;">Total (BAC)</th>
+                            <th>WP ID</th>
+                            <th>Work Description</th>
+                            <th>EV Method</th>
+                            <th class="ev-num">BAC</th>
+                            <th class="ev-num">BCWS</th>
+                            <th class="ev-num">BCWP</th>
+                            <th class="ev-num">ACWP</th>
+                            <th class="ev-num">ETC</th>
+                            <th class="ev-num">SV</th>
+                            <th class="ev-num">CV</th>
                         </tr>
                     </thead>
-
                     <tbody>
-                        @foreach (var wp in Model.WorkPackages)
+                        @foreach (var wp in Model.DisplayReport!.WorkPackages)
                         {
-                            <!-- BCWS row -->
-                            <tr>
-                                <td rowspan="2" class="text-center fw-semibold">@wp.Number</td>
-                                <td rowspan="2">@wp.Description</td>
-                                <td rowspan="2">@wp.EvMethod</td>
-
-                                <td class="fw-semibold">BCWS</td>
-
-                                @for (int m = 1; m <= Model.MonthCount; m++)
-                                {
-                                    <td class="text-end">
-                                        @(wp.BCWS.TryGetValue(m, out var v) ? v.ToString("0,0") : "")
-                                    </td>
-                                }
-
-                                <td class="text-end fw-semibold">
-                                    @wp.BCWS.Values.Sum().ToString("0,0")
-                                </td>
-                            </tr>
-
-                            <!-- BCWP row -->
-                            <tr>
-                                <td class="fw-semibold">BCWP</td>
-
-                                @for (int m = 1; m <= Model.MonthCount; m++)
-                                {
-                                    <td class="text-end">
-                                        @(wp.BCWP.TryGetValue(m, out var v) ? v.ToString("0,0") : "")
-                                    </td>
-                                }
-
-                                <td class="text-end fw-semibold">
-                                    @wp.BCWP.Values.Sum().ToString("0,0")
-                                </td>
+                            <tr class="ev-clickable-row"
+                                tabindex="0"
+                                role="button"
+                                data-ev-modal-open
+                                data-wp-id="@wp.WpId"
+                                data-wp-name="@wp.Description"
+                                aria-label="Open monthly performance details for @wp.Description">
+                                <td class="ev-wp-id">@wp.WpId</td>
+                                <td class="ev-desc">@wp.Description</td>
+                                <td>@wp.EvMethod</td>
+                                <td class="ev-num">@Money(wp.Bac)</td>
+                                <td class="ev-num">@Money(wp.Bcws)</td>
+                                <td class="ev-num">@Money(wp.Bcwp)</td>
+                                <td class="ev-num">@Money(wp.Acwp)</td>
+                                <td class="ev-num">@Money(wp.Etc)</td>
+                                <td class="ev-num @VarianceClass(wp.Sv)">@SignedMoney(wp.Sv)</td>
+                                <td class="ev-num @VarianceClass(wp.Cv)">@SignedMoney(wp.Cv)</td>
                             </tr>
                         }
-
-                        <!-- Totals -->
-                        <tr class="table-light">
-                            <td colspan="4" class="fw-semibold">TOTAL CONTROL ACCOUNT PLAN (BCWS)</td>
-                            @for (int m = 1; m <= Model.MonthCount; m++)
-                            {
-                                <td class="text-end fw-semibold">
-                                     @(Model.TotalBCWSByMonth.TryGetValue(m, out var totalBcws) ? totalBcws.ToString("0,0") : "0")
-                                </td>
-                            }
-                            <td class="text-end fw-semibold">@Model.TotalBCWSByMonth.Values.Sum().ToString("0,0")</td>
-                        </tr>
-
-                        <tr class="table-light">
-                            <td colspan="4" class="fw-semibold">TOTAL EARNED (BCWP)</td>
-                            @for (int m = 1; m <= Model.MonthCount; m++)
-                            {
-                                <td class="text-end fw-semibold">
-                                    @(Model.TotalBCWPByMonth.TryGetValue(m, out var totalBcwp) ? totalBcwp.ToString("0,0") : "0")
-                                </td>
-                            }
-                            <td class="text-end fw-semibold">@Model.TotalBCWPByMonth.Values.Sum().ToString("0,0")</td>
-                        </tr>
                     </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="8">Total Variances</td>
+                            <td class="ev-num @VarianceClass(Model.DisplayReport.TotalSv)">@SignedMoney(Model.DisplayReport.TotalSv)</td>
+                            <td class="ev-num @VarianceClass(Model.DisplayReport.TotalCv)">@SignedMoney(Model.DisplayReport.TotalCv)</td>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
-
-            <hr />
-
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <div class="fw-semibold mb-1">Schedule Variance (SV = BCWP − BCWS)</div>
-                    <div class="d-flex flex-wrap gap-2">
-                        @for (int m = 1; m <= Model.MonthCount; m++)
-                        {
-                            <span class="badge bg-secondary">
-                                M@m: @(Model.SVByMonth.TryGetValue(m, out var sv) ? sv.ToString("0,0") : "0")
-                            </span>
-                        }
-                    </div>
-                </div>
-
-                <div class="col-md-6">
-                    <div class="fw-semibold mb-1">Cost Variance (CV = BCWP − ACWP)</div>
-                    <div class="text-muted small">
-                        (ACWP would come from timesheets; placeholder values for now.)
-                    </div>
-                    <div class="d-flex flex-wrap gap-2">
-                        @for (int m = 1; m <= Model.MonthCount; m++)
-                        {
-                            <span class="badge bg-secondary">
-                                M@m: @(Model.CVByMonth.TryGetValue(m, out var cv) ? cv.ToString("0,0") : "0")
-                            </span>
-                        }
-                    </div>
-                </div>
-            </div>
-
-        </div>
-    </div>
+        </section>
+    }
 </div>
+
+<div class="ev-modal-backdrop" data-ev-modal-backdrop hidden>
+    <section class="ev-modal" role="dialog" aria-modal="true" aria-labelledby="ev-modal-title">
+        <div class="ev-modal-header">
+            <div>
+                <div class="ev-modal-kicker">Work Package Detail</div>
+                <h2 class="ev-modal-title" id="ev-modal-title">Work Package Monthly Performance</h2>
+            </div>
+            <button type="button" class="ev-modal-close" data-ev-modal-close aria-label="Close">X</button>
+        </div>
+
+        <div class="ev-modal-body">
+            <div class="ev-modal-status" data-ev-modal-status>Loading work package details...</div>
+
+            <div class="ev-modal-content" data-ev-modal-content hidden>
+                <section class="ev-visual-panel">
+                    <div class="ev-panel-kicker">Visual Analysis</div>
+                    <div class="ev-panel-title">Planned vs. Earned Value</div>
+                    <div class="ev-chart-legend">
+                        <span><i class="ev-legend-swatch ev-legend-planned"></i>BCWS (Planned)</span>
+                        <span><i class="ev-legend-swatch ev-legend-earned"></i>BCWP (Earned)</span>
+                    </div>
+                    <div class="ev-chart-shell">
+                        <div class="ev-chart" data-ev-chart></div>
+                    </div>
+                </section>
+
+                <section class="ev-breakdown-panel">
+                    <div class="ev-panel-kicker">Financial Data</div>
+                    <div class="ev-panel-title">Monthly Performance Breakdown</div>
+                    <div class="ev-metrics-strip" data-ev-metric-summary></div>
+                    <div class="ev-breakdown-shell">
+                        <table class="ev-breakdown-table" data-ev-breakdown-table></table>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <div class="ev-modal-footer">
+            <button type="button" class="ev-button" data-ev-modal-close>Close</button>
+        </div>
+    </section>
+</div>
+
+@section Scripts {
+    <script src="~/js/earned-value.js" asp-append-version="true"></script>
+}

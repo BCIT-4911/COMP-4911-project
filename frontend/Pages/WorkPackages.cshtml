@@ -12,13 +12,19 @@
                 Project: <strong id="projectLabel">@Model.ProjectId</strong>
                 &nbsp;&middot;&nbsp;
                 <a href="/Projects" class="back-link">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="19" y1="12" x2="5" y2="12" />
+                        <polyline points="12 19 5 12 12 5" />
+                    </svg>
                     Back to Projects
                 </a>
             </p>
         </div>
         <button class="btn-primary-crud" onclick="openCreateModal()" id="newWpBtn" disabled>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
             New Work Package
         </button>
     </div>
@@ -49,7 +55,9 @@
                     </tr>
                 </thead>
                 <tbody id="wpBody">
-                    <tr><td colspan="10" class="loading-cell">Loading work packages...</td></tr>
+                    <tr>
+                        <td colspan="10" class="loading-cell">Loading work packages...</td>
+                    </tr>
                 </tbody>
             </table>
         </div>
@@ -102,7 +110,8 @@
                 </div>
                 <div class="form-group">
                     <label for="estCreationBac">BAC (Budget at Completion)</label>
-                    <input type="number" id="estCreationBac" step="0.01" min="0" placeholder="e.g. 5000.00" oninput="validateBacInput()"/>
+                    <input type="number" id="estCreationBac" step="0.01" min="0" placeholder="e.g. 5000.00"
+                           oninput="validateBacInput()" />
                     <small id="bacBudgetHint" style="color: #a8b2d1; margin-top: 4px; display: block;"></small>
                 </div>
             </div>
@@ -136,11 +145,12 @@
                 </div>
                 <div class="form-group">
                     <label for="estPercentComplete">% Complete</label>
-                    <input type="number" id="estPercentComplete" step="0.01" min="0" max="100" placeholder="e.g. 50.00" />
+                    <input type="number" id="estPercentComplete" step="0.01" min="0" max="100"
+                           placeholder="e.g. 50.00" />
                 </div>
                 <div class="form-group">
                     <label for="estBac">BAC (Budget at Completion)</label>
-                    <input type="number" id="estBac" disabled="true"/>
+                    <input type="number" id="estBac" disabled="true" />
                 </div>
                 <div class="form-group">
                     <label for="estEac">EAC (Estimate at Completion)</label>
@@ -148,7 +158,7 @@
                 </div>
                 <div class="form-group">
                     <label for="estEtc">ETC (Estimate to Completion)</label>
-                    <input type="number" id="estEtc" step="0.01" min="0" placeholder="e.g. 5500.00" required="true"/>
+                    <input type="number" id="estEtc" step="0.01" min="0" placeholder="e.g. 5500.00" required="true" />
                 </div>
             </div>
 
@@ -169,7 +179,8 @@
 
         <div style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #444;">
             <h3 style="font-size: 14px; margin-bottom: 8px;">Current Team Members:</h3>
-            <ul id="currentTeamList" style="list-style-type: none; padding: 0; margin: 0; font-size: 13px; color: #ccc;">
+            <ul id="currentTeamList"
+                style="list-style-type: none; padding: 0; margin: 0; font-size: 13px; color: #ccc;">
                 <li>Loading team...</li>
             </ul>
         </div>
@@ -179,7 +190,7 @@
             <h4 style="margin-bottom: 10px; font-size: 14px; color: #a8b2d1;">+ Assign New Member</h4>
             <div class="form-group">
                 <select id="assignEmpId" required>
-                    </select>
+                </select>
             </div>
             <div class="form-group">
                 <label for="assignRole" style="display:none;">Role</label>
@@ -200,738 +211,738 @@
             <h4 style="margin-bottom: 10px; font-size: 14px; color: #ff6b6b;">- Remove Existing Member</h4>
             <div class="form-group">
                 <select id="removeEmpId" required>
-                    </select>
+                </select>
             </div>
             <div class="modal-actions" style="margin-top: 10px;">
-                <button type="submit" class="btn-secondary-crud" style="color: #ff6b6b; border-color: #ff6b6b;">Remove Member</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<div class="toast-container" id="toastContainer"></div>
-
-@section Scripts {
-<script>
-    const API = '@Model.ApiBaseUrl';
-    const PROJECT_ID = '@Model.ProjectId';
-    const TOKEN = '@Model.JwtToken';
-
-    // Safe global state
-    let allEmployees = [];
-    let allWps = [];
-    let projectInfo = null;
-    let projectTeam = []; 
-
-    // Extract user ID from JWT to check if they are the PM or RE
-    function getUserId() {
-        if (!TOKEN) return null;
-        try {
-            const base64Url = TOKEN.split('.')[1];
-            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-            const payload = JSON.parse(decodeURIComponent(window.atob(base64).split('').map(function(c) {
-                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-            }).join('')));
-            
-            if (payload.empId) return parseInt(payload.empId);
-            if (payload.sub) return parseInt(payload.sub);
-            return null;
-        } catch (e) {
-            return null;
-        }
-    }
-    const CURRENT_USER_ID = getUserId();
-
-    function getUserRole() {
-        if (!TOKEN) return '';
-        try {
-            const base64Url = TOKEN.split('.')[1];
-            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-            const payload = JSON.parse(decodeURIComponent(window.atob(base64).split('').map(function(c) {
-                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-            }).join('')));
-            return (payload.groups && payload.groups.length > 0) ? payload.groups[0] : (payload.role || payload.systemRole || '');
-        } catch (e) { return ''; }
-    }
-    const CURRENT_USER_ROLE = getUserRole();
-
-    function isOpsManagerOrAdmin() {
-        return CURRENT_USER_ROLE === 'OPERATIONS_MANAGER' || CURRENT_USER_ROLE === 'ADMIN';
-    }
-
-    function authFetch(url, options = {}) {
-        options.headers = { ...options.headers, 'Authorization': `Bearer ${TOKEN}` };
-        return fetch(url, options).then(res => {
-            if (res.status === 401) window.location.href = '/Login';
-            return res;
-        });
-    }
-
-    // ---- Initialize Page Data ----
-    async function init() {
-        if (!PROJECT_ID) {
-            document.getElementById('wpBody').innerHTML =
-                '<tr><td colspan="10" class="error-cell">No project selected. <a href="/Projects">Go to Projects</a></td></tr>';
-            return;
-        }
-        
-        await loadProjectInfo();
-        await loadProjectTeam(); 
-        await loadEmployees();
-        await loadWorkPackages();
-    }
-
-    async function loadProjectInfo() {
-        try {
-            const res = await authFetch(`${API}/api/projects/${encodeURIComponent(PROJECT_ID)}`);
-            if (res.ok) projectInfo = await res.json();
-        } catch (err) {
-            console.error("Failed to load project details", err);
-        }
-    }
-
-    async function loadProjectTeam() {
-        try {
-            const res = await authFetch(`${API}/api/projects/${encodeURIComponent(PROJECT_ID)}/employees`);
-            if (res.ok) projectTeam = await res.json();
-        } catch (err) {
-            console.error("Failed to load project team:", err);
-        }
-    }
-
-    async function loadEmployees() {
-        try {
-            const res = await authFetch(`${API}/api/employees`);
-            if (res.ok) allEmployees = await res.json();
-        } catch (err) {
-            console.error("Failed to load employees:", err);
-        }
-    }
-
-    async function loadWorkPackages() {
-        const canCreateWp = isOpsManagerOrAdmin() || canUserAssign();
-        const newWpBtn = document.getElementById('newWpBtn');
-        if (canCreateWp) {
-            newWpBtn.disabled = false;
-            newWpBtn.style.display = '';
-        } else {
-            newWpBtn.style.display = 'none';
-        }
-        try {
-            const res = await authFetch(`${API}/api/projects/${encodeURIComponent(PROJECT_ID)}/workpackages`);
-            if (!res.ok) throw new Error('Failed to load work packages');
-            allWps = await res.json();
-            
-            populateWpPrefixOptions(allWps);
-            renderTable(allWps);
-            renderTree(allWps);
-        } catch (err) {
-            document.getElementById('wpBody').innerHTML =
-                `<tr><td colspan="10" class="error-cell">Error: ${err.message}</td></tr>`;
-        }
-    }
-
-    // ---- Evaluate PM Authorization ----
-    function canUserAssign() {
-        const isAssignedPM = projectTeam.some(e => e.empId === CURRENT_USER_ID && e.projectRole === 'PM');
-        const isPrimaryPM = projectInfo && projectInfo.project_manager_id === CURRENT_USER_ID;
-        return isAssignedPM || isPrimaryPM;
-    }
-
-    // ---- Rendering Functions ----
-    function populateWpPrefixOptions(wps) {
-        const select = document.getElementById('parentWpIdSelect');
-        if (!select) return;
-
-        const uniqueIds = [...new Set((wps || []).map(w => w.wpId).filter(Boolean))].sort((a, b) => a.localeCompare(b));
-        select.disabled = false;
-        select.innerHTML = '<option value="">(Root – no parent)</option>'
-            + uniqueIds.map(id => `<option value="${esc(id)}">${esc(id)}</option>`).join('');
-    }
-
-    function statusDisplay(s) {
-        const map = { 'OPEN_FOR_CHARGES': 'Open', 'CLOSED_FOR_CHARGES': 'Closed', 'COMPLETE': 'Complete' };
-        return map[s] || s || 'N/A';
-    }
-
-    function statusClass(s) {
-        if (s === 'OPEN_FOR_CHARGES') return 'badge-open';
-        if (s === 'COMPLETE') return 'badge-complete';
-        return 'badge-archived';
-    }
-
-    function typeDisplay(t) {
-        const map = { 'SUMMARY': 'Summary', 'LOWEST_LEVEL': 'Lowest-Level' };
-        return map[t] || t || 'N/A';
-    }
-
-    function toggleViewMode() {
-        const mode = document.getElementById('viewModeSelect').value;
-        document.getElementById('crudTableWrapper').style.display = mode === 'table' ? 'block' : 'none';
-        document.getElementById('crudTreeWrapper').style.display = mode === 'tree' ? 'block' : 'none';
-    }
-
-    function renderTable(wps) {
-        const tbody = document.getElementById('wpBody');
-        if (wps.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="10" class="empty-cell">No work packages found. Click "New Work Package" to create one.</td></tr>';
-            return;
-        }
-
-        const canAssign = canUserAssign();
-
-        const isPrivileged = isOpsManagerOrAdmin();
-
-        tbody.innerHTML = wps.map(w => {
-            let assignButton = '';
-            let estimateButton = '';
-            let reportButton = '';
-
-            if (canAssign) {
-                assignButton = `
-                    <button class="btn-action btn-assign" onclick="openAssignmentModal('${esc(w.wpId)}')" title="Manage Team">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
-                    </button>
-                `;
-                reportButton = `
-                    <a class="btn-action" href="/EarnedValue?SelectedControlAccountId=${encodeURIComponent(w.wpId)}&SelectedProjectId=${encodeURIComponent(PROJECT_ID)}" title="Weekly Report" style="color: #ffd166;">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                    </a>
-                `;
-            }
-
-            // Estimate Button Visibility: Only PMs and the specific RE of this WP can see it
-            if (canAssign || w.reEmployeeId === CURRENT_USER_ID) {
-                if (w.reEmployeeId === CURRENT_USER_ID && !canAssign) {
-                    document.getElementById("estEtc").disabled = false;
-                    document.getElementById("estEac").disabled = true;
-                    document.getElementById("estPercentComplete").disabled = true;
-                    document.getElementById("estBudgetedEffort").disabled = true;
-                } else {
-                    document.getElementById("estEtc").disabled = false;
-                    document.getElementById("estEac").disabled = false;
-                    document.getElementById("estPercentComplete").disabled = false;
-                    document.getElementById("estBudgetedEffort").disabled = false;
-                }
-
-                estimateButton = `
-                    <button class="btn-action btn-assign" onclick="openEstimateModal('${esc(w.wpId)}')" title="Update EVM Estimates" style="color: #64ffda;">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
-                    </button>
-                `;
-            } 
-
-            // Edit: Ops Manager, Admin, PM of this project, or RE of this WP
-            const canEditWp = isPrivileged || canAssign || w.reEmployeeId === CURRENT_USER_ID;
-            // Delete: Ops Manager, Admin, or PM of this project
-            const canDeleteWp = isPrivileged || canAssign;
-
-            return `
-            <tr>
-                <td><code>${esc(w.wpId)}</code></td>
-                <td class="name-cell">${esc(w.wpName || '')}</td>
-                <td><span class="badge badge-type">${typeDisplay(w.wpType)}</span></td>
-                <td><span class="badge ${statusClass(w.status)}">${statusDisplay(w.status)}</span></td>
-                <td>${w.parentWpId ? '<code>' + esc(w.parentWpId) + '</code>' : '—'}</td>
-                <td>${w.planStartDate || '—'}</td>
-                <td>${w.planEndDate || '—'}</td>
-                <td>${w.percentComplete != null ? w.percentComplete + '%' : '—'}</td>
-                <td>${w.reEmployeeName || '—'}</td>
-                <td class="actions-cell">
-                    ${reportButton}
-                    ${estimateButton}
-                    ${assignButton}
-                    ${canEditWp ? `
-                    <button class="btn-action btn-edit" onclick="openEditModalById('${esc(w.wpId)}')" title="Edit">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    </button>` : ''}
-                    ${canDeleteWp ? `
-                    <button class="btn-action btn-delete" onclick="deleteWP('${esc(w.wpId)}')" title="Delete">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                    </button>` : ''}
-                </td>
-            </tr>
-            `;
-        }).join('');
-    }
-
-    function renderTree(wps) {
-        const tree = buildTree(wps);
-        const treeContainer = document.getElementById('crudTreeWrapper');
-        if (tree.length === 0) {
-            treeContainer.innerHTML = '<p class="empty-cell">No work packages found. Click "New Work Package" to create one.</p>';
-            return;
-        }
-        treeContainer.innerHTML = `<ul class="tree-list tree-root">${renderTreeNodes(tree)}</ul>`;
-    }
-
-    function buildTree(wps) {
-        const map = {};
-        wps.forEach(w => { map[w.wpId] = { ...w, children: [] }; });
-        const roots = [];
-        wps.forEach(w => {
-            if (w.parentWpId && map[w.parentWpId]) {
-                map[w.parentWpId].children.push(map[w.wpId]);
-            } else {
-                roots.push(map[w.wpId]);
-            }
-        });
-        return roots;
-    }
-
-    function renderTreeNodes(nodes) {
-        const canAssign = canUserAssign();
-        const isPrivileged = isOpsManagerOrAdmin();
-
-        return nodes.map(n => {
-            let assignButton = '';
-            let estimateButton = '';
-            let reportButton = '';
-
-            if (canAssign) {
-                assignButton = `
-                    <button class="btn-action btn-assign" onclick="openAssignmentModal('${esc(n.wpId)}')" title="Manage Team">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
-                    </button>
-                `;
-                reportButton = `
-                    <a class="btn-action" href="/EarnedValue?SelectedControlAccountId=${encodeURIComponent(n.wpId)}&SelectedProjectId=${encodeURIComponent(PROJECT_ID)}" title="Weekly Report" style="color: #ffd166;">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                    </a>
-                `;
-            }
-
-            if (canAssign || n.reEmployeeId === CURRENT_USER_ID) {
-                if (n.reEmployeeId === CURRENT_USER_ID && !canAssign) {
-                    document.getElementById("estEtc").disabled = false;
-                    document.getElementById("estEac").disabled = true;
-                    document.getElementById("estPercentComplete").disabled = true;
-                    document.getElementById("estBudgetedEffort").disabled = true;
-                } else {
-                    document.getElementById("estEtc").disabled = false;
-                    document.getElementById("estEac").disabled = false;
-                    document.getElementById("estPercentComplete").disabled = false;
-                    document.getElementById("estBudgetedEffort").disabled = false;
-                }
-
-                estimateButton = `
-                    <button class="btn-action btn-assign" onclick="openEstimateModal('${esc(n.wpId)}')" title="Update EVM Estimates" style="color: #64ffda;">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
-                    </button>
-                `;
-            } 
-
-            const canEditWp = isPrivileged || canAssign || n.reEmployeeId === CURRENT_USER_ID;
-            const canDeleteWp = isPrivileged || canAssign;
-
-            return `
-            <li class="tree-item ${n.children && n.children.length > 0 ? 'has-children' : ''}">
-                <div class="node-content">
-                    <span class="badge badge-type">${esc(n.wpId)}</span>
-                    <p>${esc(n.wpName || '')}</p>
-                    <span>
-                        <span class="badge badge-type">${typeDisplay(n.wpType)}</span>
-                        <span class="badge ${statusClass(n.status)}">${statusDisplay(n.status)}</span>
-                    </span>
-                    <div>
-                        ${reportButton}
-                        ${estimateButton}
-                        ${assignButton}
-                        ${canEditWp ? `
-                        <button class="btn-action btn-edit" onclick="openEditModalById('${esc(n.wpId)}')" title="Edit">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                        </button>` : ''}
-                        ${canDeleteWp ? `
-                        <button class="btn-action btn-delete" onclick="deleteWP('${esc(n.wpId)}')" title="Delete">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                        </button>` : ''}
-                    </div>
+                <button type="submit" class="btn-secondary-crud" style="color: #ff6b6b; border-color: #ff6b6b;">Remove
+                    Member</button>
                 </div>
-                ${n.children && n.children.length > 0 ? `<ul class="tree-list">${renderTreeNodes(n.children)}</ul>` : ''}
-            </li>
-            `;
-        }).join('');
-    }
+            </form>
+        </div>
+    </div>
 
-    // ---- Helper to populate dropdowns ----
-    function populateDropdown(selectElement, employeeList, emptyMessage) {
-        if (employeeList.length === 0) {
-            selectElement.innerHTML = `<option value="">-- ${emptyMessage} --</option>`;
-            selectElement.disabled = true;
-        } else {
-            selectElement.innerHTML = '<option value="">-- Select Employee --</option>' + 
-                employeeList.map(e => `<option value="${e.empId}">${e.empFirstName} ${e.empLastName} (ID: ${e.empId})</option>`).join('');
-            selectElement.disabled = false;
-        }
-    }
+    <div class="toast-container" id="toastContainer"></div>
 
-    // ---- EVM Estimate Modal Functions ----
-    function openEstimateModal(wpId) {
-        const w = allWps.find(x => x.wpId === wpId);
-        if (!w) return;
-        
-        document.getElementById('estWpId').value = w.wpId;
-        document.getElementById('estimateModalTitle').textContent = `Update Estimates: ${w.wpId}`;
-        
-        // Populate existing estimates
-        document.getElementById('estBudgetedEffort').value = w.budgetedEffort !== undefined && w.budgetedEffort !== null ? w.budgetedEffort : '';
-        document.getElementById('estPercentComplete').value = w.percentComplete !== undefined && w.percentComplete !== null ? w.percentComplete : '';
-        document.getElementById('estBac').value = w.bac !== undefined && w.bac !== null ? w.bac : '';
-        document.getElementById('estEac').value = w.eac !== undefined && w.eac !== null ? w.eac : '';
-        document.getElementById('estEtc').value = w.etc !== undefined && w.etc !== null ? w.etc : '';
-        
-        document.getElementById('estimateModal').classList.add('active');
-    }
+    @section Scripts {
+        <script>
+            const API = '@Model.ApiBaseUrl';
+            const PROJECT_ID = '@Model.ProjectId';
+            const TOKEN = '@Model.JwtToken';
 
-    function closeEstimateModal() {
-        document.getElementById('estimateModal').classList.remove('active');
-        document.getElementById('estimateForm').reset();
-    }
+            // Safe global state
+            let allEmployees = [];
+            let allWps = [];
+            let projectInfo = null;
+            let projectTeam = [];
 
-    async function handleEstimateSubmit(e) {
-        e.preventDefault();
-        const wpId = document.getElementById('estWpId').value;
-        const existingWp = allWps.find(x => x.wpId === wpId);
-        
-        if (!existingWp) return;
+            // Extract user ID from JWT to check if they are the PM or RE
+            function getUserId() {
+                if (!TOKEN) return null;
+                try {
+                    const base64Url = TOKEN.split('.')[1];
+                    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                    const payload = JSON.parse(decodeURIComponent(window.atob(base64).split('').map(function (c) {
+                        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                    }).join('')));
 
-        // Smart merge: Keep the basic info intact, but update the 4 EVM fields
-        const body = {
-            ...existingWp,
-            budgetedEffort: document.getElementById('estBudgetedEffort').value ? parseFloat(document.getElementById('estBudgetedEffort').value) : null,
-            percentComplete: document.getElementById('estPercentComplete').value ? parseFloat(document.getElementById('estPercentComplete').value) : null,
-            bac: document.getElementById('estBac').value ? parseFloat(document.getElementById('estBac').value) : null,
-            eac: document.getElementById('estEac').value ? parseFloat(document.getElementById('estEac').value) : null,
-            etc: document.getElementById('estEtc').value ? parseFloat(document.getElementById('estEtc').value) : null
-        };
-
-        try {
-            const res = await authFetch(`${API}/api/workpackages/${encodeURIComponent(wpId)}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
-            });
-            
-            if (res.status === 403) throw new Error("Access Denied: Only PMs and REs can update estimates.");
-            if (!res.ok) throw new Error(await res.text() || res.statusText);
-            
-            closeEstimateModal();
-            showToast('Estimates updated successfully!', 'success');
-            loadWorkPackages();
-        } catch (err) {
-            showToast('Error updating estimates: ' + err.message, 'error');
-        }
-    }
-
-    // ---- Assignment Modal Functions ----
-    async function openAssignmentModal(wpId) {
-        document.getElementById('assignWpId').value = wpId;
-        document.getElementById('removeWpId').value = wpId;
-        document.getElementById('assignmentModalTitle').textContent = `Manage Team for ${wpId}`;
-
-        const assignSelect = document.getElementById('assignEmpId');
-        assignSelect.innerHTML = '<option value="">Loading...</option>';
-        assignSelect.disabled = true;
-        document.getElementById('assignmentModal').classList.add('active');
-
-        const currentTeam = await loadCurrentWpTeam(wpId);
-
-        const assignedIds = new Set(currentTeam.map(e => e.empId));
-        const available = projectTeam.filter(e => !assignedIds.has(e.empId));
-        populateDropdown(assignSelect, available, "All project members already assigned");
-
-        const removable = currentTeam.filter(e => e.wpRole !== 'RE');
-        populateDropdown(document.getElementById('removeEmpId'), removable, "No assigned members to remove");
-    }
-
-    async function loadCurrentWpTeam(wpId) {
-        const teamList = document.getElementById('currentTeamList');
-        teamList.innerHTML = '<li>Loading team...</li>';
-
-        try {
-            const res = await authFetch(`${API}/api/workpackages/${encodeURIComponent(wpId)}/employees`);
-            if (res.ok) {
-                const team = await res.json();
-                let rowsHtml = team.map(e =>
-                    `<li>• ${esc(e.empFirstName)} ${esc(e.empLastName)} (ID: ${e.empId}) - <strong style="color: #fff;">${esc(e.wpRole || 'MEMBER')}</strong></li>`
-                ).join('');
-
-                if (!rowsHtml) {
-                    teamList.innerHTML = '<li>No employees assigned yet.</li>';
-                } else {
-                    teamList.innerHTML = rowsHtml;
+                    if (payload.empId) return parseInt(payload.empId);
+                    if (payload.sub) return parseInt(payload.sub);
+                    return null;
+                } catch (e) {
+                    return null;
                 }
-                return team;
-            } else {
-                teamList.innerHTML = '<li style="color: red;">Failed to load team.</li>';
-                return [];
             }
-        } catch (err) {
-            teamList.innerHTML = '<li style="color: red;">Error connecting to server.</li>';
-            return [];
-        }
-    }
+            const CURRENT_USER_ID = getUserId();
 
-    function closeAssignmentModal() {
-        document.getElementById('assignmentModal').classList.remove('active');
-        document.getElementById('assignmentForm').reset();
-        document.getElementById('removeAssignmentForm').reset();
-    }
+            function getUserRole() {
+                if (!TOKEN) return '';
+                try {
+                    const base64Url = TOKEN.split('.')[1];
+                    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                    const payload = JSON.parse(decodeURIComponent(window.atob(base64).split('').map(function (c) {
+                        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                    }).join('')));
+                    return (payload.groups && payload.groups.length > 0) ? payload.groups[0] : (payload.role || payload.systemRole || '');
+                } catch (e) { return ''; }
+            }
+            const CURRENT_USER_ROLE = getUserRole();
 
-    async function handleAssignmentSubmit(e) {
-        e.preventDefault();
-        const wpId = document.getElementById('assignWpId').value;
-        const empId = document.getElementById('assignEmpId').value;
-        const role = document.getElementById('assignRole').value;
+            function isOpsManagerOrAdmin() {
+                return CURRENT_USER_ROLE === 'OPERATIONS_MANAGER' || CURRENT_USER_ROLE === 'ADMIN';
+            }
 
-        try {
-            const url = `${API}/api/workpackages/${encodeURIComponent(wpId)}/employees/${encodeURIComponent(empId)}?role=${encodeURIComponent(role)}`;
-            const res = await authFetch(url, { method: 'POST' });
-            
-            if (res.status === 403) throw new Error("Access Denied.");
-            if (!res.ok) throw new Error(await res.text() || res.statusText);
-            
-            closeAssignmentModal();
-            showToast('Employee assigned successfully!', 'success');
-            loadWorkPackages();
-        } catch (err) {
-            showToast('Assignment Error: ' + err.message, 'error');
-        }
-    }
+            function authFetch(url, options = {}) {
+                options.headers = { ...options.headers, 'Authorization': `Bearer ${TOKEN}` };
+                return fetch(url, options).then(res => {
+                    if (res.status === 401) window.location.href = '/Login';
+                    return res;
+                });
+            }
 
-    async function handleRemoveSubmit(e) {
-        e.preventDefault();
-        const wpId = document.getElementById('removeWpId').value;
-        const empId = document.getElementById('removeEmpId').value;
+            // ---- Initialize Page Data ----
+            async function init() {
+                if (!PROJECT_ID) {
+                    document.getElementById('wpBody').innerHTML =
+                        '<tr><td colspan="10" class="error-cell">No project selected. <a href="/Projects">Go to Projects</a></td></tr>';
+                    return;
+                }
 
-        try {
-            const url = `${API}/api/workpackages/${encodeURIComponent(wpId)}/employees/${encodeURIComponent(empId)}`;
-            const res = await authFetch(url, { method: 'DELETE' });
-            
-            if (res.status === 403) throw new Error("Access Denied.");
-            if (!res.ok) throw new Error(await res.text() || res.statusText);
-            
-            closeAssignmentModal();
-            showToast('Employee removed successfully!', 'success');
-            loadWorkPackages();
-        } catch (err) {
-            showToast('Removal Error: ' + err.message, 'error');
-        }
-    }
+                await loadProjectInfo();
+                await loadProjectTeam();
+                await loadEmployees();
+                await loadWorkPackages();
+            }
 
-    // ---- BAC Budget Display ----
-    function getBacBudget(parentWpId, excludeWpId) {
-        let limit, siblingSum;
-        if (parentWpId) {
-            const parent = allWps.find(w => w.wpId === parentWpId);
-            limit = parent && parent.bac != null ? parseFloat(parent.bac) : null;
-            siblingSum = allWps
-                .filter(w => w.parentWpId === parentWpId && w.wpId !== excludeWpId && w.bac != null)
-                .reduce((sum, w) => sum + parseFloat(w.bac), 0);
-        } else {
-            limit = projectInfo && projectInfo.bac != null ? parseFloat(projectInfo.bac) : null;
-            siblingSum = allWps
-                .filter(w => !w.parentWpId && w.wpId !== excludeWpId && w.bac != null)
-                .reduce((sum, w) => sum + parseFloat(w.bac), 0);
-        }
-        if (limit == null) return null;
-        return { remaining: Math.max(0, limit - siblingSum), total: limit };
-    }
+            async function loadProjectInfo() {
+                try {
+                    const res = await authFetch(`${API}/api/projects/${encodeURIComponent(PROJECT_ID)}`);
+                    if (res.ok) projectInfo = await res.json();
+                } catch (err) {
+                    console.error("Failed to load project details", err);
+                }
+            }
 
-    let currentBacBudget = null;
+            async function loadProjectTeam() {
+                try {
+                    const res = await authFetch(`${API}/api/projects/${encodeURIComponent(PROJECT_ID)}/employees`);
+                    if (res.ok) projectTeam = await res.json();
+                } catch (err) {
+                    console.error("Failed to load project team:", err);
+                }
+            }
 
-    function showBacBudget(parentWpId, excludeWpId) {
-        const hint = document.getElementById('bacBudgetHint');
-        currentBacBudget = getBacBudget(parentWpId, excludeWpId);
-        if (!currentBacBudget) {
-            hint.textContent = '';
-            return;
-        }
-        hint.style.color = '#a8b2d1';
-        hint.textContent = `Remaining: $${currentBacBudget.remaining.toFixed(2)} / $${currentBacBudget.total.toFixed(2)}`;
-        validateBacInput();
-    }
+            async function loadEmployees() {
+                try {
+                    const res = await authFetch(`${API}/api/employees`);
+                    if (res.ok) allEmployees = await res.json();
+                } catch (err) {
+                    console.error("Failed to load employees:", err);
+                }
+            }
 
-    function validateBacInput() {
-        const hint = document.getElementById('bacBudgetHint');
-        const input = document.getElementById('estCreationBac');
-        if (!currentBacBudget || !input.value) {
-            if (currentBacBudget) {
+            async function loadWorkPackages() {
+                const canCreateWp = isOpsManagerOrAdmin() || canUserAssign();
+                const newWpBtn = document.getElementById('newWpBtn');
+                if (canCreateWp) {
+                    newWpBtn.disabled = false;
+                    newWpBtn.style.display = '';
+                } else {
+                    newWpBtn.style.display = 'none';
+                }
+                try {
+                    const res = await authFetch(`${API}/api/projects/${encodeURIComponent(PROJECT_ID)}/workpackages`);
+                    if (!res.ok) throw new Error('Failed to load work packages');
+                    allWps = await res.json();
+
+                    populateWpPrefixOptions(allWps);
+                    renderTable(allWps);
+                    renderTree(allWps);
+                } catch (err) {
+                    document.getElementById('wpBody').innerHTML =
+                        `<tr><td colspan="10" class="error-cell">Error: ${err.message}</td></tr>`;
+                }
+            }
+
+            // ---- Evaluate PM Authorization ----
+            function canUserAssign() {
+                const isAssignedPM = projectTeam.some(e => e.empId === CURRENT_USER_ID && e.projectRole === 'PM');
+                const isPrimaryPM = projectInfo && projectInfo.project_manager_id === CURRENT_USER_ID;
+                return isAssignedPM || isPrimaryPM;
+            }
+
+            // ---- Rendering Functions ----
+            function populateWpPrefixOptions(wps) {
+                const select = document.getElementById('parentWpIdSelect');
+                if (!select) return;
+
+                const uniqueIds = [...new Set((wps || []).map(w => w.wpId).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+                select.disabled = false;
+                select.innerHTML = '<option value="">(Root – no parent)</option>'
+                    + uniqueIds.map(id => `<option value="${esc(id)}">${esc(id)}</option>`).join('');
+            }
+
+            function statusDisplay(s) {
+                const map = { 'OPEN_FOR_CHARGES': 'Open', 'CLOSED_FOR_CHARGES': 'Closed', 'COMPLETE': 'Complete' };
+                return map[s] || s || 'N/A';
+            }
+
+            function statusClass(s) {
+                if (s === 'OPEN_FOR_CHARGES') return 'badge-open';
+                if (s === 'COMPLETE') return 'badge-complete';
+                return 'badge-archived';
+            }
+
+            function typeDisplay(t) {
+                const map = { 'SUMMARY': 'Summary', 'LOWEST_LEVEL': 'Lowest-Level' };
+                return map[t] || t || 'N/A';
+            }
+
+            function toggleViewMode() {
+                const mode = document.getElementById('viewModeSelect').value;
+                document.getElementById('crudTableWrapper').style.display = mode === 'table' ? 'block' : 'none';
+                document.getElementById('crudTreeWrapper').style.display = mode === 'tree' ? 'block' : 'none';
+            }
+
+            function renderTable(wps) {
+                const tbody = document.getElementById('wpBody');
+                if (wps.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="10" class="empty-cell">No work packages found. Click "New Work Package" to create one.</td></tr>';
+                    return;
+                }
+
+                const canAssign = canUserAssign();
+
+                const isPrivileged = isOpsManagerOrAdmin();
+
+                tbody.innerHTML = wps.map(w => {
+                    let assignButton = '';
+                    let estimateButton = '';
+                    let reportButton = '';
+
+                    if (canAssign) {
+                        assignButton = `
+                            <button class="btn-action btn-assign" onclick="openAssignmentModal('${esc(w.wpId)}')" title="Manage Team">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
+                            </button>
+                        `;
+                        reportButton = `
+                            <a class="btn-action" href="/EarnedValue?SelectedControlAccountId=${encodeURIComponent(w.wpId)}&SelectedProjectId=${encodeURIComponent(PROJECT_ID)}" title="Weekly Report" style="color: #ffd166;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                            </a>
+                        `;
+                    }
+
+                    // Estimate Button Visibility: Only PMs and the specific RE of this WP can see it
+                    if (canAssign || w.reEmployeeId === CURRENT_USER_ID) {
+                        if (w.reEmployeeId === CURRENT_USER_ID && !canAssign) {
+                            document.getElementById("estEtc").disabled = false;
+                            document.getElementById("estEac").disabled = true;
+                            document.getElementById("estPercentComplete").disabled = true;
+                            document.getElementById("estBudgetedEffort").disabled = true;
+                        } else {
+                            document.getElementById("estEtc").disabled = false;
+                            document.getElementById("estEac").disabled = false;
+                            document.getElementById("estPercentComplete").disabled = false;
+                            document.getElementById("estBudgetedEffort").disabled = false;
+                        }
+
+                        estimateButton = `
+                            <button class="btn-action btn-assign" onclick="openEstimateModal('${esc(w.wpId)}')" title="Update EVM Estimates" style="color: #64ffda;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+                            </button>
+                        `;
+                    }
+
+                    // Edit: Ops Manager, Admin, PM of this project, or RE of this WP
+                    const canEditWp = isPrivileged || canAssign || w.reEmployeeId === CURRENT_USER_ID;
+                    // Delete: Ops Manager, Admin, or PM of this project
+                    const canDeleteWp = isPrivileged || canAssign;
+
+                    return `
+                    <tr>
+                        <td><code>${esc(w.wpId)}</code></td>
+                        <td class="name-cell">${esc(w.wpName || '')}</td>
+                        <td><span class="badge badge-type">${typeDisplay(w.wpType)}</span></td>
+                        <td><span class="badge ${statusClass(w.status)}">${statusDisplay(w.status)}</span></td>
+                        <td>${w.parentWpId ? '<code>' + esc(w.parentWpId) + '</code>' : '—'}</td>
+                        <td>${w.planStartDate || '—'}</td>
+                        <td>${w.planEndDate || '—'}</td>
+                        <td>${w.percentComplete != null ? w.percentComplete + '%' : '—'}</td>
+                        <td>${w.reEmployeeName || '—'}</td>
+                        <td class="actions-cell">
+                            ${reportButton}
+                            ${estimateButton}
+                            ${assignButton}
+                            ${canEditWp ? `
+                            <button class="btn-action btn-edit" onclick="openEditModalById('${esc(w.wpId)}')" title="Edit">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                            </button>` : ''}
+                            ${canDeleteWp ? `
+                            <button class="btn-action btn-delete" onclick="deleteWP('${esc(w.wpId)}')" title="Delete">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                            </button>` : ''}
+                        </td>
+                    </tr>
+                    `;
+                }).join('');
+            }
+
+            function renderTree(wps) {
+                const tree = buildTree(wps);
+                const treeContainer = document.getElementById('crudTreeWrapper');
+                if (tree.length === 0) {
+                    treeContainer.innerHTML = '<p class="empty-cell" style="padding:2rem 1rem;">No work packages found. Click "New Work Package" to create one.</p>';
+                    return;
+                }
+                treeContainer.innerHTML = `<ul class="tree-list tree-root">${renderTreeNodes(tree, 0)}</ul>`;
+            }
+
+            function buildTree(wps) {
+                const map = {};
+                wps.forEach(w => { map[w.wpId] = { ...w, children: [] }; });
+                const roots = [];
+                wps.forEach(w => {
+                    if (w.parentWpId && map[w.parentWpId]) {
+                        map[w.parentWpId].children.push(map[w.wpId]);
+                    } else {
+                        roots.push(map[w.wpId]);
+                    }
+                });
+                return roots;
+            }
+
+            function renderTreeNodes(nodes, depth) {
+                const canAssign = canUserAssign();
+                const isPrivileged = isOpsManagerOrAdmin();
+                const INDENT_PX = 20;
+
+                return nodes.map(n => {
+                    const hasChildren = n.children && n.children.length > 0;
+                    const indentStyle = depth > 0 ? `width:${depth * INDENT_PX}px;` : 'display:none;';
+
+                    // Chevron toggle or spacer
+                    const toggleHtml = hasChildren
+                        ? `<button class="tree-toggle" onclick="toggleTreeItem(this)" title="Collapse / Expand">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                           </button>`
+                        : `<span class="tree-toggle-spacer"></span>`;
+
+                    let assignButton = '';
+                    let estimateButton = '';
+                    let reportButton = '';
+
+                    if (canAssign) {
+                        assignButton = `<button class="btn-action btn-assign" onclick="openAssignmentModal('${esc(n.wpId)}')" title="Manage Team">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+                        </button>`;
+                        reportButton = `<a class="btn-action" href="/EarnedValue?SelectedControlAccountId=${encodeURIComponent(n.wpId)}&SelectedProjectId=${encodeURIComponent(PROJECT_ID)}" title="Weekly Report" style="color:#ffd166;">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                        </a>`;
+                    }
+
+                    if (canAssign || n.reEmployeeId === CURRENT_USER_ID) {
+                        estimateButton = `<button class="btn-action btn-assign" onclick="openEstimateModal('${esc(n.wpId)}')" title="Update EVM Estimates" style="color:#64ffda;">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                        </button>`;
+                    }
+
+                    const canEditWp = isPrivileged || canAssign || n.reEmployeeId === CURRENT_USER_ID;
+                    const canDeleteWp = isPrivileged || canAssign;
+
+                    const editBtn = canEditWp ? `<button class="btn-action btn-edit" onclick="openEditModalById('${esc(n.wpId)}')" title="Edit"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>` : '';
+                    const deleteBtn = canDeleteWp ? `<button class="btn-action btn-delete" onclick="deleteWP('${esc(n.wpId)}')" title="Delete"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>` : '';
+
+                    return `
+                    <li class="tree-item">
+                        <div class="node-content">
+                            <span class="tree-indent" style="${indentStyle}"></span>
+                            ${toggleHtml}
+                            <span class="badge badge-type" style="flex-shrink:0;">${esc(n.wpId)}</span>
+                            <span class="node-name">${esc(n.wpName || '')}</span>
+                            <span class="node-badges">
+                                <span class="badge badge-type">${typeDisplay(n.wpType)}</span>
+                                <span class="badge ${statusClass(n.status)}">${statusDisplay(n.status)}</span>
+                                ${n.planStartDate ? `<span class="tree-meta-chip"><span class="tree-meta-label">Start:</span> ${esc(n.planStartDate)}</span>` : ''}
+                                ${n.planEndDate ? `<span class="tree-meta-chip"><span class="tree-meta-label">End:</span> ${esc(n.planEndDate)}</span>` : ''}
+                                <span class="tree-meta-chip"><span class="tree-meta-label">%:</span> ${n.percentComplete != null ? n.percentComplete + '%' : '—'}</span>
+                                <span class="tree-meta-chip"><span class="tree-meta-label">RE:</span> ${esc(n.reEmployeeName || '—')}</span>
+                            </span>
+                            <span class="node-actions">
+                                ${reportButton}${estimateButton}${assignButton}${editBtn}${deleteBtn}
+                            </span>
+                        </div>
+                        ${hasChildren ? `<ul class="tree-list">${renderTreeNodes(n.children, depth + 1)}</ul>` : ''}
+                    </li>
+                    `;
+                }).join('');
+            }
+
+            function toggleTreeItem(btn) {
+                const li = btn.closest('.tree-item');
+                li.classList.toggle('collapsed');
+                btn.classList.toggle('collapsed');
+            }
+
+
+            // ---- Helper to populate dropdowns ----
+            function populateDropdown(selectElement, employeeList, emptyMessage) {
+                if (employeeList.length === 0) {
+                    selectElement.innerHTML = `<option value="">-- ${emptyMessage} --</option>`;
+                    selectElement.disabled = true;
+                } else {
+                    selectElement.innerHTML = '<option value="">-- Select Employee --</option>' +
+                        employeeList.map(e => `<option value="${e.empId}">${e.empFirstName} ${e.empLastName} (ID: ${e.empId})</option>`).join('');
+                    selectElement.disabled = false;
+                }
+            }
+
+            // ---- EVM Estimate Modal Functions ----
+            function openEstimateModal(wpId) {
+                const w = allWps.find(x => x.wpId === wpId);
+                if (!w) return;
+
+                document.getElementById('estWpId').value = w.wpId;
+                document.getElementById('estimateModalTitle').textContent = `Update Estimates: ${w.wpId}`;
+
+                // Populate existing estimates
+                document.getElementById('estBudgetedEffort').value = w.budgetedEffort !== undefined && w.budgetedEffort !== null ? w.budgetedEffort : '';
+                document.getElementById('estPercentComplete').value = w.percentComplete !== undefined && w.percentComplete !== null ? w.percentComplete : '';
+                document.getElementById('estBac').value = w.bac !== undefined && w.bac !== null ? w.bac : '';
+                document.getElementById('estEac').value = w.eac !== undefined && w.eac !== null ? w.eac : '';
+                document.getElementById('estEtc').value = w.etc !== undefined && w.etc !== null ? w.etc : '';
+
+                document.getElementById('estimateModal').classList.add('active');
+            }
+
+            function closeEstimateModal() {
+                document.getElementById('estimateModal').classList.remove('active');
+                document.getElementById('estimateForm').reset();
+            }
+
+            async function handleEstimateSubmit(e) {
+                e.preventDefault();
+                const wpId = document.getElementById('estWpId').value;
+                const existingWp = allWps.find(x => x.wpId === wpId);
+
+                if (!existingWp) return;
+
+                // Smart merge: Keep the basic info intact, but update the 4 EVM fields
+                const body = {
+                    ...existingWp,
+                    budgetedEffort: document.getElementById('estBudgetedEffort').value ? parseFloat(document.getElementById('estBudgetedEffort').value) : null,
+                    percentComplete: document.getElementById('estPercentComplete').value ? parseFloat(document.getElementById('estPercentComplete').value) : null,
+                    bac: document.getElementById('estBac').value ? parseFloat(document.getElementById('estBac').value) : null,
+                    eac: document.getElementById('estEac').value ? parseFloat(document.getElementById('estEac').value) : null,
+                    etc: document.getElementById('estEtc').value ? parseFloat(document.getElementById('estEtc').value) : null
+                };
+
+                try {
+                    const res = await authFetch(`${API}/api/workpackages/${encodeURIComponent(wpId)}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body)
+                    });
+
+                    if (res.status === 403) throw new Error("Access Denied: Only PMs and REs can update estimates.");
+                    if (!res.ok) throw new Error(await res.text() || res.statusText);
+
+                    closeEstimateModal();
+                    showToast('Estimates updated successfully!', 'success');
+                    loadWorkPackages();
+                } catch (err) {
+                    showToast('Error updating estimates: ' + err.message, 'error');
+                }
+            }
+
+            // ---- Assignment Modal Functions ----
+            async function openAssignmentModal(wpId) {
+                document.getElementById('assignWpId').value = wpId;
+                document.getElementById('removeWpId').value = wpId;
+                document.getElementById('assignmentModalTitle').textContent = `Manage Team for ${wpId}`;
+
+                const assignSelect = document.getElementById('assignEmpId');
+                assignSelect.innerHTML = '<option value="">Loading...</option>';
+                assignSelect.disabled = true;
+                document.getElementById('assignmentModal').classList.add('active');
+
+                const currentTeam = await loadCurrentWpTeam(wpId);
+
+                const assignedIds = new Set(currentTeam.map(e => e.empId));
+                const available = projectTeam.filter(e => !assignedIds.has(e.empId));
+                populateDropdown(assignSelect, available, "All project members already assigned");
+
+                const removable = currentTeam.filter(e => e.wpRole !== 'RE');
+                populateDropdown(document.getElementById('removeEmpId'), removable, "No assigned members to remove");
+            }
+
+            async function loadCurrentWpTeam(wpId) {
+                const teamList = document.getElementById('currentTeamList');
+                teamList.innerHTML = '<li>Loading team...</li>';
+
+                try {
+                    const res = await authFetch(`${API}/api/workpackages/${encodeURIComponent(wpId)}/employees`);
+                    if (res.ok) {
+                        const team = await res.json();
+                        let rowsHtml = team.map(e =>
+                            `<li>• ${esc(e.empFirstName)} ${esc(e.empLastName)} (ID: ${e.empId}) - <strong style="color: #fff;">${esc(e.wpRole || 'MEMBER')}</strong></li>`
+                        ).join('');
+
+                        if (!rowsHtml) {
+                            teamList.innerHTML = '<li>No employees assigned yet.</li>';
+                        } else {
+                            teamList.innerHTML = rowsHtml;
+                        }
+                        return team;
+                    } else {
+                        teamList.innerHTML = '<li style="color: red;">Failed to load team.</li>';
+                        return [];
+                    }
+                } catch (err) {
+                    teamList.innerHTML = '<li style="color: red;">Error connecting to server.</li>';
+                    return [];
+                }
+            }
+
+            function closeAssignmentModal() {
+                document.getElementById('assignmentModal').classList.remove('active');
+                document.getElementById('assignmentForm').reset();
+                document.getElementById('removeAssignmentForm').reset();
+            }
+
+            async function handleAssignmentSubmit(e) {
+                e.preventDefault();
+                const wpId = document.getElementById('assignWpId').value;
+                const empId = document.getElementById('assignEmpId').value;
+                const role = document.getElementById('assignRole').value;
+
+                try {
+                    const url = `${API}/api/workpackages/${encodeURIComponent(wpId)}/employees/${encodeURIComponent(empId)}?role=${encodeURIComponent(role)}`;
+                    const res = await authFetch(url, { method: 'POST' });
+
+                    if (res.status === 403) throw new Error("Access Denied.");
+                    if (!res.ok) throw new Error(await res.text() || res.statusText);
+
+                    closeAssignmentModal();
+                    showToast('Employee assigned successfully!', 'success');
+                    loadWorkPackages();
+                } catch (err) {
+                    showToast('Assignment Error: ' + err.message, 'error');
+                }
+            }
+
+            async function handleRemoveSubmit(e) {
+                e.preventDefault();
+                const wpId = document.getElementById('removeWpId').value;
+                const empId = document.getElementById('removeEmpId').value;
+
+                try {
+                    const url = `${API}/api/workpackages/${encodeURIComponent(wpId)}/employees/${encodeURIComponent(empId)}`;
+                    const res = await authFetch(url, { method: 'DELETE' });
+
+                    if (res.status === 403) throw new Error("Access Denied.");
+                    if (!res.ok) throw new Error(await res.text() || res.statusText);
+
+                    closeAssignmentModal();
+                    showToast('Employee removed successfully!', 'success');
+                    loadWorkPackages();
+                } catch (err) {
+                    showToast('Removal Error: ' + err.message, 'error');
+                }
+            }
+
+            // ---- BAC Budget Display ----
+            function getBacBudget(parentWpId, excludeWpId) {
+                let limit, siblingSum;
+                if (parentWpId) {
+                    const parent = allWps.find(w => w.wpId === parentWpId);
+                    limit = parent && parent.bac != null ? parseFloat(parent.bac) : null;
+                    siblingSum = allWps
+                        .filter(w => w.parentWpId === parentWpId && w.wpId !== excludeWpId && w.bac != null)
+                        .reduce((sum, w) => sum + parseFloat(w.bac), 0);
+                } else {
+                    limit = projectInfo && projectInfo.bac != null ? parseFloat(projectInfo.bac) : null;
+                    siblingSum = allWps
+                        .filter(w => !w.parentWpId && w.wpId !== excludeWpId && w.bac != null)
+                        .reduce((sum, w) => sum + parseFloat(w.bac), 0);
+                }
+                if (limit == null) return null;
+                return { remaining: Math.max(0, limit - siblingSum), total: limit };
+            }
+
+            let currentBacBudget = null;
+
+            function showBacBudget(parentWpId, excludeWpId) {
+                const hint = document.getElementById('bacBudgetHint');
+                currentBacBudget = getBacBudget(parentWpId, excludeWpId);
+                if (!currentBacBudget) {
+                    hint.textContent = '';
+                    return;
+                }
                 hint.style.color = '#a8b2d1';
                 hint.textContent = `Remaining: $${currentBacBudget.remaining.toFixed(2)} / $${currentBacBudget.total.toFixed(2)}`;
+                validateBacInput();
             }
-            input.style.borderColor = '';
-            return;
-        }
-        const entered = parseFloat(input.value) || 0;
-        if (entered > currentBacBudget.remaining) {
-            hint.style.color = '#ff6b6b';
-            hint.textContent = `Exceeds budget! Remaining: $${currentBacBudget.remaining.toFixed(2)} / $${currentBacBudget.total.toFixed(2)}`;
-            input.style.borderColor = '#ff6b6b';
-        } else {
-            hint.style.color = '#4ecdc4';
-            hint.textContent = `OK — Remaining: $${(currentBacBudget.remaining - entered).toFixed(2)} / $${currentBacBudget.total.toFixed(2)}`;
-            input.style.borderColor = '';
-        }
-    }
 
-    // ---- Create & Edit Modal Functions ----
-    function normalizeFullName(s) {
-        return (s || '').trim().replace(/\s+/g, ' ');
-    }
-
-    function populateReDropdown(selectedName) {
-        const select = document.getElementById('reEmployeeSelect');
-        select.innerHTML = '';
-        const placeholder = document.createElement('option');
-        placeholder.value = '';
-        placeholder.textContent = '-- Select RE --';
-        select.appendChild(placeholder);
-        const selectedNorm = normalizeFullName(selectedName);
-        for (const e of projectTeam) {
-            const fullName = `${e.empFirstName || ''} ${e.empLastName || ''}`.trim();
-            if (!fullName) continue;
-            const opt = document.createElement('option');
-            opt.value = fullName;
-            opt.textContent = `${fullName} (ID: ${e.empId})`;
-            if (normalizeFullName(fullName) === selectedNorm) {
-                opt.selected = true;
+            function validateBacInput() {
+                const hint = document.getElementById('bacBudgetHint');
+                const input = document.getElementById('estCreationBac');
+                if (!currentBacBudget || !input.value) {
+                    if (currentBacBudget) {
+                        hint.style.color = '#a8b2d1';
+                        hint.textContent = `Remaining: $${currentBacBudget.remaining.toFixed(2)} / $${currentBacBudget.total.toFixed(2)}`;
+                    }
+                    input.style.borderColor = '';
+                    return;
+                }
+                const entered = parseFloat(input.value) || 0;
+                if (entered > currentBacBudget.remaining) {
+                    hint.style.color = '#ff6b6b';
+                    hint.textContent = `Exceeds budget! Remaining: $${currentBacBudget.remaining.toFixed(2)} / $${currentBacBudget.total.toFixed(2)}`;
+                    input.style.borderColor = '#ff6b6b';
+                } else {
+                    hint.style.color = '#4ecdc4';
+                    hint.textContent = `OK — Remaining: $${(currentBacBudget.remaining - entered).toFixed(2)} / $${currentBacBudget.total.toFixed(2)}`;
+                    input.style.borderColor = '';
+                }
             }
-            select.appendChild(opt);
-        }
-    }
 
-    function openCreateModal() {
-        document.getElementById('editMode').value = 'false';
-        document.getElementById('modalTitle').textContent = 'New Work Package';
-        document.getElementById('submitBtn').textContent = 'Create Work Package';
-        document.getElementById('wpId').disabled = false;
-        document.getElementById('parentWpIdSelect').disabled = false;
-        document.getElementById('wpForm').reset();
-        document.getElementById('estCreationBac').disabled = false;
-        document.getElementById('estCreationBac').style.borderColor = '';
-        populateReDropdown('');
-        showBacBudget(document.getElementById('parentWpIdSelect').value || null, null);
-        document.getElementById('wpModal').classList.add('active');
-    }
-
-    function openEditModalById(wpId) {
-        const w = allWps.find(x => x.wpId === wpId);
-        if (w) openEditModal(w);
-    }
-
-    function openEditModal(w) {
-        document.getElementById('editMode').value = 'true';
-        document.getElementById('originalId').value = w.wpId;
-        document.getElementById('modalTitle').textContent = 'Edit Work Package';
-        document.getElementById('submitBtn').textContent = 'Save Changes';
-        document.getElementById('wpId').value = w.wpId;
-        document.getElementById('wpId').disabled = true;
-        document.getElementById('parentWpIdSelect').disabled = true;
-        document.getElementById('wpName').value = w.wpName || '';
-        document.getElementById('wpStatus').value = w.status || 'OPEN_FOR_CHARGES';
-        populateReDropdown(w.reEmployeeName || '');
-        document.getElementById('planStartDate').value = w.planStartDate || '';
-        document.getElementById('planEndDate').value = w.planEndDate || '';
-        document.getElementById('wpDesc').value = w.description || '';
-        document.getElementById('estCreationBac').value = w.bac != null ? w.bac : '';
-        document.getElementById('estCreationBac').disabled = (w.bac != null);
-        document.getElementById('estCreationBac').style.borderColor = '';
-        showBacBudget(w.parentWpId || null, w.wpId);
-        document.getElementById('wpModal').classList.add('active');
-    }
-
-    function closeModal() {
-        document.getElementById('wpModal').classList.remove('active');
-    }
-
-    async function handleSubmit(e) {
-        e.preventDefault();
-        const isEdit = document.getElementById('editMode').value === 'true';
-        const id = isEdit ? document.getElementById('originalId').value : document.getElementById('wpId').value;
-        const parentWpId = document.getElementById('parentWpIdSelect').value || null;
-        const userWpId = document.getElementById('wpId').disabled ? id : document.getElementById('wpId').value;
-        const wpId = parentWpId ? parentWpId + "." + userWpId : userWpId;
-
-        // MERGE data so we don't accidentally wipe out Estimates when saving basic info!
-        const existingWp = isEdit ? allWps.find(x => x.wpId === id) : {};
-
-        const body = {
-            ...existingWp,
-            wpId: wpId,
-            wpName: document.getElementById('wpName').value,
-            projId: PROJECT_ID,
-            status: document.getElementById('wpStatus').value,
-            parentWpId: isEdit ? (existingWp.parentWpId || null) : parentWpId,
-            reEmployeeName: document.getElementById('reEmployeeSelect').value.trim() || null,
-            planStartDate: document.getElementById('planStartDate').value || null,
-            planEndDate: document.getElementById('planEndDate').value || null,
-            description: document.getElementById('wpDesc').value || null,
-            structureLocked: false,
-            bac: document.getElementById('estCreationBac').value || null
-        };
-
-        try {
-            let url, method;
-            if (isEdit) {
-                url = `${API}/api/workpackages/${encodeURIComponent(id)}`;
-                method = 'PUT';
-            } else {
-                url = `${API}/api/workpackages`;
-                method = 'POST';
+            // ---- Create & Edit Modal Functions ----
+            function normalizeFullName(s) {
+                return (s || '').trim().replace(/\s+/g, ' ');
             }
-            const res = await authFetch(url, {
-                method: method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
+
+            function populateReDropdown(selectedName) {
+                const select = document.getElementById('reEmployeeSelect');
+                select.innerHTML = '';
+                const placeholder = document.createElement('option');
+                placeholder.value = '';
+                placeholder.textContent = '-- Select RE --';
+                select.appendChild(placeholder);
+                const selectedNorm = normalizeFullName(selectedName);
+                for (const e of projectTeam) {
+                    const fullName = `${e.empFirstName || ''} ${e.empLastName || ''}`.trim();
+                    if (!fullName) continue;
+                    const opt = document.createElement('option');
+                    opt.value = fullName;
+                    opt.textContent = `${fullName} (ID: ${e.empId})`;
+                    if (normalizeFullName(fullName) === selectedNorm) {
+                        opt.selected = true;
+                    }
+                    select.appendChild(opt);
+                }
+            }
+
+            function openCreateModal() {
+                document.getElementById('editMode').value = 'false';
+                document.getElementById('modalTitle').textContent = 'New Work Package';
+                document.getElementById('submitBtn').textContent = 'Create Work Package';
+                document.getElementById('wpId').disabled = false;
+                document.getElementById('parentWpIdSelect').disabled = false;
+                document.getElementById('wpForm').reset();
+                document.getElementById('estCreationBac').disabled = false;
+                document.getElementById('estCreationBac').style.borderColor = '';
+                populateReDropdown('');
+                showBacBudget(document.getElementById('parentWpIdSelect').value || null, null);
+                document.getElementById('wpModal').classList.add('active');
+            }
+
+            function openEditModalById(wpId) {
+                const w = allWps.find(x => x.wpId === wpId);
+                if (w) openEditModal(w);
+            }
+
+            function openEditModal(w) {
+                document.getElementById('editMode').value = 'true';
+                document.getElementById('originalId').value = w.wpId;
+                document.getElementById('modalTitle').textContent = 'Edit Work Package';
+                document.getElementById('submitBtn').textContent = 'Save Changes';
+                document.getElementById('wpId').value = w.wpId;
+                document.getElementById('wpId').disabled = true;
+                document.getElementById('parentWpIdSelect').disabled = true;
+                document.getElementById('wpName').value = w.wpName || '';
+                document.getElementById('wpStatus').value = w.status || 'OPEN_FOR_CHARGES';
+                populateReDropdown(w.reEmployeeName || '');
+                document.getElementById('planStartDate').value = w.planStartDate || '';
+                document.getElementById('planEndDate').value = w.planEndDate || '';
+                document.getElementById('wpDesc').value = w.description || '';
+                document.getElementById('estCreationBac').value = w.bac != null ? w.bac : '';
+                document.getElementById('estCreationBac').disabled = (w.bac != null);
+                document.getElementById('estCreationBac').style.borderColor = '';
+                showBacBudget(w.parentWpId || null, w.wpId);
+                document.getElementById('wpModal').classList.add('active');
+            }
+
+            function closeModal() {
+                document.getElementById('wpModal').classList.remove('active');
+            }
+
+            async function handleSubmit(e) {
+                e.preventDefault();
+                const isEdit = document.getElementById('editMode').value === 'true';
+                const id = isEdit ? document.getElementById('originalId').value : document.getElementById('wpId').value;
+                const parentWpId = document.getElementById('parentWpIdSelect').value || null;
+                const userWpId = document.getElementById('wpId').disabled ? id : document.getElementById('wpId').value;
+                const wpId = parentWpId ? parentWpId + "." + userWpId : userWpId;
+
+                // MERGE data so we don't accidentally wipe out Estimates when saving basic info!
+                const existingWp = isEdit ? allWps.find(x => x.wpId === id) : {};
+
+                const body = {
+                    ...existingWp,
+                    wpId: wpId,
+                    wpName: document.getElementById('wpName').value,
+                    projId: PROJECT_ID,
+                    status: document.getElementById('wpStatus').value,
+                    parentWpId: isEdit ? (existingWp.parentWpId || null) : parentWpId,
+                    reEmployeeName: document.getElementById('reEmployeeSelect').value.trim() || null,
+                    planStartDate: document.getElementById('planStartDate').value || null,
+                    planEndDate: document.getElementById('planEndDate').value || null,
+                    description: document.getElementById('wpDesc').value || null,
+                    structureLocked: false,
+                    bac: document.getElementById('estCreationBac').value || null
+                };
+
+                try {
+                    let url, method;
+                    if (isEdit) {
+                        url = `${API}/api/workpackages/${encodeURIComponent(id)}`;
+                        method = 'PUT';
+                    } else {
+                        url = `${API}/api/workpackages`;
+                        method = 'POST';
+                    }
+                    const res = await authFetch(url, {
+                        method: method,
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body)
+                    });
+                    if (!res.ok) {
+                        const text = await res.text();
+                        throw new Error(text || res.statusText);
+                    }
+                    closeModal();
+                    showToast(isEdit ? 'Work package updated!' : 'Work package created!', 'success');
+                    loadWorkPackages();
+                } catch (err) {
+                    showToast('Error: ' + err.message, 'error');
+                }
+            }
+
+            async function deleteWP(id) {
+                if (!confirm(`Delete work package "${id}" and all its children? This cannot be undone.`)) return;
+                try {
+                    const res = await authFetch(`${API}/api/workpackages/${encodeURIComponent(id)}`, { method: 'DELETE' });
+                    if (!res.ok) throw new Error(await res.text());
+                    showToast('Work package deleted!', 'success');
+                    loadWorkPackages();
+                } catch (err) {
+                    showToast('Error: ' + err.message, 'error');
+                }
+            }
+
+            function esc(str) {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            function showToast(msg, type) {
+                const c = document.getElementById('toastContainer');
+                const t = document.createElement('div');
+                t.className = `toast toast-${type}`;
+                t.textContent = msg;
+                c.appendChild(t);
+                setTimeout(() => { t.classList.add('fade-out'); setTimeout(() => t.remove(), 300); }, 3000);
+            }
+
+            // ---- Init ----
+            document.addEventListener('DOMContentLoaded', () => {
+                init();
+                document.getElementById('parentWpIdSelect').addEventListener('change', function () {
+                    if (document.getElementById('editMode').value === 'false') {
+                        showBacBudget(this.value || null, null);
+                    }
+                });
             });
-            if (!res.ok) {
-                const text = await res.text();
-                throw new Error(text || res.statusText);
-            }
-            closeModal();
-            showToast(isEdit ? 'Work package updated!' : 'Work package created!', 'success');
-            loadWorkPackages();
-        } catch (err) {
-            showToast('Error: ' + err.message, 'error');
-        }
+        </script>
     }
-
-    async function deleteWP(id) {
-        if (!confirm(`Delete work package "${id}" and all its children? This cannot be undone.`)) return;
-        try {
-            const res = await authFetch(`${API}/api/workpackages/${encodeURIComponent(id)}`, { method: 'DELETE' });
-            if (!res.ok) throw new Error(await res.text());
-            showToast('Work package deleted!', 'success');
-            loadWorkPackages();
-        } catch (err) {
-            showToast('Error: ' + err.message, 'error');
-        }
-    }
-
-    function esc(str) {
-        const div = document.createElement('div');
-        div.textContent = str;
-        return div.innerHTML;
-    }
-    
-    function showToast(msg, type) {
-        const c = document.getElementById('toastContainer');
-        const t = document.createElement('div');
-        t.className = `toast toast-${type}`;
-        t.textContent = msg;
-        c.appendChild(t);
-        setTimeout(() => { t.classList.add('fade-out'); setTimeout(() => t.remove(), 300); }, 3000);
-    }
-
-    // ---- Init ----
-    document.addEventListener('DOMContentLoaded', () => {
-        init();
-        document.getElementById('parentWpIdSelect').addEventListener('change', function() {
-            if (document.getElementById('editMode').value === 'false') {
-                showBacBudget(this.value || null, null);
-            }
-        });
-    });
-</script>
-}

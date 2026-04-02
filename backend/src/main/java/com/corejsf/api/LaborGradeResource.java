@@ -73,12 +73,6 @@ public class LaborGradeResource {
                     .entity("weekEnding is required")
                     .build();
         }
-        if ((projectId == null || projectId.isBlank()) && employeeId == null && (wpId == null || wpId.isBlank())) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("At least one of projectId, employeeId, or wpId is required")
-                    .build();
-        }
-
         LocalDate parsedWeekEnding;
         try {
             parsedWeekEnding = LocalDate.parse(weekEnding);

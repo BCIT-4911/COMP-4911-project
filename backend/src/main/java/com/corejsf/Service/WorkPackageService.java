@@ -130,6 +130,15 @@ public class WorkPackageService {
         wp.setModifiedDate(LocalDateTime.now());
         em.persist(wp);
 
+        if (wp.getResponsibleEmployee() != null) {
+            WorkPackageAssignment reAssignment = new WorkPackageAssignment();
+            reAssignment.setWorkPackage(wp);
+            reAssignment.setEmployee(wp.getResponsibleEmployee());
+            reAssignment.setAssignmentDate(LocalDate.now());
+            reAssignment.setWpRole(WpRole.RE);
+            em.persist(reAssignment);
+        }
+
         List<WorkPackage> wpChildren = getChildren(wp.getWpId());
         if (!wpChildren.isEmpty()) {
             wp.setWpType(WorkPackageType.SUMMARY);
@@ -243,12 +252,23 @@ public class WorkPackageService {
 
         WorkPackageValidation.validateName(wp.getWpName());
 
+        Employee newRe = null;
         String reName = wp.getReEmployeeName();
         Integer reEmpId = wp.getReEmployeeId();
         if (reName != null && !reName.isBlank()) {
-            existing.setResponsibleEmployee(findEmployeeByFullName(reName));
+            newRe = findEmployeeByFullName(reName);
         } else if (reEmpId != null) {
-            existing.setResponsibleEmployee(findEmployee(reEmpId));
+            newRe = findEmployee(reEmpId);
+        }
+
+        if (newRe != null) {
+            Integer oldReId = existing.getResponsibleEmployee() != null
+                    ? existing.getResponsibleEmployee().getEmpId() : null;
+            existing.setResponsibleEmployee(newRe);
+
+            if (!newRe.getEmpId().equals(oldReId)) {
+                syncReAssignment(id, newRe);
+            }
         }
 
         if (existing.getBac() != null && wp.getBac() != null
@@ -260,11 +280,9 @@ public class WorkPackageService {
             existing.setBac(wp.getBac());
         }
 
-        // Map the existing fields
         existing.setWpName(wp.getWpName());
         existing.setDescription(wp.getDescription());
         
-        // Map the NEW Estimate Fields!
         existing.setEac(wp.getEac());
         existing.setPercentComplete(wp.getPercentComplete());
         existing.setBudgetedEffort(wp.getBudgetedEffort());
@@ -272,6 +290,28 @@ public class WorkPackageService {
 
         existing.setModifiedDate(LocalDateTime.now());
         em.merge(existing);
+    }
+
+    /**
+     * Keeps the assignment table in sync when the RE changes via a WP update.
+     * Demotes old RE assignment(s) to MEMBER and promotes/creates the new RE row.
+     */
+    private void syncReAssignment(String wpId, Employee newRe) {
+        demoteExistingReAssignments(wpId);
+
+        WorkPackageAssignment existing = findAssignment(wpId, newRe.getEmpId());
+        if (existing != null) {
+            existing.setWpRole(WpRole.RE);
+            em.merge(existing);
+        } else {
+            WorkPackage workPackage = findWorkPackage(wpId);
+            WorkPackageAssignment assignment = new WorkPackageAssignment();
+            assignment.setWorkPackage(workPackage);
+            assignment.setEmployee(newRe);
+            assignment.setAssignmentDate(LocalDate.now());
+            assignment.setWpRole(WpRole.RE);
+            em.persist(assignment);
+        }
     }
 
     public void deleteWorkPackage(String id) {
@@ -309,8 +349,10 @@ public class WorkPackageService {
     }
 
     /**
-     * Assigns an employee to a work package. Skips if already assigned.
-     * Uses AUTO_INCREMENT for ID generation instead of manual MAX query.
+     * Assigns an employee to a work package.
+     * If the employee is already assigned with a different role, their role is updated.
+     * When role is RE, the previous RE (if any) is demoted to MEMBER and
+     * {@code Work_Package.re_employee_id} is updated to keep a single source of truth.
      */
     public void assignEmployee(String wpId, int empId, WpRole role) {
         if (role == null) {
@@ -328,12 +370,18 @@ public class WorkPackageService {
             throw new jakarta.ws.rs.WebApplicationException("Employee must be assigned to the project before being assigned to a work package.", jakarta.ws.rs.core.Response.Status.BAD_REQUEST);
         }
 
-        TypedQuery<Long> query = em.createQuery(
-                "SELECT COUNT(wpa) FROM WorkPackageAssignment wpa WHERE wpa.workPackage.wpId = :wpId AND wpa.employee.empId = :empId",
-                Long.class);
-        query.setParameter("wpId", wpId);
-        query.setParameter("empId", empId);
-        if (query.getSingleResult() > 0) {
+        if (role == WpRole.RE) {
+            demoteExistingReAssignments(wpId);
+            workPackage.setResponsibleEmployee(employee);
+            em.merge(workPackage);
+        }
+
+        WorkPackageAssignment existing = findAssignment(wpId, empId);
+        if (existing != null) {
+            if (existing.getWpRole() != role) {
+                existing.setWpRole(role);
+                em.merge(existing);
+            }
             return;
         }
 
@@ -345,7 +393,44 @@ public class WorkPackageService {
         em.persist(assignment);
     }
 
+    /**
+     * Demotes all existing RE assignments on a work package to MEMBER.
+     */
+    private void demoteExistingReAssignments(String wpId) {
+        List<WorkPackageAssignment> reAssignments = em.createQuery(
+                "SELECT wpa FROM WorkPackageAssignment wpa WHERE wpa.workPackage.wpId = :wpId AND wpa.wpRole = :role",
+                WorkPackageAssignment.class)
+                .setParameter("wpId", wpId)
+                .setParameter("role", WpRole.RE)
+                .getResultList();
+        for (WorkPackageAssignment wpa : reAssignments) {
+            wpa.setWpRole(WpRole.MEMBER);
+            em.merge(wpa);
+        }
+    }
+
+    private WorkPackageAssignment findAssignment(String wpId, int empId) {
+        try {
+            return em.createQuery(
+                    "SELECT wpa FROM WorkPackageAssignment wpa WHERE wpa.workPackage.wpId = :wpId AND wpa.employee.empId = :empId",
+                    WorkPackageAssignment.class)
+                    .setParameter("wpId", wpId)
+                    .setParameter("empId", empId)
+                    .getSingleResult();
+        } catch (NoResultException e) {
+            return null;
+        }
+    }
+
     public void removeEmployee(String wpId, int empId) {
+        WorkPackage workPackage = findWorkPackage(wpId);
+        if (workPackage.getResponsibleEmployee() != null
+                && workPackage.getResponsibleEmployee().getEmpId() == empId) {
+            throw new jakarta.ws.rs.WebApplicationException(
+                    "Cannot remove the Responsible Engineer from the work package. Change the RE first.",
+                    jakarta.ws.rs.core.Response.Status.BAD_REQUEST);
+        }
+
         TypedQuery<WorkPackageAssignment> query = em.createQuery(
                 "SELECT wpa FROM WorkPackageAssignment wpa WHERE wpa.workPackage.wpId = :wpId AND wpa.employee.empId = :empId",
                 WorkPackageAssignment.class);

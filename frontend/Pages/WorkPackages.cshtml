@@ -636,15 +636,12 @@
 
         const currentTeam = await loadCurrentWpTeam(wpId);
 
-        const wp = allWps.find(w => w.wpId === wpId);
         const assignedIds = new Set(currentTeam.map(e => e.empId));
-        if (wp && wp.reEmployeeId) {
-            assignedIds.add(wp.reEmployeeId);
-        }
         const available = projectTeam.filter(e => !assignedIds.has(e.empId));
         populateDropdown(assignSelect, available, "All project members already assigned");
 
-        populateDropdown(document.getElementById('removeEmpId'), currentTeam, "No assigned members to remove");
+        const removable = currentTeam.filter(e => e.wpRole !== 'RE');
+        populateDropdown(document.getElementById('removeEmpId'), removable, "No assigned members to remove");
     }
 
     async function loadCurrentWpTeam(wpId) {
@@ -655,21 +652,9 @@
             const res = await authFetch(`${API}/api/workpackages/${encodeURIComponent(wpId)}/employees`);
             if (res.ok) {
                 const team = await res.json();
-                const wp = allWps.find(w => w.wpId === wpId);
                 let rowsHtml = team.map(e =>
                     `<li>• ${esc(e.empFirstName)} ${esc(e.empLastName)} (ID: ${e.empId}) - <strong style="color: #fff;">${esc(e.wpRole || 'MEMBER')}</strong></li>`
                 ).join('');
-
-                if (wp && wp.reEmployeeId && !team.some(e => e.empId === wp.reEmployeeId)) {
-                    const re = projectTeam.find(e => e.empId === wp.reEmployeeId);
-                    if (re) {
-                        const reLine = `<li>• ${esc(re.empFirstName)} ${esc(re.empLastName)} (ID: ${re.empId}) - <strong style="color: #fff;">RE</strong></li>`;
-                        rowsHtml = reLine + rowsHtml;
-                    } else if (wp.reEmployeeName) {
-                        const reLine = `<li>• ${esc(wp.reEmployeeName)} (ID: ${wp.reEmployeeId}) - <strong style="color: #fff;">RE</strong></li>`;
-                        rowsHtml = reLine + rowsHtml;
-                    }
-                }
 
                 if (!rowsHtml) {
                     teamList.innerHTML = '<li>No employees assigned yet.</li>';

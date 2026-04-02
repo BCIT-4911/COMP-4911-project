@@ -45,6 +45,50 @@ public class LaborGradeService {
         return toDTO(lg);
     }
 
+    /**
+     * Creates a new labor grade.
+     * @param dto the labor grade data.
+     * @return the created labor grade as a DTO.
+     */
+    public LaborGradeDTO createLaborGrade(LaborGradeDTO dto) {
+        LaborGrade lg = new LaborGrade();
+        lg.setGradeCode(dto.getGradeCode());
+        lg.setChargeRate(dto.getChargeRate());
+        em.persist(lg);
+        em.flush();
+        return toDTO(lg);
+    }
+
+    /**
+     * Updates an existing labor grade.
+     * @param id the ID of the labor grade to update.
+     * @param dto the updated labor grade data.
+     * @return the updated labor grade as a DTO.
+     */
+    public LaborGradeDTO updateLaborGrade(int id, LaborGradeDTO dto) {
+        LaborGrade lg = em.find(LaborGrade.class, id);
+        if (lg == null) {
+            throw new NotFoundException("LaborGrade with id " + id + " not found.");
+        }
+        lg.setGradeCode(dto.getGradeCode());
+        lg.setChargeRate(dto.getChargeRate());
+        em.merge(lg);
+        em.flush();
+        return toDTO(lg);
+    }
+
+    /**
+     * Deletes a labor grade by ID.
+     * @param id the ID of the labor grade to delete.
+     */
+    public void deleteLaborGrade(int id) {
+        LaborGrade lg = em.find(LaborGrade.class, id);
+        if (lg == null) {
+            throw new NotFoundException("LaborGrade with id " + id + " not found.");
+        }
+        em.remove(lg);
+    }
+
     public LaborGradeDTO toDTO(LaborGrade lg) {
         LaborGradeDTO dto = new LaborGradeDTO();
         dto.setLaborGradeId(lg.getLaborGradeId());

@@ -70,19 +70,20 @@
     .lr-btn-view {
         display: inline-flex;
         align-items: center;
+        justify-content: center;
         gap: 0.5rem;
         background: #2d5a30;
         color: #fff;
         border: none;
-        padding: 0.55rem 1.4rem;
+        padding: 0.7rem 1.25rem;
         border-radius: 0.45rem;
         font-size: 0.9rem;
         font-weight: 600;
         cursor: pointer;
         white-space: nowrap;
         transition: background 0.15s;
-        height: 100%;
-        align-self: flex-end;
+        min-height: 42px;
+        width: 100%;
     }
 
     .lr-btn-view:hover {
@@ -275,7 +276,7 @@
                 <div class="row g-3 align-items-end">
 
                     <!-- Project dropdown -->
-                    <div class="col-md-4">
+                    <div class="col-md-6 col-lg-4">
                         <label class="lr-filter-label">Project</label>
                         <select class="lr-filter-select" asp-for="SelectedProjectId">
                             <option value="">All Projects</option>
@@ -290,7 +291,7 @@
                     </div>
 
                     <!-- Employee dropdown -->
-                    <div class="col-md-4">
+                    <div class="col-md-6 col-lg-3">
                         <label class="lr-filter-label">Employee</label>
                         <select class="lr-filter-select" asp-for="SelectedEmployeeId">
                             <option value="">All Employees</option>
@@ -305,7 +306,7 @@
                     </div>
 
                     <!-- Week Ending date picker -->
-                    <div class="col-md-3">
+                    <div class="col-md-6 col-lg-3">
                         <label class="lr-filter-label">Week Ending</label>
                         <input type="date"
                                class="lr-filter-input"
@@ -314,7 +315,7 @@
                     </div>
 
                     <!-- Submit button -->
-                    <div class="col-md-1 d-flex align-items-end">
+                    <div class="col-md-6 col-lg-2 d-flex align-items-end">
                         <button type="submit" class="lr-btn-view w-100">
                             <!-- search icon -->
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"

@@ -51,7 +51,7 @@ public class LaborReportModel : PageModel
     // -----------------------------------------------------------------------
 
     public List<Project> Projects { get; set; } = new();
-    public List<Employee> Employees { get; set; } = new();
+    public List<frontend.model.Employee> Employees { get; set; } = new();
 
     // -----------------------------------------------------------------------
     // Report results — null until the user runs the report
@@ -123,7 +123,7 @@ public class LaborReportModel : PageModel
             if (empRes.IsSuccessStatusCode)
             {
                 var empJson = await empRes.Content.ReadAsStringAsync();
-                Employees = JsonSerializer.Deserialize<List<Employee>>(empJson, jsonOpts)
+                Employees = JsonSerializer.Deserialize<List<frontend.model.Employee>>(empJson, jsonOpts)
                             ?? new();
             }
         }

@@ -297,10 +297,10 @@ public class ProjectAndWorkPackageRebacIntegrationTest extends TestConfig {
     // WORK PACKAGE VISIBILITY (GET /projects/{id}/workpackages)
     //
     // Seed state for PROJ-1:
-    //   A           - no WP assignments
+    //   A        - Elmer Fudd (RE)
     //   A.WP-1   - Daffy Duck (RE)
     //   A.WP-2   - Sylvester Cat (RE), Tweety Bird (MEMBER)
-    //   A.WP-3   - no WP assignments
+    //   A.WP-3   - Elmer Fudd (RE)
     //
     // @Order(1-6) ensures these read-only tests run BEFORE mutation tests
     // (assignEmployeeToWorkPackage_asPmOfThatProject_succeeds adds Tweety

@@ -327,6 +327,125 @@ class WorkPackageResourceTest extends TestConfig {
                 .statusCode(200);
     }
 
+    @Test
+    void removeResponsibleEngineer_returns400() {
+        given()
+                .header("Authorization", "Bearer " + bugsToken)
+                .when()
+                .delete("/workpackages/A.WP-1/employees/" + IDS.daffyId())
+                .then()
+                .statusCode(400)
+                .body(containsString("Responsible Engineer"));
+    }
+
+    @Test
+    void createWorkPackage_addsReToEmployeeList() {
+        String wpId = "RE-TEST-" + Math.abs(System.nanoTime() % 1_000_000_000);
+        given()
+                .header("Authorization", "Bearer " + bugsToken)
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                          "wpId": "%s",
+                          "wpName": "RE auto-create test",
+                          "description": "test",
+                          "projId": "PROJ-1",
+                          "planStartDate": "2026-02-01",
+                          "planEndDate": "2026-03-15",
+                          "bac": 100.00,
+                          "percentComplete": 0,
+                          "reEmployeeId": %d
+                        }
+                        """.formatted(wpId, IDS.daffyId()))
+                .when()
+                .post("/workpackages")
+                .then()
+                .statusCode(201);
+
+        List<?> team = given()
+                .header("Authorization", "Bearer " + bugsToken)
+                .when()
+                .get("/workpackages/" + wpId + "/employees")
+                .then()
+                .statusCode(200)
+                .extract().jsonPath().getList("$");
+        assertEquals(1, team.size(), "Newly created WP should have exactly 1 assignment (the RE)");
+        assertEquals("RE",
+                given().header("Authorization", "Bearer " + bugsToken)
+                        .when().get("/workpackages/" + wpId + "/employees")
+                        .then().statusCode(200)
+                        .extract().jsonPath().getString("[0].wpRole"));
+
+        given().header("Authorization", "Bearer " + bugsToken)
+                .when().delete("/workpackages/" + wpId).then().statusCode(200);
+    }
+
+    @Test
+    void assignRe_replacesResponsibleEmployeeAndDemotesPriorRe() {
+        String wpId = "RE-SWAP-" + Math.abs(System.nanoTime() % 1_000_000_000);
+        given()
+                .header("Authorization", "Bearer " + bugsToken)
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                          "wpId": "%s",
+                          "wpName": "RE swap test",
+                          "description": "test",
+                          "projId": "PROJ-1",
+                          "planStartDate": "2026-02-01",
+                          "planEndDate": "2026-03-15",
+                          "bac": 100.00,
+                          "percentComplete": 0,
+                          "reEmployeeId": %d
+                        }
+                        """.formatted(wpId, IDS.daffyId()))
+                .when()
+                .post("/workpackages")
+                .then()
+                .statusCode(201);
+
+        int originalReId = given()
+                .header("Authorization", "Bearer " + bugsToken)
+                .when().get("/workpackages/" + wpId)
+                .then().statusCode(200)
+                .extract().jsonPath().getInt("reEmployeeId");
+        assertEquals(IDS.daffyId(), originalReId);
+
+        given()
+                .header("Authorization", "Bearer " + bugsToken)
+                .contentType(ContentType.JSON)
+                .when()
+                .post("/workpackages/" + wpId + "/employees/" + IDS.pmProj1Id() + "?role=RE")
+                .then()
+                .statusCode(200);
+
+        int newReId = given()
+                .header("Authorization", "Bearer " + bugsToken)
+                .when().get("/workpackages/" + wpId)
+                .then().statusCode(200)
+                .extract().jsonPath().getInt("reEmployeeId");
+        assertEquals(IDS.pmProj1Id(), newReId, "re_employee_id should now be the new RE");
+
+        List<java.util.Map<String, Object>> employees = given()
+                .header("Authorization", "Bearer " + bugsToken)
+                .when().get("/workpackages/" + wpId + "/employees")
+                .then().statusCode(200)
+                .extract().jsonPath().getList("$");
+
+        long reCount = employees.stream()
+                .filter(e -> "RE".equals(e.get("wpRole")))
+                .count();
+        assertEquals(1, reCount, "Exactly one RE assignment should exist");
+
+        assertTrue(employees.stream()
+                .anyMatch(e -> ((Number) e.get("empId")).intValue() == IDS.daffyId()
+                        && "MEMBER".equals(e.get("wpRole"))),
+                "Prior RE (Daffy) should be demoted to MEMBER");
+
+        given().header("Authorization", "Bearer " + bugsToken)
+                .when().delete("/workpackages/" + wpId).then().statusCode(200);
+    }
+
     /*
     @Test
     void getById_includesEtcField() {

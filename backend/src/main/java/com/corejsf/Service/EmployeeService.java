@@ -1,24 +1,31 @@
 package com.corejsf.Service;
 
+import com.corejsf.DTO.employee.EmployeeManagerUpdateDto;
+import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.InternalServerErrorException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
 import org.mindrot.jbcrypt.BCrypt;
 
-import com.corejsf.DTO.EmployeeCreateDTO;
+import com.corejsf.DTO.employee.EmployeeCreateDTO;
+import com.corejsf.DTO.employee.EmployeeSelfUpdateDto;
+
 import com.corejsf.Entity.Employee;
 import com.corejsf.Entity.EmployeeESignature;
 import com.corejsf.Entity.LaborGrade;
 
 import jakarta.ejb.Stateless;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityTransaction;
 import jakarta.persistence.PersistenceContext;
 import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.core.Response;
 
 /**
- * Service class for managing employee data.
- * Provides methods for retrieving and creating employee records.
+ * Service class for managing employee data. Provides methods for retrieving and
+ * creating employee records.
  */
 @Stateless
 public class EmployeeService {
@@ -26,8 +33,19 @@ public class EmployeeService {
     @PersistenceContext(unitName = "project-management-pu")
     private EntityManager em;
 
+    // These strings are for creation error message
+    private final static String EMPLOYEE_FIRST_NAME_ERROR = "The employee's new first name cannot be null or blank";
+    private final static String EMPLOYEE_LAST_NAME_ERROR = "The employee's new last name cannot be null or blank";
+    private final static String EMPLOYEE_PASSWORD_ERROR = "The employee's new password cannot be null or blank";
+    private final static String EMPLOYEE_SUPERVISOR_ID_ERROR = "The employee's new supervisor ID cannot be null or less than 1.";
+    private final static String EMPLOYEE_SUPERVISOR_ID_NOT_ERROR_PREFIX = "The employee's new supervisor ID cannot be found: ";
+    private final static String EMPLOYEE_LABOUR_GRADE_ID_ERROR = "The employee's new labour grade cannot be null or less than 1.";
+    private final static String EMPLOYEE_LABOUR_GRADE_NOT_ID_FOUND_ERROR_PREFIX = "The employee's new labour grade ID cannot be found: ";
+    private final static String EMPLOYEE_SYSTEM_ROLE_ERROR = "The employee's system role cannot be null";
+
     /**
      * Retrieves all employees.
+     *
      * @return a list of all employees.
      */
     public List<Employee> getAllEmployees() {
@@ -37,9 +55,11 @@ public class EmployeeService {
 
     /**
      * Retrieves an employee by ID.
+     *
      * @param id the ID of the employee to retrieve.
      * @return the employee with the specified ID.
-     * @throws NotFoundException if the employee with the specified ID is not found.
+     * @throws NotFoundException if the employee with the specified ID is not
+     * found.
      */
     public Employee getEmployee(int id) {
         Employee emp = em.find(Employee.class, id);
@@ -50,138 +70,272 @@ public class EmployeeService {
     }
 
     /**
-     * Creates a new employee.
+     * Creates a new employee with field validation.
+     *
      * @param dto the data transfer object containing new employee details.
      * @return the created employee.
      */
-    public Employee createEmployee(EmployeeCreateDTO dto) {
+    public Employee createEmployee(final EmployeeCreateDTO dto)
+    {
+        if (dto.firstName() == null || dto.firstName().isBlank())
+        {
+            throw new BadRequestException(EMPLOYEE_FIRST_NAME_ERROR);
+        }
+
+        if (dto.lastName() == null || dto.lastName().isBlank())
+        {
+            throw new BadRequestException(EMPLOYEE_LAST_NAME_ERROR);
+        }
+
+        if (dto.password() == null || dto.password().isBlank())
+        {
+            throw new BadRequestException(EMPLOYEE_PASSWORD_ERROR);
+        }
+
+        if (dto.supervisorId() == null || dto.supervisorId() < 1)
+        {
+            throw new BadRequestException(EMPLOYEE_SUPERVISOR_ID_ERROR);
+        }
+
+        if (dto.laborGradeId() == null || dto.laborGradeId() < 1)
+        {
+            throw new BadRequestException(EMPLOYEE_LABOUR_GRADE_ID_ERROR);
+        }
+
+        final Employee supervisor = em.find(Employee.class, dto.supervisorId());
+
+        if (supervisor == null)
+        {
+            throw new BadRequestException(EMPLOYEE_SUPERVISOR_ID_NOT_ERROR_PREFIX + dto.supervisorId());
+        }
+
+        final LaborGrade laborGrade = em.find(LaborGrade.class, dto.laborGradeId());
+
+        if (laborGrade == null)
+        {
+            throw new BadRequestException(EMPLOYEE_LABOUR_GRADE_NOT_ID_FOUND_ERROR_PREFIX + dto.laborGradeId());
+        }
+
+        if (dto.systemRole() == null)
+        {
+            throw new BadRequestException(EMPLOYEE_SYSTEM_ROLE_ERROR);
+        }
+
         EmployeeESignature sig = new EmployeeESignature();
+        sig.setSignatureData(new byte[]{0x00});
+        sig.setSignedAt(LocalDateTime.now());
+
         Employee newEmp = new Employee();
 
-        sig.setSignatureData(new byte[] { 0x00 });
-        sig.setSignedAt(LocalDateTime.now());
-        em.persist(sig);
+        // Getting the transaction to prepare for database transaction
+        EntityTransaction transaction = em.getTransaction();
 
-        newEmp.setEmpFirstName(dto.getFirstName());
-        newEmp.setEmpLastName(dto.getLastName());
-        newEmp.setEmpPassword(BCrypt.hashpw(dto.getPassword(), BCrypt.gensalt()));
-        newEmp.setLaborGrade(em.find(LaborGrade.class, dto.getLaborGradeId()));
-        newEmp.setSupervisor(em.find(Employee.class, dto.getSupervisorId()));
-        newEmp.setVacationSickBalance(new BigDecimal(0));
-        newEmp.setExpectedWeeklyHours(new BigDecimal(40));
-        newEmp.setSystemRole(dto.getSystemRole());
-        newEmp.setESignature(sig);
-        em.persist(newEmp);
+        transaction.begin();
+
+        try
+        {
+            em.persist(sig);
+
+            newEmp.setEmpFirstName(dto.firstName());
+            newEmp.setEmpLastName(dto.lastName());
+            newEmp.setEmpPassword(BCrypt.hashpw(dto.password(), BCrypt.gensalt()));
+            newEmp.setLaborGrade(laborGrade);
+            newEmp.setSupervisor(supervisor);
+            newEmp.setVacationSickBalance(new BigDecimal(0));
+            newEmp.setExpectedWeeklyHours(new BigDecimal(40));
+            newEmp.setSystemRole(dto.systemRole());
+            newEmp.setESignature(sig);
+
+            em.persist(newEmp);
+            transaction.commit();
+        }
+        catch(final Exception ex)
+        {
+            transaction.rollback();
+            throw new InternalServerErrorException("Unknown error has occurred when creating an new employee: " +
+                                                   ex.getClass().getName() + " - " + ex.getMessage());
+        }
+
         return newEmp;
     }
 
     /**
-     * Updates an existing employee.
-     * @param id the ID of the employee to update.
-     * @param dto the data transfer object containing updated employee details.
-     * @return the updated employee.
-     * @throws NotFoundException if the employee with the specified ID is not found.
+     * This update employee function validates all requested fields before processing them to fulfill ACID rules
+     *
+     * @param id The employee ID
+     * @param dto An EmployeeManagerUpdateDto class which contains the personal details of the employee. The manager
+     *            can skip updating certain fields using null value in the data transfer object.
+     * @return An updated Employee record to the resource end point
      */
-    public Employee updateEmployee(int id, EmployeeCreateDTO dto) {
+    public Employee updateEmployee(final int id, final EmployeeManagerUpdateDto dto)
+    {
         Employee emp = em.find(Employee.class, id);
-        if (emp == null) {
-            throw new NotFoundException("Employee with id " + id + " not found.");
+
+        if (emp == null)
+        {
+            throw new NotFoundException("The specific employee with ID " + id + " cannot be found.");
         }
-        emp.setEmpFirstName(dto.getFirstName());
-        emp.setEmpLastName(dto.getLastName());
-        if (dto.getPassword() != null && !dto.getPassword().isBlank()) {
-            emp.setEmpPassword(BCrypt.hashpw(dto.getPassword(), BCrypt.gensalt()));
+
+        if (dto.firstName() != null && dto.firstName().isBlank())
+        {
+            throw new BadRequestException("The new first name cannot be blank (filled only with space character).");
         }
-        emp.setLaborGrade(em.find(LaborGrade.class, dto.getLaborGradeId()));
-        emp.setSupervisor(em.find(Employee.class, dto.getSupervisorId()));
-        emp.setSystemRole(dto.getSystemRole());
-        em.merge(emp);
+
+        if (dto.lastName() != null && dto.lastName().isBlank())
+        {
+            throw new BadRequestException("The new last name cannot be blank (filled only with space character).");
+        }
+
+        if (dto.password() != null && dto.password().isBlank())
+        {
+            throw new BadRequestException("The new password cannot be blank (filled only with space character).");
+        }
+
+        LaborGrade newLaborGrade = null;
+
+        if (dto.laborGradeId() != null)
+        {
+            if (dto.laborGradeId() > 0)
+            {
+                if ((newLaborGrade = em.find(LaborGrade.class, dto.laborGradeId())) == null)
+                {
+                    throw new BadRequestException("The new labour grade under id " + dto.laborGradeId() + "could not " +
+                                                  "be found.");
+                }
+            }
+            else
+            {
+                throw new BadRequestException("The new labour grade id should not be equal to or smaller than 0.");
+            }
+        }
+
+        Employee newSupervisor = null;
+
+        if (dto.supervisorId() != null)
+        {
+            if (dto.supervisorId() > 0)
+            {
+                if ((newSupervisor = em.find(Employee.class, dto.supervisorId())) == null)
+                {
+                    throw new BadRequestException("The new supervisor with id " + dto.laborGradeId() + " could not be" +
+                                                  " found.");
+                }
+            }
+            else
+            {
+                throw new BadRequestException("The new supervisor id should not be equal to or smaller than 0.");
+            }
+        }
+
+        EntityTransaction transaction = em.getTransaction();
+
+        try
+        {
+            transaction.begin();
+
+            if(dto.firstName() != null)
+            {
+                emp.setEmpFirstName(dto.firstName().trim());
+            }
+
+            if(dto.lastName() != null)
+            {
+                emp.setEmpLastName(dto.lastName().trim());
+            }
+
+            if(dto.password() != null)
+            {
+                emp.setEmpPassword(BCrypt.hashpw(dto.password().trim(), BCrypt.gensalt()));
+            }
+
+            if(newSupervisor != null)
+            {
+                emp.setSupervisor(newSupervisor);
+            }
+
+            if(newLaborGrade != null)
+            {
+                emp.setLaborGrade(newLaborGrade);
+            }
+
+            if(dto.systemRole() != null)
+            {
+                emp.setSystemRole(dto.systemRole());
+            }
+
+            transaction.commit();
+        }
+        catch(Exception ex)
+        {
+            transaction.rollback();
+            throw new InternalServerErrorException("Unknown error has occurred during the update: " +
+                                                   ex.getClass().getName() + " - " +
+                                                   ex.getMessage());
+        }
+
         return emp;
     }
 
     /**
-     * Deletes an employee by ID.
-     * @param id the ID of the employee to delete.
-     * @throws NotFoundException if the employee with the specified ID is not found.
+     * Allow an employee to self-update their own information
+     *
+     * Because the entity manager is only injected into the employee service, but not at the resource end point,
+     * the resource end-point would not be able to check if the user id in the auth context actually exists or not.
+     * THerefore, the RESTFul response is generated from this method directly upon calling.
      */
-    public void deleteEmployee(int id) {
+    public Response employeeSelfUpdatePassword(final int id, final EmployeeSelfUpdateDto dto) {
         Employee emp = em.find(Employee.class, id);
+
         if (emp == null) {
-            throw new NotFoundException("Employee with id " + id + " not found.");
+            return Response.status(Response.Status.UNAUTHORIZED).build();
         }
 
-        List<String> reasons = new java.util.ArrayList<>();
-
-        Long subordinateCount = em.createQuery(
-                "SELECT COUNT(e) FROM Employee e WHERE e.supervisor.empId = :empId", Long.class)
-                .setParameter("empId", id)
-                .getSingleResult();
-        if (subordinateCount > 0) {
-            reasons.add("supervisor of " + subordinateCount + " employee(s)");
+        if (dto.empPassword() == null || dto.empPassword().isBlank()) {
+            return Response.status(Response.Status.BAD_REQUEST).entity("Bad Request: The new password cannot be " +
+                                                                       "omitted or be blank").build();
         }
 
-        Long projectAssignmentCount = em.createQuery(
-                "SELECT COUNT(pa) FROM ProjectAssignment pa WHERE pa.employee.empId = :empId", Long.class)
-                .setParameter("empId", id)
-                .getSingleResult();
-        if (projectAssignmentCount > 0) {
-            reasons.add("assigned to " + projectAssignmentCount + " project(s)");
+        emp.setEmpPassword(BCrypt.hashpw(dto.empPassword().trim(), BCrypt.gensalt()));
+
+        // No-Content means status 204 code with a successful update result
+        return Response.noContent().build();
+    }
+
+    /**
+     * An employee service which can be invoked by a manager to delete an employee.
+     *
+     * @param id The ID of the employee which is to be deleted.
+     * @return The HTTP Response Code with a detailed message to tell if the deletion was successful or not
+     */
+    public Response deleteEmployee(final int id)
+    {
+        Employee emp = em.find(Employee.class, id);
+
+        if (emp == null)
+        {
+            return Response.status(Response.Status.NOT_FOUND).entity("The employee with ID " + id + " cannot be found" +
+                                                                     ".").build();
         }
 
-        Long wpAssignmentCount = em.createQuery(
-                "SELECT COUNT(wpa) FROM WorkPackageAssignment wpa WHERE wpa.employee.empId = :empId", Long.class)
-                .setParameter("empId", id)
-                .getSingleResult();
-        if (wpAssignmentCount > 0) {
-            reasons.add("assigned to " + wpAssignmentCount + " work package(s)");
+        EntityTransaction transaction = em.getTransaction();
+
+        try
+        {
+            transaction.begin();
+            em.remove(emp);
+            transaction.commit();
+        }
+        catch(final Exception ex)
+        {
+            transaction.rollback();
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Unknown error has occurred when " +
+                                                                                 "deleting the employee with ID " + id +
+                                                                                 ": " + ex.getClass().getName() +
+                                                                                 " - " + ex.getMessage()).build();
         }
 
-        Long timesheetCount = em.createQuery(
-                "SELECT COUNT(t) FROM Timesheet t WHERE t.employee.empId = :empId", Long.class)
-                .setParameter("empId", id)
-                .getSingleResult();
-        if (timesheetCount > 0) {
-            reasons.add("has " + timesheetCount + " timesheet(s)");
-        }
+        return Response.status(Response.Status.OK).entity("The employee with ID " + id  + " was successfully deleted.")
+                       .build();
 
-        Long pmCount = em.createQuery(
-                "SELECT COUNT(p) FROM Project p WHERE p.projectManager.empId = :empId", Long.class)
-                .setParameter("empId", id)
-                .getSingleResult();
-        if (pmCount > 0) {
-            reasons.add("project manager of " + pmCount + " project(s)");
-        }
-
-        Long reCount = em.createQuery(
-                "SELECT COUNT(wp) FROM WorkPackage wp WHERE wp.responsibleEmployee.empId = :empId", Long.class)
-                .setParameter("empId", id)
-                .getSingleResult();
-        if (reCount > 0) {
-            reasons.add("responsible engineer on " + reCount + " work package(s)");
-        }
-
-        Long timeSheetCount = em.createQuery(
-                "SELECT COUNT(ts) FROM Timesheet ts WHERE ts.employee.empId = :empId", Long.class)
-                .setParameter("empId", id)
-                .getSingleResult();
-        if (timeSheetCount > 0) {
-            reasons.add("has " + timeSheetCount + " timesheet(s)");
-        }
-
-        Long timeSheetApprovalCount = em.createQuery(
-                "SELECT COUNT(tsa) FROM TimesheetApproval tsa WHERE tsa.approver.empId = :empId", Long.class)
-                .setParameter("empId", id)
-                .getSingleResult();
-        if (timeSheetApprovalCount > 0) {
-            reasons.add("has " + timeSheetApprovalCount + " timesheet approval(s)");
-        }
-
-        if (!reasons.isEmpty()) {
-            throw new IllegalStateException(
-                    "Cannot delete employee (ID " + id + "): " + String.join(", ", reasons)
-                    + ". Remove these associations first.");
-        }
-
-        em.remove(emp);
     }
 }

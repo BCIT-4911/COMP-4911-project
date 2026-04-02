@@ -24,7 +24,7 @@
                     <th>Start Date</th>
                     <th>End Date</th>
                     <th>Markup</th>
-                    <th>PM ID</th>
+                    <th>Project Manager</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -242,6 +242,21 @@
                     });
                 }
 
+                // ---- Employee Name Lookup ----
+                function getEmployeeName(empId) {
+                    if (!empId) return 'N/A';
+                    const emp = allEmployees.find(e => e.empId === empId);
+                    if (emp) return `${emp.empFirstName} ${emp.empLastName}`;
+                    return `Employee #${empId}`;
+                }
+
+                function getEmployeeNameWithRole(empId) {
+                    if (!empId) return 'N/A';
+                    const emp = allEmployees.find(e => e.empId === empId);
+                    if (emp) return `${emp.empFirstName} ${emp.empLastName} (${emp.systemRole || 'N/A'})`;
+                    return `Employee #${empId}`;
+                }
+
                 // ---- Load Employees ----
                 async function loadEmployees() {
                     try {
@@ -313,7 +328,7 @@
                             <td>${formatDate(p.start_date)}</td>
                             <td>${formatDate(p.end_date)}</td>
                             <td>${p.markup_rate != null ? p.markup_rate.toFixed(2) : '0.00'}</td>
-                            <td>${p.project_manager_id || 'N/A'}</td>
+                            <td>${esc(getEmployeeName(p.project_manager_id))}</td>
                             <td class="actions-cell">
                                 ${reportButton}
                                 ${pmAssignButton}
@@ -346,7 +361,7 @@
                                 teamList.innerHTML = '<li>No employees assigned yet.</li>';
                             } else {
                                 teamList.innerHTML = team.map(e =>
-                                    `<li>• ${e.empFirstName} ${e.empLastName} (ID: ${e.empId}) - <strong style="color: #fff;">${e.projectRole || 'MEMBER'}</strong></li>`
+                                    `<li>• ${e.empFirstName} ${e.empLastName} (${e.projectRole || 'MEMBER'})</li>`
                                 ).join('');
                             }
                             return team; // Return the team so we can filter for the Remove dropdowns

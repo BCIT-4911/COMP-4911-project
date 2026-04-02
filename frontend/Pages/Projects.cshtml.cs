@@ -22,7 +22,7 @@ public class ProjectsModel : PageModel
             return RedirectToPage("/Login");
 
         var role = HttpContext.Session.GetString("SystemRole");
-        if (role != "OPERATIONS_MANAGER" && role != "ADMIN")
+        if (role == "HR")
             return RedirectToPage("/Index");
 
         ApiBaseUrl = _config["ApiBaseUrl"] ?? "";

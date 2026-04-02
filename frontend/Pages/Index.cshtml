@@ -417,8 +417,8 @@
         }
 
         showCard('cardTimesheet');
-        const draftCount = timesheets.filter(t => t.timesheetStatus === 'DRAFT').length;
-        const submittedCount = timesheets.filter(t => t.timesheetStatus === 'SUBMITTED').length;
+        const draftCount = timesheets.filter(t => t.status === 'DRAFT').length;
+        const submittedCount = timesheets.filter(t => t.status === 'SUBMITTED').length;
         if (draftCount > 0) {
             document.getElementById('statTimesheet').textContent = `${draftCount} Draft`;
         } else if (submittedCount > 0) {

@@ -146,11 +146,10 @@ public class ProjectResource {
             return Response.status(Response.Status.BAD_REQUEST).entity("role query parameter is required").build();
         }
         
-        boolean isOpsManager = rebacService.canCreateProject(authContext.getSystemRole());
-        boolean isProjectManager = rebacService.canManageProject(authContext.getEmpId(), id);
+        boolean isOpsOrAdmin = rebacService.canCreateProject(authContext.getSystemRole());
         boolean isSupervisor = rebacService.isSupervisorOf(authContext.getEmpId(), empId);
 
-        if (!isOpsManager && !isProjectManager && !isSupervisor) {
+        if (!isOpsOrAdmin && !isSupervisor) {
             return forbidden();
         }
         
@@ -161,11 +160,10 @@ public class ProjectResource {
     @DELETE
     @Path("/{id}/employees/{empId}")
     public Response removeEmployee(@PathParam("id") String id, @PathParam("empId") int empId) {
-        boolean isOpsManager = rebacService.canCreateProject(authContext.getSystemRole());
-        boolean isProjectManager = rebacService.canManageProject(authContext.getEmpId(), id);
+        boolean isOpsOrAdmin = rebacService.canCreateProject(authContext.getSystemRole());
         boolean isSupervisor = rebacService.isSupervisorOf(authContext.getEmpId(), empId);
 
-        if (!isOpsManager && !isProjectManager && !isSupervisor) {
+        if (!isOpsOrAdmin && !isSupervisor) {
             return forbidden();
         }
         

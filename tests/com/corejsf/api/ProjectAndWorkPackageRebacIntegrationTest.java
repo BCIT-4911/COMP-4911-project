@@ -105,8 +105,8 @@ public class ProjectAndWorkPackageRebacIntegrationTest extends TestConfig {
     }
 
     // PROJECT ASSIGNMENT RBAC
-    // Endpoint:
-    // POST /projects/{id}/employees/{empId}?role=PM
+    // Only Ops/Admin and Supervisors (for their direct reports) may assign.
+    // PM role alone does NOT grant assignment rights.
 
     @Test
     void assignEmployeeToProject_asOpsManager_succeeds() {
@@ -119,7 +119,9 @@ public class ProjectAndWorkPackageRebacIntegrationTest extends TestConfig {
     }
 
     @Test
-    void assignEmployeeToProject_asPmOfThatProject_succeeds() {
+    void assignEmployeeToProject_asSupervisor_succeeds() {
+        // Bugs Bunny (PM PROJ-1) is also supervisor of Sylvester (RE_A2).
+        // This succeeds via the supervisor path, NOT the PM path.
         Response response = postWithToken(
                 pmProj1Token,
                 "/projects/PROJ-1/employees/" + RE_A2_ID + "?role=MEMBER"
@@ -129,7 +131,8 @@ public class ProjectAndWorkPackageRebacIntegrationTest extends TestConfig {
     }
 
     @Test
-    void assignEmployeeToProject_asPmOfDifferentProject_returns403() {
+    void assignEmployeeToProject_asNonSupervisorPm_returns403() {
+        // Marvin (PM PROJ-2) is NOT supervisor of Tweety (supervisor is Bugs).
         postWithToken(
                 pmProj2Token,
                 "/projects/PROJ-1/employees/" + MEMBER_A2_ID + "?role=MEMBER"

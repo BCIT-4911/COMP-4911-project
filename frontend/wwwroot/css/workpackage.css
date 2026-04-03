@@ -11,7 +11,8 @@ h1 {
     color: var(--secondary-color);
 }
 
-#backToProjectsLink:hover {
+#backToProjectsLink:hover,
+#backToProjectsLink:active {
     color: #555;
     text-decoration: underline;
 }
@@ -73,12 +74,17 @@ h1 {
 .btn-edit:hover,
 .btn-outline:hover,
 .btn-assign:hover,
-.btn-action:hover {
+.btn-action:hover,
+.btn-edit:active,
+.btn-outline:active,
+.btn-assign:active,
+.btn-action:active {
     background-color: #555;
     color: var(--secondary-neutral-color)
 }
 
-.btn-delete:hover {
+.btn-delete:hover,
+.btn-delete:active {
     background-color: var(--danger-color);
     color: var(--secondary-neutral-color);
 }
@@ -173,7 +179,8 @@ h1 {
   padding: 0;
 }
 
-.tree-toggle:hover {
+.tree-toggle:hover,
+.tree-toggle:active {
   color: #4361ee;
 }
 

@@ -4,14 +4,17 @@
     ViewData["Title"] = "Work Packages";
 }
 
-<div class="crud-page-container">
-    <div class="crud-header">
+@section Head {
+    <link rel="stylesheet" href="~/css/workpackage.css" asp-append-version="true" />
+}
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h1 class="crud-title">Work Packages</h1>
-            <p class="crud-subtitle">
-                Project: <strong id="projectLabel">@Model.ProjectId</strong>
-                &nbsp;&middot;&nbsp;
-                <a href="/Projects" class="back-link">
+            <h1 class="fw-bold">Work Packages</h1>
+            <p class="text-muted mb-0">
+                <span class="d-block my-2">Project: <strong id="projectLabel">@Model.ProjectId</strong></span>
+                <a href="/Projects" class="back-link" id="backToProjectsLink">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="19" y1="12" x2="5" y2="12" />
                         <polyline points="12 19 5 12 12 5" />
@@ -20,38 +23,57 @@
                 </a>
             </p>
         </div>
-        <button class="btn-primary-crud" onclick="openCreateModal()" id="newWpBtn" disabled>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            New Work Package
-        </button>
     </div>
 
-    <div id="wpContentContainer">
-        <div class="d-flex flex-wrap">
-            <select id="viewModeSelect" onchange="toggleViewMode()">
+    <div class="rounded-3 p-3 mb-4 d-flex justify-content-between align-items-center gap-1 flex-wrap" id="wpSearchInputsContainer">
+        <div class="input-group w-50">
+            <span class="input-group-text border-0" id="searchIcon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#748B75" viewBox="0 0 16 16">
+                    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"></path>
+                </svg>
+            </span>
+            <input type="text" id="wpSearchInput" class="form-control border-0 shadow-none" placeholder="Search by name, ID or status...">
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <label class="text-muted mb-0 text-nowrap search-input-label" for="statusFilterSelect">Filter by Status:</label>
+            <select id="statusFilterSelect" class="form-select form-select-sm border-0 shadow-none search-select-input" onchange="">
+                <option value="">All Statuses</option>
+                <option value="OPEN">Open</option>
+                <option value="COMPLETE">Complete</option>
+                <option value="ARCHIVED">Archived</option>
+            </select>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <label class="text-muted mb-0 text-nowrap search-input-label" for="viewModeSelect" >View Mode:</label>
+            <select id="viewModeSelect" class="form-select form-select-sm border-0 shadow-none search-select-input" onchange="toggleViewMode()">
                 <option value="table">Table View</option>
                 <option value="tree">Tree View</option>
             </select>
         </div>
+        <button class="btn text-white d-flex align-items-center gap-2" onclick="openCreateModal()" id="newWpBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New Work Package
+        </button>
+    </div>
+
+
+    <div id="wpContentContainer">
         <div id="crudTreeWrapper" style="display:none;">
         </div>
-        <div id="crudTableWrapper">
-            <table class="crud-table" id="wpTable">
+        <div id="crudTableWrapper" class="rounded-3 overflow-auto">
+            <table class="crud-table table table-hover mb-0" id="wpTable">
                 <thead>
                     <tr>
-                        <th>WP ID</th>
-                        <th>Name</th>
-                        <th>Type</th>
-                        <th>Status</th>
-                        <th>Parent WP</th>
-                        <th>Start Date</th>
-                        <th>End Date</th>
-                        <th>% Complete</th>
-                        <th>Responsible Engineer</th>
-                        <th>Actions</th>
+                        <th class="py-3 px-4 text-uppercase fw-semibold">WP ID</th>
+                        <th class="py-3 px-4 text-uppercase fw-semibold">Name</th>
+                        <th class="py-3 px-4 text-uppercase fw-semibold">Type</th>
+                        <th class="py-3 px-4 text-uppercase fw-semibold">Status</th>
+                        <th class="py-3 px-4 text-uppercase fw-semibold">Parent WP</th>
+                        <th class="py-3 px-4 text-uppercase fw-semibold">Start Date</th>
+                        <th class="py-3 px-4 text-uppercase fw-semibold">End Date</th>
+                        <th class="py-3 px-4 text-uppercase fw-semibold">% Complete</th>
+                        <th class="py-3 px-4 text-uppercase fw-semibold">Responsible Engineer</th>
+                        <th class="py-3 px-4 text-uppercase fw-semibold text-end">Actions</th>
                     </tr>
                 </thead>
                 <tbody id="wpBody">
@@ -65,28 +87,29 @@
 </div>
 
 <div class="modal-overlay" id="wpModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2 id="modalTitle">New Work Package</h2>
-            <button type="button" class="modal-close" onclick="closeModal()">&times;</button>
+    <div class="modal-content container">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+            <h2 class="fs-4 fw-normal mb-0">Work Package Details</h2>
+            <button type="button" class="modal-close fs-3 bg-transparent border-0" onclick="closeModal()">&times;</button>
         </div>
+        <p class="d-block text-muted mb-3">Add or update a work package within your project workspace.</p>
         <form id="wpForm" onsubmit="handleSubmit(event)">
             <input type="hidden" id="editMode" value="false" />
             <input type="hidden" id="originalId" />
 
-            <div class="form-grid">
-                <div class="form-group">
+            <div class="form-group mb-3">
+                    <label for="wpName">Name *</label>
+                    <input type="text" id="wpName" required placeholder="e.g. Requirements Gathering" class="modal-input"/>
+            </div>
+            <div class="row mb-3">
+                <div class="form-group col">
                     <label for="wpId">Parent & Work Package ID *</label>
                     <div class="wp-id-input-group">
-                        <select id="parentWpIdSelect" class="parent-wp-id-select"></select>
+                        <select id="parentWpIdSelect" class="parent-wp-id-select border-end border-1"></select>
                         <input type="text" id="wpId" required placeholder="e.g. 1, CA3, Z-1" />
                     </div>
                 </div>
-                <div class="form-group">
-                    <label for="wpName">Name *</label>
-                    <input type="text" id="wpName" required placeholder="e.g. Requirements Gathering" />
-                </div>
-                <div class="form-group">
+                <div class="form-group col">
                     <label for="wpStatus">Status</label>
                     <select id="wpStatus">
                         <option value="OPEN_FOR_CHARGES">Open for Charges</option>
@@ -94,21 +117,31 @@
                         <option value="COMPLETE">Complete</option>
                     </select>
                 </div>
-                <div class="form-group">
+            </div>
+            <div class="row mb-3" style="grid-column 1/-1;">
+                <div class="form-group" style="grid-column: 1/-1;">
+                    <label for="wpDesc">Description</label>
+                    <textarea id="wpDesc" rows="3" placeholder="Describe the work package..."></textarea>
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="form-group col">
+                    <label for="planStartDate">Start Date *</label>
+                    <input type="date" id="planStartDate" required />
+                </div>
+                <div class="form-group col">
+                    <label for="planEndDate">End Date *</label>
+                    <input type="date" id="planEndDate" required />
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="form-group col">
                     <label for="reEmployeeSelect">Responsible Engineer *</label>
                     <select id="reEmployeeSelect" required>
                         <option value="">-- Select RE --</option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <label for="planStartDate">Start Date *</label>
-                    <input type="date" id="planStartDate" required />
-                </div>
-                <div class="form-group">
-                    <label for="planEndDate">End Date *</label>
-                    <input type="date" id="planEndDate" required />
-                </div>
-                <div class="form-group">
+                <div class="form-group col">
                     <label for="estCreationBac">BAC (Budget at Completion)</label>
                     <input type="number" id="estCreationBac" step="0.01" min="0" placeholder="e.g. 5000.00"
                            oninput="validateBacInput()" />
@@ -116,14 +149,9 @@
                 </div>
             </div>
 
-            <div class="form-group" style="grid-column: 1/-1;">
-                <label for="wpDesc">Description</label>
-                <textarea id="wpDesc" rows="3" placeholder="Describe the work package..."></textarea>
-            </div>
-
             <div class="modal-actions">
-                <button type="button" class="btn-secondary-crud" onclick="closeModal()">Cancel</button>
-                <button type="submit" class="btn-primary-crud" id="submitBtn">Save Work Package</button>
+                <button type="button" class="btn btn-outline border py-2 px-3" onclick="closeModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary-crud py-2 px-3" id="submitBtn">Save Work Package</button>
             </div>
         </form>
     </div>
@@ -131,10 +159,11 @@
 
 <div class="modal-overlay" id="estimateModal">
     <div class="modal-content">
-        <div class="modal-header">
-            <h2 id="estimateModalTitle">Update EVM Estimates</h2>
-            <button type="button" class="modal-close" onclick="closeEstimateModal()">&times;</button>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h2 class="fs-4 fw-normal mb-0">Update EVM Estimates</h2>
+            <button type="button" class="modal-close fs-3 bg-transparent border-0" onclick="closeEstimateModal()">&times;</button>
         </div>
+        <p class="d-block text-muted mb-3">Update the EVM estimates for this work package.</p>
         <form id="estimateForm" onsubmit="handleEstimateSubmit(event)">
             <input type="hidden" id="estWpId" />
 
@@ -163,8 +192,8 @@
             </div>
 
             <div class="modal-actions">
-                <button type="button" class="btn-secondary-crud" onclick="closeEstimateModal()">Cancel</button>
-                <button type="submit" class="btn-primary-crud">Save Estimates</button>
+                <button type="button" class="btn btn-outline border py-2 px-3" onclick="closeEstimateModal()">Cancel</button>
+                <button type="submit" class="btn-primary-crud py-2 px-3">Save Estimates</button>
             </div>
         </form>
     </div>
@@ -172,11 +201,11 @@
 
 <div class="modal-overlay" id="assignmentModal">
     <div class="modal-content">
-        <div class="modal-header">
-            <h2 id="assignmentModalTitle">Manage WP Team</h2>
-            <button type="button" class="modal-close" onclick="closeAssignmentModal()">&times;</button>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h2 class="fs-4 fw-normal mb-0">Manage Work Package Team Members</h2>
+            <button type="button" class="modal-close fs-3 bg-transparent border-0" onclick="closeAssignmentModal()">&times;</button>
         </div>
-
+        <p class="d-block text-muted mb-4">Assign new or remove existing team members from the work package.</p>
         <div style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #444;">
             <h3 style="font-size: 14px; margin-bottom: 8px;">Current Team Members:</h3>
             <ul id="currentTeamList"
@@ -187,13 +216,13 @@
 
         <form id="assignmentForm" onsubmit="handleAssignmentSubmit(event)" style="margin-bottom: 20px;">
             <input type="hidden" id="assignWpId" />
-            <h4 style="margin-bottom: 10px; font-size: 14px; color: #a8b2d1;">+ Assign New Member</h4>
-            <div class="form-group">
+            <h4 class="fs-6 mb-3">+ Assign New Member</h4>
+            <div class="form-group mb-3">
                 <select id="assignEmpId" required>
                 </select>
             </div>
-            <div class="form-group">
-                <label for="assignRole" style="display:none;">Role</label>
+            <div class="form-group mb-3">
+                <label for="assignRole">Role</label>
                 <select id="assignRole" required style="margin-top: 8px;">
                     <option value="MEMBER">Team Member</option>
                     <option value="RE">Responsible Engineer (RE)</option>
@@ -214,10 +243,11 @@
                 </select>
             </div>
             <div class="modal-actions" style="margin-top: 10px;">
-                <button type="submit" class="btn-secondary-crud" style="color: #ff6b6b; border-color: #ff6b6b;">Remove
-                    Member</button>
-                </div>
-            </form>
+                <button type="submit" class="btn btn-danger">
+                    Remove Member
+                </button>
+            </div>
+        </form>
         </div>
     </div>
 
@@ -234,6 +264,46 @@
             let allWps = [];
             let projectInfo = null;
             let projectTeam = [];
+
+            function getEstimateButton(wp) {
+                return `
+                    <button class="btn-action btn-icon d-inline" onclick="openEstimateModal('${esc(wp.wpId)}')" title="Update EVM Estimates" style="color: #64ffda;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+                    </button>
+                `.trim();
+            }
+
+            function getAssignButton(wp) {
+                return `
+                    <button class="btn-action btn-assign" onclick="openAssignmentModal('${esc(wp.wpId)}')" title="Manage Team">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
+                    </button>
+                `.trim();
+            }
+
+            function getReportButton(wp) {
+                return `
+                    <a class="btn-action" href="/EarnedValue?SelectedControlAccountId=${encodeURIComponent(wp.wpId)}&SelectedProjectId=${encodeURIComponent(PROJECT_ID)}" title="Weekly Report" style="color: #ffd166;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                    </a>
+                `.trim();
+            }
+
+            function getEditButton(wp) {
+                return `
+                    <button class="btn-action btn-edit" onclick="openEditModalById('${esc(wp.wpId)}')" title="Edit">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
+                `.trim();
+            }
+
+            function getDeleteButton(wp) {
+                return `
+                    <button class="btn-action btn-delete" onclick="deleteWP('${esc(wp.wpId)}')" title="Delete">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    </button>
+                `.trim();
+            }   
 
             // Extract user ID from JWT to check if they are the PM or RE
             function getUserId() {
@@ -351,6 +421,13 @@
             }
 
             // ---- Rendering Functions ----
+            function getEmployeeInitials(name) {
+                if (!name) return '';
+                const parts = name.trim().split(' ');
+                if (parts.length === 1) return parts[0][0].toUpperCase();
+                return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+            }
+
             function populateWpPrefixOptions(wps) {
                 const select = document.getElementById('parentWpIdSelect');
                 if (!select) return;
@@ -377,6 +454,12 @@
                 return map[t] || t || 'N/A';
             }
 
+            function typeClass(t) {
+                if (t === 'SUMMARY') return 'badge-summary';
+                if (t === 'LOWEST_LEVEL') return 'badge-lowest';
+                return '';
+            }
+
             function toggleViewMode() {
                 const mode = document.getElementById('viewModeSelect').value;
                 document.getElementById('crudTableWrapper').style.display = mode === 'table' ? 'block' : 'none';
@@ -400,16 +483,8 @@
                     let reportButton = '';
 
                     if (canAssign) {
-                        assignButton = `
-                            <button class="btn-action btn-assign" onclick="openAssignmentModal('${esc(w.wpId)}')" title="Manage Team">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
-                            </button>
-                        `;
-                        reportButton = `
-                            <a class="btn-action" href="/EarnedValue?SelectedControlAccountId=${encodeURIComponent(w.wpId)}&SelectedProjectId=${encodeURIComponent(PROJECT_ID)}" title="Weekly Report" style="color: #ffd166;">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                            </a>
-                        `;
+                        assignButton = getAssignButton(w);
+                        reportButton = getReportButton(w);
                     }
 
                     // Estimate Button Visibility: Only PMs and the specific RE of this WP can see it
@@ -426,11 +501,7 @@
                             document.getElementById("estBudgetedEffort").disabled = false;
                         }
 
-                        estimateButton = `
-                            <button class="btn-action btn-assign" onclick="openEstimateModal('${esc(w.wpId)}')" title="Update EVM Estimates" style="color: #64ffda;">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
-                            </button>
-                        `;
+                        estimateButton = getEstimateButton(w);
                     }
 
                     // Edit: Ops Manager, Admin, PM of this project, or RE of this WP
@@ -440,27 +511,21 @@
 
                     return `
                     <tr>
-                        <td><code>${esc(w.wpId)}</code></td>
-                        <td class="name-cell">${esc(w.wpName || '')}</td>
-                        <td><span class="badge badge-type">${typeDisplay(w.wpType)}</span></td>
-                        <td><span class="badge ${statusClass(w.status)}">${statusDisplay(w.status)}</span></td>
-                        <td>${w.parentWpId ? '<code>' + esc(w.parentWpId) + '</code>' : '—'}</td>
-                        <td>${w.planStartDate || '—'}</td>
-                        <td>${w.planEndDate || '—'}</td>
-                        <td>${w.percentComplete != null ? w.percentComplete + '%' : '—'}</td>
-                        <td>${w.reEmployeeName || '—'}</td>
-                        <td class="actions-cell">
+                        <td class="py-3 px-3"><code>${esc(w.wpId)}</code></td>
+                        <td class="name-cell py-3 px-3">${esc(w.wpName || '')}</td>
+                        <td class="py-3 px-3"><span class="badge badge-type ${typeClass(w.wpType)}">${typeDisplay(w.wpType)}</span></td>
+                        <td class="py-3 px-3"><span class="badge ${statusClass(w.status)}">${statusDisplay(w.status)}</span></td>
+                        <td class="py-3 px-3">${w.parentWpId ? '<code>' + esc(w.parentWpId) + '</code>' : '—'}</td>
+                        <td class="py-3 px-3">${w.planStartDate || '—'}</td>
+                        <td class="py-3 px-3">${w.planEndDate || '—'}</td>
+                        <td class="py-3 px-3">${w.percentComplete != null ? w.percentComplete + '%' : '—'}</td>
+                        <td class="py-3 px-3"><span class="emp-icon">${getEmployeeInitials(w.reEmployeeName)}</span>${w.reEmployeeName || '—'}</td>
+                        <td class="py-4 px-3 align-middle text-end d-flex justify-content-end gap-1 flex-wrap">
                             ${reportButton}
                             ${estimateButton}
                             ${assignButton}
-                            ${canEditWp ? `
-                            <button class="btn-action btn-edit" onclick="openEditModalById('${esc(w.wpId)}')" title="Edit">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                            </button>` : ''}
-                            ${canDeleteWp ? `
-                            <button class="btn-action btn-delete" onclick="deleteWP('${esc(w.wpId)}')" title="Delete">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                            </button>` : ''}
+                            ${canEditWp ? getEditButton(w) : ''}
+                            ${canDeleteWp ? getDeleteButton(w) : ''}
                         </td>
                     </tr>
                     `;
@@ -512,25 +577,19 @@
                     let reportButton = '';
 
                     if (canAssign) {
-                        assignButton = `<button class="btn-action btn-assign" onclick="openAssignmentModal('${esc(n.wpId)}')" title="Manage Team">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
-                        </button>`;
-                        reportButton = `<a class="btn-action" href="/EarnedValue?SelectedControlAccountId=${encodeURIComponent(n.wpId)}&SelectedProjectId=${encodeURIComponent(PROJECT_ID)}" title="Weekly Report" style="color:#ffd166;">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-                        </a>`;
+                        assignButton = getAssignButton(n);
+                        reportButton = getReportButton(n);
                     }
 
                     if (canAssign || n.reEmployeeId === CURRENT_USER_ID) {
-                        estimateButton = `<button class="btn-action btn-assign" onclick="openEstimateModal('${esc(n.wpId)}')" title="Update EVM Estimates" style="color:#64ffda;">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-                        </button>`;
+                        estimateButton = getEstimateButton(n);
                     }
 
                     const canEditWp = isPrivileged || canAssign || n.reEmployeeId === CURRENT_USER_ID;
                     const canDeleteWp = isPrivileged || canAssign;
 
-                    const editBtn = canEditWp ? `<button class="btn-action btn-edit" onclick="openEditModalById('${esc(n.wpId)}')" title="Edit"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>` : '';
-                    const deleteBtn = canDeleteWp ? `<button class="btn-action btn-delete" onclick="deleteWP('${esc(n.wpId)}')" title="Delete"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>` : '';
+                    const editBtn = canEditWp ? getEditButton(n) : '';
+                    const deleteBtn = canDeleteWp ? getDeleteButton(n) : '';
 
                     return `
                     <li class="tree-item">
@@ -540,7 +599,7 @@
                             <span class="badge badge-type" style="flex-shrink:0;">${esc(n.wpId)}</span>
                             <span class="node-name">${esc(n.wpName || '')}</span>
                             <span class="node-badges">
-                                <span class="badge badge-type">${typeDisplay(n.wpType)}</span>
+                                <span class="badge badge-type ${typeClass(n.wpType)}">${typeDisplay(n.wpType)}</span>
                                 <span class="badge ${statusClass(n.status)}">${statusDisplay(n.status)}</span>
                                 ${n.planStartDate ? `<span class="tree-meta-chip"><span class="tree-meta-label">Start:</span> ${esc(n.planStartDate)}</span>` : ''}
                                 ${n.planEndDate ? `<span class="tree-meta-chip"><span class="tree-meta-label">End:</span> ${esc(n.planEndDate)}</span>` : ''}
@@ -582,7 +641,6 @@
                 if (!w) return;
 
                 document.getElementById('estWpId').value = w.wpId;
-                document.getElementById('estimateModalTitle').textContent = `Update Estimates: ${w.wpId}`;
 
                 // Populate existing estimates
                 document.getElementById('estBudgetedEffort').value = w.budgetedEffort !== undefined && w.budgetedEffort !== null ? w.budgetedEffort : '';
@@ -638,7 +696,6 @@
             async function openAssignmentModal(wpId) {
                 document.getElementById('assignWpId').value = wpId;
                 document.getElementById('removeWpId').value = wpId;
-                document.getElementById('assignmentModalTitle').textContent = `Manage Team for ${wpId}`;
 
                 const assignSelect = document.getElementById('assignEmpId');
                 assignSelect.innerHTML = '<option value="">Loading...</option>';
@@ -814,7 +871,6 @@
 
             function openCreateModal() {
                 document.getElementById('editMode').value = 'false';
-                document.getElementById('modalTitle').textContent = 'New Work Package';
                 document.getElementById('submitBtn').textContent = 'Create Work Package';
                 document.getElementById('wpId').disabled = false;
                 document.getElementById('parentWpIdSelect').disabled = false;
@@ -834,7 +890,6 @@
             function openEditModal(w) {
                 document.getElementById('editMode').value = 'true';
                 document.getElementById('originalId').value = w.wpId;
-                document.getElementById('modalTitle').textContent = 'Edit Work Package';
                 document.getElementById('submitBtn').textContent = 'Save Changes';
                 document.getElementById('wpId').value = w.wpId;
                 document.getElementById('wpId').disabled = true;

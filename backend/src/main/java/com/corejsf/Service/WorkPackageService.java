@@ -282,6 +282,7 @@ public class WorkPackageService {
 
         existing.setWpName(wp.getWpName());
         existing.setDescription(wp.getDescription());
+        existing.setStatus(wp.getStatus());
         
         existing.setEac(wp.getEac());
         existing.setPercentComplete(wp.getPercentComplete());

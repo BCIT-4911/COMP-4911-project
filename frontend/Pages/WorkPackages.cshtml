@@ -112,8 +112,8 @@
                 <div class="form-group col">
                     <label for="wpStatus">Status</label>
                     <select id="wpStatus">
-                        <option value="OPEN">Open for Charges</option>
-                        <option value="ARCHIVED">Closed for Charges</option>
+                        <option value="OPEN_FOR_CHARGES">Open for Charges</option>
+                        <option value="CLOSED_FOR_CHARGES">Closed for Charges</option>
                         <option value="COMPLETE">Complete</option>
                     </select>
                 </div>
@@ -639,6 +639,7 @@
             function openEstimateModal(wpId) {
                 const w = allWps.find(x => x.wpId === wpId);
                 if (!w) return;
+                const isResponsibleEngineer = w.reEmployeeId === CURRENT_USER_ID;
 
                 document.getElementById('estWpId').value = w.wpId;
 
@@ -648,6 +649,7 @@
                 document.getElementById('estBac').value = w.bac !== undefined && w.bac !== null ? w.bac : '';
                 document.getElementById('estEac').value = w.eac !== undefined && w.eac !== null ? w.eac : '';
                 document.getElementById('estEtc').value = w.etc !== undefined && w.etc !== null ? w.etc : '';
+                document.getElementById('estEtc').disabled = !isResponsibleEngineer;
 
                 document.getElementById('estimateModal').classList.add('active');
             }

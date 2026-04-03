@@ -25,6 +25,15 @@
         <p class="text-muted mb-0">Update employee information</p>
     </div>
 
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show rounded-3 mb-4" role="alert"
+             style="border-color: #d9534f;">
+            @Model.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
     <!-- Form Card -->
     <div class="card border-0 rounded-3 p-4 p-md-5" style="background-color: #F5FBEF; border: 1px solid #dce8d5 !important;">
         <form method="post" asp-route-id="@empId">

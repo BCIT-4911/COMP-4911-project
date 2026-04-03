@@ -1,28 +1,29 @@
 package com.corejsf.api;
 
+import com.corejsf.DTO.employee.EmployeeManagerUpdateDto;
+import com.corejsf.DTO.employee.EmployeeSelfUpdateDto;
+import jakarta.ejb.EJBException;
+import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.NotFoundException;
 import java.util.List;
 
-import com.corejsf.DTO.EmployeeCreateDTO;
+import com.corejsf.DTO.employee.EmployeeCreateDTO;
 import com.corejsf.Entity.Employee;
 import com.corejsf.Service.EmployeeService;
 import com.corejsf.Service.RebacService;
 
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
+import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
-/**
- * REST resource for managing employees.
- * Provides endpoints for retrieving and creating employee records.
- */
 @Path("/employees")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
@@ -37,20 +38,15 @@ public class EmployeeResource {
     @Inject
     private AuthContext authContext;
 
-    /**
-     * Helper method to return a Forbidden response.
-     * @return a Response with FORBIDDEN status.
-     */
     private Response forbidden() {
         return Response.status(Response.Status.FORBIDDEN).entity("Access denied").build();
     }
 
-    /**
-     * Retrieves all employees.
-     * Only accessible to users with employee management permissions.
-     * 
-     * @return a Response containing the list of all employees.
-     */
+    private static Throwable unwrap(Exception ex) {
+        return (ex instanceof EJBException && ex.getCause() != null)
+                ? ex.getCause() : ex;
+    }
+
     @GET
     public Response getAll() {
         if (!rebacService.canManageEmployees(authContext.getSystemRole())) {
@@ -60,13 +56,6 @@ public class EmployeeResource {
         return Response.ok(list).build();
     }
 
-    /**
-     * Retrieves a specific employee by ID.
-     * An employee can retrieve their own record, or a manager can retrieve any record.
-     * 
-     * @param id the unique identifier of the employee to retrieve.
-     * @return a Response containing the requested employee.
-     */
     @GET
     @Path("/{id}")
     public Response get(@PathParam("id") int id) {
@@ -78,54 +67,78 @@ public class EmployeeResource {
         return Response.ok(emp).build();
     }
 
-    /**
-     * Creates a new employee.
-     * Only accessible to ADMIN and HR ({@code canWriteEmployees}).
-     * 
-     * @param dto the data transfer object containing new employee details.
-     * @return a Response containing the created employee with CREATED status.
-     */
     @POST
     public Response create(EmployeeCreateDTO dto) {
         if (!rebacService.canWriteEmployees(authContext.getSystemRole())) {
             return forbidden();
         }
-        Employee created = employeeService.createEmployee(dto);
+
+        Employee created;
+
+        try {
+            created = employeeService.createEmployee(dto);
+        } catch (final Exception ex) {
+            Throwable cause = unwrap(ex);
+            if (cause instanceof BadRequestException) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity("Bad Request: " + cause.getMessage()).build();
+            }
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity("Error creating employee: "
+                            + cause.getClass().getName() + " - " + cause.getMessage()).build();
+        }
+
         return Response.status(Response.Status.CREATED).entity(created).build();
     }
 
-    /**
-     * Updates an existing employee.
-     * Only accessible to ADMIN and HR ({@code canWriteEmployees}).
-     * 
-     * @param id the unique identifier of the employee to update.
-     * @param dto the data transfer object containing updated employee details.
-     * @return a Response containing the updated employee with OK status.
-     */
     @PUT
     @Path("/{id}")
-    public Response update(@PathParam("id") int id, EmployeeCreateDTO dto) {
+    public Response update(@PathParam("id") final int id,
+                           final EmployeeManagerUpdateDto dto) {
         if (!rebacService.canWriteEmployees(authContext.getSystemRole())) {
             return forbidden();
         }
-        Employee updated = employeeService.updateEmployee(id, dto);
-        return Response.ok(updated).build();
+
+        Employee updated;
+
+        try {
+            updated = employeeService.updateEmployee(id, dto);
+        } catch (final Exception ex) {
+            Throwable cause = unwrap(ex);
+            if (cause instanceof NotFoundException) {
+                return Response.status(Response.Status.NOT_FOUND)
+                        .entity(cause.getMessage()).build();
+            }
+            if (cause instanceof BadRequestException) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity(cause.getMessage()).build();
+            }
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity("Error updating employee: "
+                            + cause.getClass().getName() + " - " + cause.getMessage()).build();
+        }
+
+        if (updated == null) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity("Unknown error when updating employee. "
+                            + "Please contact system administrator.").build();
+        }
+        return Response.ok().entity(updated).build();
     }
 
-    /**
-     * Deletes an employee by ID.
-     * Only accessible to ADMIN and HR ({@code canWriteEmployees}).
-     * 
-     * @param id the unique identifier of the employee to delete.
-     * @return a Response with OK status.
-     */
+    @POST
+    @Path("/employee-self-update-password")
+    public Response selfUpdatePassword(final EmployeeSelfUpdateDto dto) {
+        final int empId = authContext.getEmpId();
+        return employeeService.employeeSelfUpdatePassword(empId, dto);
+    }
+
     @DELETE
     @Path("/{id}")
-    public Response delete(@PathParam("id") int id) {
+    public Response deleteEmployee(@PathParam("id") final int id) {
         if (!rebacService.canWriteEmployees(authContext.getSystemRole())) {
             return forbidden();
         }
-        employeeService.deleteEmployee(id);
-        return Response.ok().build();
+        return employeeService.deleteEmployee(id);
     }
 }

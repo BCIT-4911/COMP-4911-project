@@ -9,6 +9,7 @@ import com.corejsf.Entity.SystemRole;
 import com.corejsf.Service.LaborGradeService;
 import com.corejsf.Service.RebacService;
 
+import jakarta.ejb.EJBException;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
@@ -44,6 +45,11 @@ public class LaborGradeResource {
 
     private Response forbidden() {
         return Response.status(Response.Status.FORBIDDEN).entity("Access denied").build();
+    }
+
+    private static Throwable unwrap(Exception ex) {
+        return (ex instanceof EJBException && ex.getCause() != null)
+                ? ex.getCause() : ex;
     }
 
     /**
@@ -82,8 +88,12 @@ public class LaborGradeResource {
         try {
             LaborGradeDTO created = laborGradeService.createLaborGrade(dto);
             return Response.status(Response.Status.CREATED).entity(created).build();
-        } catch (BadRequestException e) {
-            return Response.status(Response.Status.BAD_REQUEST).entity(e.getMessage()).build();
+        } catch (Exception e) {
+            Throwable cause = unwrap(e);
+            if (cause instanceof BadRequestException) {
+                return Response.status(Response.Status.BAD_REQUEST).entity(cause.getMessage()).build();
+            }
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(cause.getMessage()).build();
         }
     }
 
@@ -104,8 +114,12 @@ public class LaborGradeResource {
         try {
             LaborGradeDTO updated = laborGradeService.updateLaborGrade(id, dto);
             return Response.ok(updated).build();
-        } catch (BadRequestException e) {
-            return Response.status(Response.Status.BAD_REQUEST).entity(e.getMessage()).build();
+        } catch (Exception e) {
+            Throwable cause = unwrap(e);
+            if (cause instanceof BadRequestException) {
+                return Response.status(Response.Status.BAD_REQUEST).entity(cause.getMessage()).build();
+            }
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(cause.getMessage()).build();
         }
     }
 
@@ -126,8 +140,12 @@ public class LaborGradeResource {
         try {
             laborGradeService.deleteLaborGrade(id);
             return Response.ok().build();
-        } catch (IllegalStateException e) {
-            return Response.status(Response.Status.CONFLICT).entity(e.getMessage()).build();
+        } catch (Exception e) {
+            Throwable cause = unwrap(e);
+            if (cause instanceof IllegalStateException) {
+                return Response.status(Response.Status.CONFLICT).entity(cause.getMessage()).build();
+            }
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(cause.getMessage()).build();
         }
     }
 

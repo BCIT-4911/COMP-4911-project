@@ -175,4 +175,9 @@ public class Employee {
     public Integer getSupervisorId() {
         return supervisor != null ? supervisor.getEmpId() : null;
     }
+
+    @jakarta.json.bind.annotation.JsonbProperty("labor_grade_id")
+    public Integer getLaborGradeId() {
+        return laborGrade != null ? laborGrade.getLaborGradeId() : null;
+    }
 }

@@ -138,7 +138,10 @@ public class CreateModel : PageModel
 
         if (!response.IsSuccessStatusCode)
         {
-            ErrorMessage = "Failed to save labor grade. Please try again.";
+            var errorBody = await response.Content.ReadAsStringAsync();
+            ErrorMessage = string.IsNullOrWhiteSpace(errorBody)
+                ? "Failed to save labor grade. Please try again."
+                : errorBody;
             return Page();
         }
 

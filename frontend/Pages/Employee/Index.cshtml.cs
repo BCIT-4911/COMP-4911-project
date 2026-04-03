@@ -63,7 +63,15 @@ public class IndexModel : PageModel
 
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        await client.DeleteAsync(_config["ApiBaseUrl"] + $"/api/employees/{id}");
+        var response = await client.DeleteAsync(_config["ApiBaseUrl"] + $"/api/employees/{id}");
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorBody = await response.Content.ReadAsStringAsync();
+            TempData["DeleteError"] = string.IsNullOrWhiteSpace(errorBody)
+                ? "Failed to delete employee."
+                : errorBody;
+        }
 
         return RedirectToPage("/Employee/Index");
     }

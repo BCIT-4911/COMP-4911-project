@@ -1,20 +1,21 @@
 package com.corejsf.Api;
 
-import com.corejsf.TestConfig;
-import com.corejsf.TestConfig.StandardSeedIds;
-import io.restassured.http.ContentType;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+
+import com.corejsf.TestConfig;
+import com.corejsf.TestConfig.StandardSeedIds;
+
+import static io.restassured.RestAssured.given;
+import io.restassured.http.ContentType;
 
 /**
  * Employee API tests. Read access uses {@code canManageEmployees}; create/update/delete use
@@ -353,16 +354,353 @@ class EmployeeResourceTest extends TestConfig {
                 .statusCode(404);
     }
 
-    /*
-     * TODO: PUT /employees/{id}/password is not implemented on EmployeeResource yet.
-     *
-    @Test
-    void passwordReset_asHr_returns200() { ... }
+    // ---- ADMIN can also write employees (HR + ADMIN) ----
 
     @Test
-    void passwordReset_asUnauthorized_returns403() { ... }
+    void createEmployee_asAdmin_returns201() {
+        String unique = "IT-ADM-" + System.nanoTime();
+        given()
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(ContentType.JSON)
+                .body(createEmployeeBody("AdminCreated", unique, IDS.opsId()))
+                .when()
+                .post("/employees")
+                .then()
+                .statusCode(201);
+    }
 
     @Test
-    void loginAfterReset_succeeds() { ... }
-    */
+    void update_asAdmin_returns200() {
+        String unique = "ADM-UP-" + System.nanoTime();
+        int empId = given()
+                .header("Authorization", "Bearer " + hrToken)
+                .contentType(ContentType.JSON)
+                .body(createEmployeeBody("AdminUpBefore", unique, IDS.opsId()))
+                .when()
+                .post("/employees")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("empId");
+
+        given()
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(ContentType.JSON)
+                .body(updateEmployeeBody("AdminUpAfter", unique, IDS.opsId()))
+                .when()
+                .put("/employees/" + empId)
+                .then()
+                .statusCode(200)
+                .body("empFirstName", equalTo("AdminUpAfter"));
+    }
+
+    @Test
+    void delete_asAdmin_returns200() {
+        String unique = "ADM-DEL-" + System.nanoTime();
+        int newId = given()
+                .header("Authorization", "Bearer " + hrToken)
+                .contentType(ContentType.JSON)
+                .body(createEmployeeBody("AdminDel", unique, IDS.opsId()))
+                .when()
+                .post("/employees")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("empId");
+
+        given()
+                .header("Authorization", "Bearer " + adminToken)
+                .when()
+                .delete("/employees/" + newId)
+                .then()
+                .statusCode(200);
+    }
+
+    // ---- Create validation (EmployeeService throws BadRequestException → 400) ----
+
+    @Test
+    void create_missingFirstName_returns400() {
+        given()
+                .header("Authorization", "Bearer " + hrToken)
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                          "lastName": "Test",
+                          "password": "password",
+                          "laborGradeId": 1,
+                          "supervisorId": %d,
+                          "systemRole": "EMPLOYEE"
+                        }
+                        """.formatted(IDS.opsId()))
+                .when()
+                .post("/employees")
+                .then()
+                .statusCode(400);
+    }
+
+    @Test
+    void create_blankLastName_returns400() {
+        given()
+                .header("Authorization", "Bearer " + hrToken)
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                          "firstName": "Valid",
+                          "lastName": "   ",
+                          "password": "password",
+                          "laborGradeId": 1,
+                          "supervisorId": %d,
+                          "systemRole": "EMPLOYEE"
+                        }
+                        """.formatted(IDS.opsId()))
+                .when()
+                .post("/employees")
+                .then()
+                .statusCode(400);
+    }
+
+    @Test
+    void create_missingPassword_returns400() {
+        given()
+                .header("Authorization", "Bearer " + hrToken)
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                          "firstName": "Valid",
+                          "lastName": "Name",
+                          "laborGradeId": 1,
+                          "supervisorId": %d,
+                          "systemRole": "EMPLOYEE"
+                        }
+                        """.formatted(IDS.opsId()))
+                .when()
+                .post("/employees")
+                .then()
+                .statusCode(400);
+    }
+
+    @Test
+    void create_invalidSupervisorId_returns400() {
+        given()
+                .header("Authorization", "Bearer " + hrToken)
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                          "firstName": "Valid",
+                          "lastName": "Name",
+                          "password": "password",
+                          "laborGradeId": 1,
+                          "supervisorId": -1,
+                          "systemRole": "EMPLOYEE"
+                        }
+                        """)
+                .when()
+                .post("/employees")
+                .then()
+                .statusCode(400);
+    }
+
+    @Test
+    void create_nonExistentSupervisor_returns400() {
+        given()
+                .header("Authorization", "Bearer " + hrToken)
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                          "firstName": "Valid",
+                          "lastName": "Name",
+                          "password": "password",
+                          "laborGradeId": 1,
+                          "supervisorId": 999999,
+                          "systemRole": "EMPLOYEE"
+                        }
+                        """)
+                .when()
+                .post("/employees")
+                .then()
+                .statusCode(400);
+    }
+
+    @Test
+    void create_invalidLaborGradeId_returns400() {
+        given()
+                .header("Authorization", "Bearer " + hrToken)
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                          "firstName": "Valid",
+                          "lastName": "Name",
+                          "password": "password",
+                          "laborGradeId": -1,
+                          "supervisorId": %d,
+                          "systemRole": "EMPLOYEE"
+                        }
+                        """.formatted(IDS.opsId()))
+                .when()
+                .post("/employees")
+                .then()
+                .statusCode(400);
+    }
+
+    @Test
+    void create_missingSysRole_returns400() {
+        given()
+                .header("Authorization", "Bearer " + hrToken)
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                          "firstName": "Valid",
+                          "lastName": "Name",
+                          "password": "password",
+                          "laborGradeId": 1,
+                          "supervisorId": %d
+                        }
+                        """.formatted(IDS.opsId()))
+                .when()
+                .post("/employees")
+                .then()
+                .statusCode(400);
+    }
+
+    // ---- Partial update via EmployeeManagerUpdateDto ----
+
+    @Test
+    void update_partialOnlyFirstName_returns200_otherFieldsPreserved() {
+        String origLast = "PartialOrig-" + System.nanoTime();
+        int empId = given()
+                .header("Authorization", "Bearer " + hrToken)
+                .contentType(ContentType.JSON)
+                .body(createEmployeeBody("OrigFirst", origLast, IDS.opsId()))
+                .when()
+                .post("/employees")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("empId");
+
+        given()
+                .header("Authorization", "Bearer " + hrToken)
+                .contentType(ContentType.JSON)
+                .body("""
+                        { "firstName": "NewFirst" }
+                        """)
+                .when()
+                .put("/employees/" + empId)
+                .then()
+                .statusCode(200)
+                .body("empFirstName", equalTo("NewFirst"))
+                .body("empLastName", equalTo(origLast));
+    }
+
+    @Test
+    void update_blankFirstName_returns400() {
+        String unique = "BlankFN-" + System.nanoTime();
+        int empId = given()
+                .header("Authorization", "Bearer " + hrToken)
+                .contentType(ContentType.JSON)
+                .body(createEmployeeBody("BlankTest", unique, IDS.opsId()))
+                .when()
+                .post("/employees")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("empId");
+
+        given()
+                .header("Authorization", "Bearer " + hrToken)
+                .contentType(ContentType.JSON)
+                .body("""
+                        { "firstName": "   " }
+                        """)
+                .when()
+                .put("/employees/" + empId)
+                .then()
+                .statusCode(400);
+    }
+
+    @Test
+    void update_nonExistentEmployee_returns404() {
+        given()
+                .header("Authorization", "Bearer " + hrToken)
+                .contentType(ContentType.JSON)
+                .body("""
+                        { "firstName": "Ghost" }
+                        """)
+                .when()
+                .put("/employees/999999")
+                .then()
+                .statusCode(404);
+    }
+
+    // ---- Self-update password (POST /employees/employee-self-update-password) ----
+
+    @Test
+    void selfUpdatePassword_returns204() {
+        String unique = "SelfPw-" + System.nanoTime();
+        int empId = given()
+                .header("Authorization", "Bearer " + hrToken)
+                .contentType(ContentType.JSON)
+                .body(createEmployeeBody("SelfPw", unique, IDS.opsId()))
+                .when()
+                .post("/employees")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("empId");
+
+        String selfToken = login(empId, DEFAULT_PASSWORD);
+
+        given()
+                .header("Authorization", "Bearer " + selfToken)
+                .contentType(ContentType.JSON)
+                .body("""
+                        { "empPassword": "newSecurePass123" }
+                        """)
+                .when()
+                .post("/employees/employee-self-update-password")
+                .then()
+                .statusCode(204);
+
+        login(empId, "newSecurePass123");
+    }
+
+    @Test
+    void selfUpdatePassword_blankPassword_returns400() {
+        given()
+                .header("Authorization", "Bearer " + tweetyToken)
+                .contentType(ContentType.JSON)
+                .body("""
+                        { "empPassword": "   " }
+                        """)
+                .when()
+                .post("/employees/employee-self-update-password")
+                .then()
+                .statusCode(400);
+    }
+
+    // ---- labor_grade_id serialization ----
+
+    @Test
+    void getAll_laborGradeIdFieldSerializesCorrectly() {
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> employees = given()
+                .header("Authorization", "Bearer " + adminToken)
+                .when()
+                .get("/employees")
+                .then()
+                .statusCode(200)
+                .extract()
+                .jsonPath()
+                .getList("$");
+        boolean found = false;
+        for (Map<String, Object> e : employees) {
+            if (e.containsKey("labor_grade_id") && e.get("labor_grade_id") != null) {
+                int lgId = ((Number) e.get("labor_grade_id")).intValue();
+                assertTrue(lgId > 0, "labor_grade_id should be a positive integer");
+                found = true;
+                break;
+            }
+        }
+        assertTrue(found, "At least one employee should have a non-null labor_grade_id in the JSON response");
+    }
 }

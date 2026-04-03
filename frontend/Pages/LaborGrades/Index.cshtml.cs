@@ -22,6 +22,9 @@ public class IndexModel : PageModel
         _httpClientFactory = httpClientFactory;
     }
 
+    [TempData]
+    public string? ErrorMessage { get; set; }
+
     /**
      * Handles GET requests to the Labor Grades List page.
      * Retrieves all labor grades from the API.
@@ -52,6 +55,7 @@ public class IndexModel : PageModel
     /**
      * Handles POST requests to delete a labor grade.
      * Calls DELETE /api/labor-grades/{id} on the backend.
+     * Displays an error message if the labor grade is in use.
      */
     public async Task<IActionResult> OnPostDeleteAsync(int id)
     {
@@ -65,7 +69,15 @@ public class IndexModel : PageModel
 
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        await client.DeleteAsync(_config["ApiBaseUrl"] + $"/api/labor-grades/{id}");
+        var response = await client.DeleteAsync(_config["ApiBaseUrl"] + $"/api/labor-grades/{id}");
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorContent = await response.Content.ReadAsStringAsync();
+            ErrorMessage = !string.IsNullOrWhiteSpace(errorContent)
+                ? errorContent
+                : "Failed to delete labor grade. It may be in use.";
+        }
 
         return RedirectToPage("/LaborGrades/Index");
     }

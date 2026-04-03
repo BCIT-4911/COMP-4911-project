@@ -103,9 +103,10 @@ public class LaborGradeResource {
     /**
      * Deletes a labor grade by ID.
      * Only accessible to ADMIN and OPERATIONS_MANAGER roles.
+     * Returns 409 Conflict if the labor grade is currently assigned to employees or timesheet rows.
      *
      * @param id the ID of the labor grade to delete.
-     * @return OK status on successful deletion.
+     * @return OK status on successful deletion, or 409 Conflict if in use.
      */
     @DELETE
     @Path("/{id}")
@@ -113,8 +114,12 @@ public class LaborGradeResource {
         if (!rebacService.canManageLaborGrades(authContext.getSystemRole())) {
             return forbidden();
         }
-        laborGradeService.deleteLaborGrade(id);
-        return Response.ok().build();
+        try {
+            laborGradeService.deleteLaborGrade(id);
+            return Response.ok().build();
+        } catch (IllegalStateException e) {
+            return Response.status(Response.Status.CONFLICT).entity(e.getMessage()).build();
+        }
     }
 
     @GET

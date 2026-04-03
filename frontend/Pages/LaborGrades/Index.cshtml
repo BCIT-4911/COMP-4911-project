@@ -23,6 +23,15 @@
         </a>
     </div>
 
+    <!-- Error Message -->
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+            @Model.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
     <!-- Search Bar -->
     <div class="rounded-3 p-3 mb-4 d-flex align-items-center gap-3"
          style="background-color: #F5FBEF; border: 1px solid #dce8d5;">

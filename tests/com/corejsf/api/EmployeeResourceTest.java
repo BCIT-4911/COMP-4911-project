@@ -17,32 +17,34 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Employee API tests. List/get reflect {@code canManageEmployees} (directory vs HR management).
- * <p>
- * Uncomment the single block comment below when the feature team ships employee PUT/DELETE,
- * POST create RBAC (HR-only), and password reset ({@code PUT /employees/{id}/password}).
+ * Employee API tests. Read access uses {@code canManageEmployees}; create/update/delete use
+ * {@code canWriteEmployees} (ADMIN and HR only). OPS_MANAGER and EMPLOYEE can list/read directory.
  */
-@SuppressWarnings("unused")
 class EmployeeResourceTest extends TestConfig {
 
     private static StandardSeedIds IDS;
-    private static String opsToken;
+    /** Seed user Wile Coyote (ADMIN); used for read-all and HR-forbidden write checks where needed. */
+    private static String adminToken;
     private static String hrToken;
     private static String tweetyToken;
+    /** Elmer Fudd (OPERATIONS_MANAGER) — not allowed to write employees. */
+    private static String elmerToken;
 
     @BeforeAll
     static void setup() {
-        opsToken = loginAsSeedOps();
-        IDS = resolveStandardSeedIds(opsToken);
+        adminToken = loginAsSeedOps();
+        IDS = resolveStandardSeedIds(adminToken);
         hrToken = login(IDS.hrId(), DEFAULT_PASSWORD);
         tweetyToken = login(IDS.tweetyId(), DEFAULT_PASSWORD);
+        elmerToken = login(IDS.elmerId(), DEFAULT_PASSWORD);
         Objects.requireNonNull(hrToken, "seed HR login");
+        Objects.requireNonNull(elmerToken, "seed Operations Manager login");
     }
 
     @Test
-    void getAll_asOperationsManager_returns200() {
+    void getAll_asOperationsManager_stillReturns200() {
         List<?> list = given()
-                .header("Authorization", "Bearer " + opsToken)
+                .header("Authorization", "Bearer " + elmerToken)
                 .when()
                 .get("/employees")
                 .then()
@@ -74,34 +76,104 @@ class EmployeeResourceTest extends TestConfig {
                 .body("empId", equalTo(IDS.tweetyId()));
     }
 
-    /** Current behavior: OPS can create. Replace with createEmployee_asOperationsManager_returns403 after RBAC tightening. */
     @Test
-    void create_asOperationsManager_returns201() {
-        String unique = "IT-" + System.nanoTime();
-        Map<?, ?> created = given()
-                .header("Authorization", "Bearer " + opsToken)
-                .contentType(ContentType.JSON)
-                .body("""
-                        {
-                          "firstName": "Integration",
-                          "lastName": "%s",
-                          "password": "password",
-                          "laborGradeId": 1,
-                          "supervisorId": %d,
-                          "systemRole": "EMPLOYEE"
-                        }
-                        """.formatted(unique, IDS.opsId()))
+    void getById_nonExistent_returns404() {
+        given()
+                .header("Authorization", "Bearer " + adminToken)
                 .when()
-                .post("/employees")
+                .get("/employees/999999")
                 .then()
-                .statusCode(201)
+                .statusCode(404);
+    }
+
+    @Test
+    void getAll_responseBodyContainsNoProxyFields() {
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> employees = given()
+                .header("Authorization", "Bearer " + adminToken)
+                .when()
+                .get("/employees")
+                .then()
+                .statusCode(200)
+                .extract()
+                .jsonPath()
+                .getList("$");
+        for (Map<String, Object> e : employees) {
+            assertFalse(e.containsKey("hibernateLazyInitializer"),
+                    "List entry should not expose Hibernate proxy field");
+            assertFalse(e.containsKey("handler"), "List entry should not expose proxy handler");
+        }
+    }
+
+    @Test
+    void getAll_eachEmployeeHasExpectedFields() {
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> employees = given()
+                .header("Authorization", "Bearer " + adminToken)
+                .when()
+                .get("/employees")
+                .then()
+                .statusCode(200)
+                .extract()
+                .jsonPath()
+                .getList("$");
+        for (Map<String, Object> e : employees) {
+            assertNotNull(e.get("empId"), "empId required for employee " + e);
+            assertNotNull(e.get("empFirstName"), "empFirstName required");
+            assertNotNull(e.get("empLastName"), "empLastName required");
+            assertNotNull(e.get("systemRole"), "systemRole required");
+            int empId = ((Number) e.get("empId")).intValue();
+            assertTrue(empId > 0, "empId should be positive");
+        }
+    }
+
+    @Test
+    void getById_supervisorEmployee_responseContainsNoProxyFields() {
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = given()
+                .header("Authorization", "Bearer " + adminToken)
+                .when()
+                .get("/employees/" + IDS.pmProj1Id())
+                .then()
+                .statusCode(200)
                 .extract()
                 .jsonPath()
                 .getMap("$");
-        assertTrue(created.containsKey("empId"));
+        assertFalse(body.containsKey("hibernateLazyInitializer"));
+        assertFalse(body.containsKey("handler"));
+        assertNotNull(body.get("empId"));
+        assertNotNull(body.get("empFirstName"));
+        assertNotNull(body.get("empLastName"));
     }
 
-    /*
+    @Test
+    void getAll_supervisorIdFieldSerializesCorrectly() {
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> employees = given()
+                .header("Authorization", "Bearer " + adminToken)
+                .when()
+                .get("/employees")
+                .then()
+                .statusCode(200)
+                .extract()
+                .jsonPath()
+                .getList("$");
+        Integer daffySupervisor = null;
+        for (Map<String, Object> e : employees) {
+            if ("Daffy".equals(e.get("empFirstName")) && "Duck".equals(e.get("empLastName"))) {
+                assertTrue(e.containsKey("supervisor_id"), "Daffy should have supervisor_id in JSON");
+                daffySupervisor = ((Number) e.get("supervisor_id")).intValue();
+                break;
+            }
+        }
+        int supId = Objects.requireNonNull(daffySupervisor, "Seed data should include Daffy Duck");
+        assertTrue(supId > 0, "supervisor_id should be a positive employee id");
+        boolean supervisorInList = employees.stream()
+                .anyMatch(row -> supId == ((Number) row.get("empId")).intValue());
+        assertTrue(supervisorInList,
+                "supervisor_id should reference an employee present in the list (stable across DB id ordering)");
+    }
+
     private static String createEmployeeBody(String firstName, String lastName, int supervisorId) {
         return """
                 {
@@ -148,7 +220,7 @@ class EmployeeResourceTest extends TestConfig {
     void createEmployee_asOperationsManager_returns403() {
         String unique = "IT-OPS-" + System.nanoTime();
         given()
-                .header("Authorization", "Bearer " + opsToken)
+                .header("Authorization", "Bearer " + elmerToken)
                 .contentType(ContentType.JSON)
                 .body(createEmployeeBody("Integration", unique, IDS.opsId()))
                 .when()
@@ -198,7 +270,7 @@ class EmployeeResourceTest extends TestConfig {
     @Test
     void update_asOperationsManager_returns403() {
         given()
-                .header("Authorization", "Bearer " + opsToken)
+                .header("Authorization", "Bearer " + elmerToken)
                 .contentType(ContentType.JSON)
                 .body(updateEmployeeBody("Tweety", "Bird", IDS.pmProj1Id()))
                 .when()
@@ -253,12 +325,12 @@ class EmployeeResourceTest extends TestConfig {
     }
 
     @Test
-    void passwordReset_asHr_returns200() {
-        String unique = "PR-" + System.nanoTime();
-        int empId = given()
+    void delete_thenGet_returns404() {
+        String unique = "DG-" + System.nanoTime();
+        int newId = given()
                 .header("Authorization", "Bearer " + hrToken)
                 .contentType(ContentType.JSON)
-                .body(createEmployeeBody("PwdReset", unique, IDS.opsId()))
+                .body(createEmployeeBody("DelThenGet", unique, IDS.opsId()))
                 .when()
                 .post("/employees")
                 .then()
@@ -268,51 +340,29 @@ class EmployeeResourceTest extends TestConfig {
 
         given()
                 .header("Authorization", "Bearer " + hrToken)
-                .contentType(ContentType.JSON)
-                .body("{\"newPassword\": \"ResetPass1!\"}")
                 .when()
-                .put("/employees/" + empId + "/password")
-                .then()
-                .statusCode(200);
-    }
-
-    @Test
-    void passwordReset_asUnauthorized_returns403() {
-        given()
-                .header("Authorization", "Bearer " + tweetyToken)
-                .contentType(ContentType.JSON)
-                .body("{\"newPassword\": \"ShouldNotApply1!\"}")
-                .when()
-                .put("/employees/" + IDS.daffyId() + "/password")
-                .then()
-                .statusCode(403);
-    }
-
-    @Test
-    void loginAfterReset_succeeds() {
-        String unique = "LR-" + System.nanoTime();
-        String newPassword = "PostReset-" + (System.nanoTime() % 1_000_000);
-        int empId = given()
-                .header("Authorization", "Bearer " + hrToken)
-                .contentType(ContentType.JSON)
-                .body(createEmployeeBody("LoginReset", unique, IDS.opsId()))
-                .when()
-                .post("/employees")
-                .then()
-                .statusCode(201)
-                .extract()
-                .path("empId");
-
-        given()
-                .header("Authorization", "Bearer " + hrToken)
-                .contentType(ContentType.JSON)
-                .body("{\"newPassword\": \"" + newPassword + "\"}")
-                .when()
-                .put("/employees/" + empId + "/password")
+                .delete("/employees/" + newId)
                 .then()
                 .statusCode(200);
 
-        login(empId, newPassword);
+        given()
+                .header("Authorization", "Bearer " + adminToken)
+                .when()
+                .get("/employees/" + newId)
+                .then()
+                .statusCode(404);
     }
+
+    /*
+     * TODO: PUT /employees/{id}/password is not implemented on EmployeeResource yet.
+     *
+    @Test
+    void passwordReset_asHr_returns200() { ... }
+
+    @Test
+    void passwordReset_asUnauthorized_returns403() { ... }
+
+    @Test
+    void loginAfterReset_succeeds() { ... }
     */
 }

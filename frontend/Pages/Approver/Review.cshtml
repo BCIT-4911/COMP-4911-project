@@ -4,76 +4,84 @@
     ViewData["Title"] = "Review Timesheet";
 }
 
-<div class="container py-4">
-    <div class="d-flex align-items-center justify-content-between mb-3">
+@section Head {
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
+}
+
+<div class="approver-page">
+<div class="approver-canvas">
+
+    <div class="approver-header d-flex align-items-end justify-content-between flex-wrap gap-3">
         <div>
-            <h1 class="display-6 mb-0">Review Timesheet</h1>
-            <div class="text-muted">Read-only review with approve or return actions</div>
+            <h1 class="approver-page-title">Review Timesheet</h1>
+            <p class="approver-page-subtitle mb-0 mt-1">Read-only review with approve or return actions</p>
         </div>
-        <a class="btn btn-outline-secondary" href="/Approver/Index">
+        <a class="btn btn-approver-back" href="/Approver/Index">
             Back to Dashboard
         </a>
     </div>
 
     <div id="alertArea"></div>
 
-    <div id="loadingArea" class="text-muted">Loading timesheet...</div>
+    <div id="loadingArea" class="approver-muted">Loading timesheet...</div>
 
     <div id="contentArea" style="display:none;">
-        <div class="card shadow-sm mb-4">
-            <div class="card-body">
+        <div class="card approver-panel mb-4">
+            <div class="card-body approver-panel-body">
                 <div class="row g-3">
                     <div class="col-md-3">
-                        <label class="form-label fw-semibold">Timesheet ID</label>
-                        <div id="tsIdDisplay"></div>
+                        <label class="form-label approver-field-label">Timesheet ID</label>
+                        <div class="approver-meta-value" id="tsIdDisplay"></div>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label fw-semibold">Employee</label>
-                        <div id="empDisplay"></div>
+                        <label class="form-label approver-field-label">Employee</label>
+                        <div class="approver-meta-value" id="empDisplay"></div>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label fw-semibold">Approver</label>
-                        <div id="approverDisplay"></div>
+                        <label class="form-label approver-field-label">Approver</label>
+                        <div class="approver-meta-value" id="approverDisplay"></div>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label fw-semibold">Week Ending</label>
-                        <div id="weekEndingDisplay"></div>
+                        <label class="form-label approver-field-label">Week Ending</label>
+                        <div class="approver-meta-value" id="weekEndingDisplay"></div>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label fw-semibold">Status</label>
+                        <label class="form-label approver-field-label">Status</label>
                         <div id="statusDisplay"></div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="card shadow-sm mb-4">
-            <div class="card-header">
-                <h5 class="mb-0">Timesheet Rows</h5>
+        <div class="card approver-panel mb-4">
+            <div class="card-header approver-panel-header">
+                <h2 class="approver-panel-title mb-0">Timesheet Rows</h2>
             </div>
-            <div class="card-body">
+            <div class="card-body approver-panel-body">
                 <div id="rowsArea"></div>
             </div>
         </div>
 
-        <div class="card shadow-sm">
-            <div class="card-header">
-                <h5 class="mb-0">Review Action</h5>
+        <div class="card approver-panel">
+            <div class="card-header approver-panel-header">
+                <h2 class="approver-panel-title mb-0">Review Action</h2>
             </div>
-            <div class="card-body">
+            <div class="card-body approver-panel-body">
                 <div class="mb-3">
-                    <label class="form-label">Return Comment</label>
-                    <textarea id="returnCommentInput" class="form-control" rows="4"
+                    <label class="form-label approver-field-label" for="returnCommentInput">Return Comment</label>
+                    <textarea id="returnCommentInput" class="form-control approver-textarea" rows="4"
                               placeholder="Required when returning a timesheet"></textarea>
                 </div>
 
-                <div class="d-flex gap-2">
-                    <button class="btn btn-success" onclick="approveTimesheet()">Approve</button>
-                    <button class="btn btn-warning" onclick="returnTimesheet()">Return</button>
+                <div class="d-flex gap-2 flex-wrap">
+                    <button type="button" class="btn btn-approver-primary" onclick="approveTimesheet()">Approve</button>
+                    <button type="button" class="btn btn-approver-return" onclick="returnTimesheet()">Return</button>
                 </div>
             </div>
         </div>
     </div>
+
+</div>
 </div>
 
 @section Scripts {
@@ -122,7 +130,7 @@
                     document.getElementById('contentArea').style.display = '';
                 } catch (err) {
                     document.getElementById('loadingArea').innerHTML =
-                        `<span class="text-danger">Error: ${esc(err.message)}</span>`;
+                        `<span class="approver-error">Error: ${esc(err.message)}</span>`;
                 }
             }
 
@@ -136,7 +144,7 @@
 
                 const rows = ts.rows || [];
                 if (rows.length === 0) {
-                    document.getElementById('rowsArea').innerHTML = '<p class="text-muted mb-0">No rows found.</p>';
+                    document.getElementById('rowsArea').innerHTML = '<p class="approver-muted mb-0">No rows found.</p>';
                     return;
                 }
 
@@ -167,9 +175,9 @@
                 }).join('');
 
                 document.getElementById('rowsArea').innerHTML = `
-                    <div class="table-responsive">
-                        <table class="table table-bordered align-middle mb-0">
-                            <thead class="table-light">
+                    <div class="table-responsive approver-table-wrap">
+                        <table class="table approver-table align-middle mb-0">
+                            <thead>
                                 <tr>
                                     <th>Work Package</th>
                                     <th>Grade</th>
@@ -250,10 +258,10 @@
             }
 
             function renderStatusBadge(status) {
-                if (status === 'APPROVED') return '<span class="badge bg-success">Approved</span>';
-                if (status === 'RETURNED') return '<span class="badge bg-danger">Returned</span>';
-                if (status === 'SUBMITTED') return '<span class="badge bg-primary">Submitted</span>';
-                return '<span class="badge bg-secondary">Draft</span>';
+                if (status === 'APPROVED') return '<span class="approver-badge approver-badge--approved">Approved</span>';
+                if (status === 'RETURNED') return '<span class="approver-badge approver-badge--returned">Returned</span>';
+                if (status === 'SUBMITTED') return '<span class="approver-badge approver-badge--submitted">Submitted</span>';
+                return '<span class="approver-badge approver-badge--draft">Draft</span>';
             }
     </script>
 }

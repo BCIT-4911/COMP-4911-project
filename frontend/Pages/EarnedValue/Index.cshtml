@@ -5,6 +5,7 @@
 }
 
 @section Head {
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="~/css/earned-value.css" asp-append-version="true" />
 }
 
@@ -14,6 +15,7 @@
     private static string VarianceClass(decimal value) => value < 0 ? "ev-var-negative" : "ev-var-positive";
 }
 
+<div class="earned-value-page">
 <div class="ev-shell">
     <section class="ev-hero">
         <h1 class="ev-title">Earned Value Report</h1>
@@ -182,6 +184,7 @@
             <button type="button" class="ev-button" data-ev-modal-close>Close</button>
         </div>
     </section>
+</div>
 </div>
 
 @section Scripts {

@@ -221,7 +221,7 @@ public class EmptyDbSeeder {
 
             proj2.setProjectManager(marvinMartian);
             proj2.setProjName("Demo External Project");
-            proj2.setDescription("Seed Data for Earnved Value Report");
+            proj2.setDescription("Seed Data for Earned Value Report");
             proj2.setStatus(ProjectStatus.OPEN);
             proj2.setStartDate(LocalDate.of(2026, 1, 3));
             proj2.setEndDate(LocalDate.of(2026, 3, 3));

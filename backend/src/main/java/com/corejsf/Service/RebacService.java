@@ -138,6 +138,28 @@ public class RebacService {
     }
 
 
+
+    /**
+     * Is the employee assigned to the work package?
+     */
+    public boolean canChargeToWorkPackage(int empId, String wpId) {
+        WorkPackage wp = em.find(WorkPackage.class, wpId);
+        if (wp == null) {
+            return false;
+        }
+
+        // Are they assigned to this WP in any role?
+        Long count = em.createQuery(
+                        "SELECT COUNT(wpa) FROM WorkPackageAssignment wpa " +
+                                "WHERE wpa.workPackage.wpId = :wpId " +
+                                "AND wpa.employee.empId = :empId", Long.class)
+                .setParameter("wpId", wpId)
+                .setParameter("empId", empId)
+                .getSingleResult();
+
+        return count != null && count > 0;
+    }
+
     /*
      * Role checks (Employee-based, for backward compatibility)
      */

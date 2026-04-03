@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 import jakarta.ejb.Stateless;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.NotFoundException;
 
 import com.corejsf.DTO.LaborReportDTO;
@@ -51,8 +52,9 @@ public class LaborGradeService {
      * @return the created labor grade as a DTO.
      */
     public LaborGradeDTO createLaborGrade(LaborGradeDTO dto) {
+        validateLaborGradeInput(dto.getGradeCode(), dto.getChargeRate());
         LaborGrade lg = new LaborGrade();
-        lg.setGradeCode(dto.getGradeCode());
+        lg.setGradeCode(dto.getGradeCode().trim());
         lg.setChargeRate(dto.getChargeRate());
         em.persist(lg);
         em.flush();
@@ -70,7 +72,8 @@ public class LaborGradeService {
         if (lg == null) {
             throw new NotFoundException("LaborGrade with id " + id + " not found.");
         }
-        lg.setGradeCode(dto.getGradeCode());
+        validateLaborGradeInput(dto.getGradeCode(), dto.getChargeRate());
+        lg.setGradeCode(dto.getGradeCode().trim());
         lg.setChargeRate(dto.getChargeRate());
         em.merge(lg);
         em.flush();
@@ -78,7 +81,7 @@ public class LaborGradeService {
     }
 
     /**
-     * Checks if a labor grade is currently in use by any employees or timesheet rows.
+     * Checks if a labor grade is currently in use by employees, timesheet rows, or rate history.
      * @param id the ID of the labor grade to check.
      * @return true if the labor grade is in use, false otherwise.
      */
@@ -97,13 +100,38 @@ public class LaborGradeService {
                 Long.class)
                 .setParameter("lgId", id)
                 .getSingleResult();
-        return timesheetRowCount != null && timesheetRowCount > 0;
+        if (timesheetRowCount != null && timesheetRowCount > 0) {
+            return true;
+        }
+
+        Long rateHistoryCount = em.createQuery(
+                "SELECT COUNT(rh) FROM RateHistory rh WHERE rh.laborGrade.laborGradeId = :lgId",
+                Long.class)
+                .setParameter("lgId", id)
+                .getSingleResult();
+        return rateHistoryCount != null && rateHistoryCount > 0;
+    }
+
+    private void validateLaborGradeInput(String gradeCode, BigDecimal chargeRate) {
+        if (gradeCode == null || gradeCode.isBlank()) {
+            throw new BadRequestException("Grade code is required.");
+        }
+        String trimmed = gradeCode.trim();
+        if (trimmed.length() > 2) {
+            throw new BadRequestException("Grade code must be at most 2 characters.");
+        }
+        if (chargeRate == null) {
+            throw new BadRequestException("Charge rate is required.");
+        }
+        if (chargeRate.compareTo(BigDecimal.ZERO) < 0) {
+            throw new BadRequestException("Charge rate must be zero or greater.");
+        }
     }
 
     /**
      * Deletes a labor grade by ID.
      * @param id the ID of the labor grade to delete.
-     * @throws IllegalStateException if the labor grade is currently assigned to employees or timesheet rows.
+     * @throws IllegalStateException if the labor grade is still referenced by employees, timesheet rows, or rate history.
      */
     public void deleteLaborGrade(int id) {
         LaborGrade lg = em.find(LaborGrade.class, id);
@@ -113,7 +141,7 @@ public class LaborGradeService {
         if (isLaborGradeInUse(id)) {
             throw new IllegalStateException(
                     "Cannot delete labor grade '" + lg.getGradeCode()
-                    + "' because it is currently assigned to one or more employees or timesheet rows.");
+                    + "' because it is still referenced by employees, timesheet rows, or rate history.");
         }
         em.remove(lg);
     }

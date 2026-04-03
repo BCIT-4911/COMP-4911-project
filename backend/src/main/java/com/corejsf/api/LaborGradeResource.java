@@ -19,6 +19,7 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
@@ -78,8 +79,12 @@ public class LaborGradeResource {
         if (!rebacService.canManageLaborGrades(authContext.getSystemRole())) {
             return forbidden();
         }
-        LaborGradeDTO created = laborGradeService.createLaborGrade(dto);
-        return Response.status(Response.Status.CREATED).entity(created).build();
+        try {
+            LaborGradeDTO created = laborGradeService.createLaborGrade(dto);
+            return Response.status(Response.Status.CREATED).entity(created).build();
+        } catch (BadRequestException e) {
+            return Response.status(Response.Status.BAD_REQUEST).entity(e.getMessage()).build();
+        }
     }
 
     /**
@@ -96,14 +101,18 @@ public class LaborGradeResource {
         if (!rebacService.canManageLaborGrades(authContext.getSystemRole())) {
             return forbidden();
         }
-        LaborGradeDTO updated = laborGradeService.updateLaborGrade(id, dto);
-        return Response.ok(updated).build();
+        try {
+            LaborGradeDTO updated = laborGradeService.updateLaborGrade(id, dto);
+            return Response.ok(updated).build();
+        } catch (BadRequestException e) {
+            return Response.status(Response.Status.BAD_REQUEST).entity(e.getMessage()).build();
+        }
     }
 
     /**
      * Deletes a labor grade by ID.
      * Only accessible to ADMIN and OPERATIONS_MANAGER roles.
-     * Returns 409 Conflict if the labor grade is currently assigned to employees or timesheet rows.
+     * Returns 409 Conflict if the labor grade is still referenced (employees, timesheet rows, or rate history).
      *
      * @param id the ID of the labor grade to delete.
      * @return OK status on successful deletion, or 409 Conflict if in use.

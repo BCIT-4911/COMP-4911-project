@@ -19,6 +19,8 @@ public class CreateModel : PageModel
     [BindProperty]
     public EmployeeDto employeeDto { get; set; } = new();
 
+    public string? ErrorMessage { get; set; }
+
     public CreateModel(IConfiguration config, IHttpClientFactory httpClientFactory)
     {
         _config = config;
@@ -90,6 +92,10 @@ public class CreateModel : PageModel
 
         if (!response.IsSuccessStatusCode)
         {
+            var errorBody = await response.Content.ReadAsStringAsync();
+            ErrorMessage = string.IsNullOrWhiteSpace(errorBody)
+                ? "Failed to create employee."
+                : errorBody;
             return await OnGetAsync();
         }
 

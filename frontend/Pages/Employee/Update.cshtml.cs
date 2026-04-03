@@ -21,6 +21,8 @@ public class UpdateModel : PageModel
 
     public int EmpId { get; set; }
 
+    public string? ErrorMessage { get; set; }
+
     public UpdateModel(IConfiguration config, IHttpClientFactory httpClientFactory)
     {
         _config = config;
@@ -100,6 +102,9 @@ public class UpdateModel : PageModel
         if (role != "HR" && role != "ADMIN")
             return RedirectToPage("/Index");
 
+        if (string.IsNullOrWhiteSpace(employeeDto.password))
+            employeeDto.password = null;
+
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         var response = await client.PutAsync(
@@ -108,6 +113,10 @@ public class UpdateModel : PageModel
 
         if (!response.IsSuccessStatusCode)
         {
+            var errorBody = await response.Content.ReadAsStringAsync();
+            ErrorMessage = string.IsNullOrWhiteSpace(errorBody)
+                ? "Failed to update employee."
+                : errorBody;
             EmpId = id;
             return await OnGetAsync(id);
         }

@@ -1,0 +1,66 @@
+﻿.custom-header {
+  background-color: #F5FBEF;
+  border-bottom: 1px solid #e2ebd9;
+}
+
+.header-brand {
+  color: #2b362c;
+  font-size: 1.4rem;
+  letter-spacing: -0.02em;
+}
+
+.header-logo {
+  height: 3.5rem;
+  width: auto;
+  display: block;
+}
+
+.header-brand:hover {
+  color: #1a221b;
+}
+
+.header-nav .header-link {
+  color: #2b362c !important;
+  font-weight: 500;
+  font-size: 0.95rem;
+  padding: 0.5rem 0.25rem;
+  margin: 0 0.5rem;
+  position: relative;
+  transition: color 0.2s;
+}
+
+.header-nav .header-link:hover,
+.header-nav .header-link:focus {
+  color: #1a221b !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.header-nav .header-link.active {
+  color: #1a221b !important;
+}
+
+.header-nav .header-link.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: #607E6C;
+}
+
+a.header-icon,
+button.header-link {
+  color: #2b362c !important;
+  transition: transform 0.2s, color 0.2s;
+}
+
+a.header-icon:hover,
+button.header-link:hover,
+a.header-icon:focus,
+button.header-link:focus {
+  color: #1a221b !important;
+  outline: none !important;
+  box-shadow: none !important;
+}

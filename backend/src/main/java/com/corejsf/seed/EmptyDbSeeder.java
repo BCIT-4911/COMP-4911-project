@@ -371,6 +371,7 @@ public class EmptyDbSeeder {
         ensureRateHistory(baseGrade, "75.00", LocalDate.of(2025, 1, 1), LocalDate.of(2025, 12, 31));
         ensureRateHistory(baseGrade, "85.00", LocalDate.of(2026, 1, 1), null);
 
+        Employee elmerFudd = findOrCreateEmployee("Elmer", "Fudd", SystemRole.OPERATIONS_MANAGER, null, baseGrade);
         Employee bugsBunny = findOrCreateEmployee("Bugs", "Bunny", SystemRole.EMPLOYEE, admin, baseGrade);
         Employee daffyDuck = findOrCreateEmployee("Daffy", "Duck", SystemRole.EMPLOYEE, bugsBunny, baseGrade);
         Employee tweetyBird = findOrCreateEmployee("Tweety", "Bird", SystemRole.EMPLOYEE, bugsBunny, baseGrade);
@@ -378,12 +379,13 @@ public class EmptyDbSeeder {
         Employee marvinMartian = findOrCreateEmployee("Marvin", "Martian", SystemRole.EMPLOYEE, admin, baseGrade);
         Employee roadRunner = findOrCreateEmployee("Road", "Runner", SystemRole.HR, admin, baseGrade);
 
-        ensureProjectOneDemo(admin, bugsBunny, daffyDuck, tweetyBird, sylvesterCat, baseGrade);
+        ensureProjectOneDemo(admin, elmerFudd, bugsBunny, daffyDuck, tweetyBird, sylvesterCat, baseGrade);
         ensureProjectTwoDemo(admin, marvinMartian, roadRunner, baseGrade);
         ensureLaborProjectDemo(admin, foremanTwo, journeyman, specialist, foremanOne);
     }
 
     private void ensureProjectOneDemo(Employee admin,
+                                      Employee elmerFudd,
                                       Employee bugsBunny,
                                       Employee daffyDuck,
                                       Employee tweetyBird,
@@ -416,13 +418,14 @@ public class EmptyDbSeeder {
                 LocalDate.of(2026, 2, 1), LocalDate.of(2026, 2, 14),
                 new BigDecimal("1000.00"), new BigDecimal("50.00"));
         WorkPackage wp3 = findOrCreateChildWorkPackage(
-                "A.WP-3", "Build Road", proj, parent, tweetyBird,
+                "A.WP-3", "Build Road", proj, parent, elmerFudd,
                 LocalDate.of(2026, 1, 15), LocalDate.of(2026, 3, 1),
                 new BigDecimal("2500.00"), new BigDecimal("35.00"));
 
         assignWorkPackageMember(wp1, daffyDuck, WpRole.RE);
         assignWorkPackageMember(wp2, sylvesterCat, WpRole.RE);
-        assignWorkPackageMember(wp3, tweetyBird, WpRole.RE);
+        assignWorkPackageMember(wp2, tweetyBird, WpRole.MEMBER);
+        assignWorkPackageMember(wp3, elmerFudd, WpRole.RE);
 
         LocalDate weekEnding = LocalDate.of(2026, 3, 8);
         findOrCreateTimesheetWithSingleRow(daffyDuck, admin, weekEnding, TimesheetStatus.APPROVED, wp1, baseGrade, "32.0");

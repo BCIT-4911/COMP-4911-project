@@ -27,6 +27,13 @@
 			<version>${jakarta.jakartaee-api.version}</version>
 			<scope>provided</scope>
 		</dependency>
+		<!-- Compile-only: WildFly supplies Hibernate at runtime; needed for Hibernate.unproxy() in services -->
+		<dependency>
+			<groupId>org.hibernate.orm</groupId>
+			<artifactId>hibernate-core</artifactId>
+			<version>6.6.26.Final</version>
+			<scope>provided</scope>
+		</dependency>
 		<dependency>
 			<groupId>org.mindrot</groupId>
 			<artifactId>jbcrypt</artifactId>

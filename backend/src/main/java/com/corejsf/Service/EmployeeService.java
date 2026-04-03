@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.hibernate.Hibernate;
 import org.mindrot.jbcrypt.BCrypt;
 
 import com.corejsf.DTO.EmployeeCreateDTO;
@@ -31,8 +32,11 @@ public class EmployeeService {
      * @return a list of all employees.
      */
     public List<Employee> getAllEmployees() {
-        return em.createQuery("SELECT e FROM Employee e ORDER BY e.empId", Employee.class)
+        List<Employee> results = em.createQuery(
+                "SELECT e FROM Employee e ORDER BY e.empId", Employee.class)
                 .getResultList();
+        results.replaceAll(e -> (Employee) Hibernate.unproxy(e));
+        return results;
     }
 
     /**
@@ -46,7 +50,7 @@ public class EmployeeService {
         if (emp == null) {
             throw new NotFoundException("Employee with id " + id + " not found.");
         }
-        return emp;
+        return (Employee) Hibernate.unproxy(emp);
     }
 
     /**

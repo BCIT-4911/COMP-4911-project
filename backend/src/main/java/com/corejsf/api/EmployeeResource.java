@@ -80,14 +80,14 @@ public class EmployeeResource {
 
     /**
      * Creates a new employee.
-     * Only accessible to users with employee management permissions.
+     * Only accessible to ADMIN and HR ({@code canWriteEmployees}).
      * 
      * @param dto the data transfer object containing new employee details.
      * @return a Response containing the created employee with CREATED status.
      */
     @POST
     public Response create(EmployeeCreateDTO dto) {
-        if (!rebacService.canManageEmployees(authContext.getSystemRole())) {
+        if (!rebacService.canWriteEmployees(authContext.getSystemRole())) {
             return forbidden();
         }
         Employee created = employeeService.createEmployee(dto);
@@ -96,7 +96,7 @@ public class EmployeeResource {
 
     /**
      * Updates an existing employee.
-     * Only accessible to users with employee management permissions.
+     * Only accessible to ADMIN and HR ({@code canWriteEmployees}).
      * 
      * @param id the unique identifier of the employee to update.
      * @param dto the data transfer object containing updated employee details.
@@ -105,7 +105,7 @@ public class EmployeeResource {
     @PUT
     @Path("/{id}")
     public Response update(@PathParam("id") int id, EmployeeCreateDTO dto) {
-        if (!rebacService.canManageEmployees(authContext.getSystemRole())) {
+        if (!rebacService.canWriteEmployees(authContext.getSystemRole())) {
             return forbidden();
         }
         Employee updated = employeeService.updateEmployee(id, dto);
@@ -114,7 +114,7 @@ public class EmployeeResource {
 
     /**
      * Deletes an employee by ID.
-     * Only accessible to users with employee management permissions.
+     * Only accessible to ADMIN and HR ({@code canWriteEmployees}).
      * 
      * @param id the unique identifier of the employee to delete.
      * @return a Response with OK status.
@@ -122,7 +122,7 @@ public class EmployeeResource {
     @DELETE
     @Path("/{id}")
     public Response delete(@PathParam("id") int id) {
-        if (!rebacService.canManageEmployees(authContext.getSystemRole())) {
+        if (!rebacService.canWriteEmployees(authContext.getSystemRole())) {
             return forbidden();
         }
         employeeService.deleteEmployee(id);

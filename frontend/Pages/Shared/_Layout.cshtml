@@ -70,22 +70,21 @@
                                 <a class="nav-link header-link" asp-page="/Approver/Index">Approver Dashboard</a>
                             </li>
                             <li class="nav-item" id="earnedValueNavItem" style="display:none;">
-                                <a class="nav-link text-dark" asp-page="/EarnedValue/Index">Earned Value</a>
+                                <a class="nav-link header-link" asp-page="/EarnedValue/Index">Earned Value</a>
                             </li>
-                            @* Labor Report is visible to OPERATIONS_MANAGER, HR, and any PM
-                               (PM access is enforced server-side by the backend; we show the link
-                               for all logged-in users so PMs can reach it without exposing extra
-                               role logic in the frontend). *@
-                            @if (role == "OPERATIONS_MANAGER" || role == "HR" || role == "EMPLOYEE")
-                            {
-                                <li class="nav-item">
-                                    <a class="nav-link header-link" asp-page="/EarnedValue/Index">Earned Value</a>
-                                </li>
-                            }
-                            @if (role == "HR")
+                            <li class="nav-item" id="laborReportNavItem" style="display:none;">
+                                <a class="nav-link header-link" asp-page="/EarnedValue/LaborReport">Labor Report</a>
+                            </li>
+                            @if (role == "HR" || role == "ADMIN")
                             {
                                 <li class="nav-item">
                                     <a class="nav-link header-link" asp-area="" asp-page="/Employee/Index">Employees</a>
+                                </li>
+                            }
+                            @if (role == "ADMIN" || role == "OPERATIONS_MANAGER")
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link header-link" asp-page="/LaborGrades/Index">Labor Grades</a>
                                 </li>
                             }
                         }
@@ -120,6 +119,7 @@
 
                                 const approverNavItem = document.getElementById('approverNavItem');
                                 const earnedValueNavItem = document.getElementById('earnedValueNavItem');
+                                const laborReportNavItem = document.getElementById('laborReportNavItem');
 
                                 const approverCache = sessionStorage.getItem('canAccessApprover');
                                 if (approverCache === 'true' && approverNavItem) {
@@ -146,8 +146,15 @@
                                     }
                                 };
 
+                                const showLaborReport = () => {
+                                    if (laborReportNavItem) {
+                                        laborReportNavItem.style.display = '';
+                                    }
+                                };
+
                                 if (role === 'OPERATIONS_MANAGER' || role === 'ADMIN') {
                                     showEarnedValue();
+                                    showLaborReport();
                                     return;
                                 }
 
@@ -155,6 +162,7 @@
                                 const earnedValueCache = sessionStorage.getItem(evCacheKey);
                                 if (earnedValueCache === 'true') {
                                     showEarnedValue();
+                                    showLaborReport();
                                     return;
                                 }
                                 if (earnedValueCache === 'false') {
@@ -181,6 +189,7 @@
                                             if (evResponse.ok) {
                                                 sessionStorage.setItem(evCacheKey, 'true');
                                                 showEarnedValue();
+                                                showLaborReport();
                                                 return;
                                             }
                                         }

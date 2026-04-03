@@ -38,6 +38,21 @@ public class RebacService {
     }
 
     /**
+     * Create, update, and delete employees (POST/PUT/DELETE). Only HR and ADMIN.
+     */
+    public boolean canWriteEmployees(SystemRole role) {
+        return role == SystemRole.ADMIN || role == SystemRole.HR;
+    }
+
+    /**
+     * Returns true if the given role is allowed to manage labor grades (CRUD).
+     * Only ADMIN and OPERATIONS_MANAGER have access.
+     */
+    public boolean canManageLaborGrades(SystemRole role) {
+        return role == SystemRole.ADMIN || role == SystemRole.OPERATIONS_MANAGER;
+    }
+
+    /**
      * Returns true if empId is the project manager of the given project.
      */
     public boolean canManageProject(int empId, String projId) {
@@ -123,6 +138,28 @@ public class RebacService {
     }
 
 
+
+    /**
+     * Is the employee assigned to the work package?
+     */
+    public boolean canChargeToWorkPackage(int empId, String wpId) {
+        WorkPackage wp = em.find(WorkPackage.class, wpId);
+        if (wp == null) {
+            return false;
+        }
+
+        // Are they assigned to this WP in any role?
+        Long count = em.createQuery(
+                        "SELECT COUNT(wpa) FROM WorkPackageAssignment wpa " +
+                                "WHERE wpa.workPackage.wpId = :wpId " +
+                                "AND wpa.employee.empId = :empId", Long.class)
+                .setParameter("wpId", wpId)
+                .setParameter("empId", empId)
+                .getSingleResult();
+
+        return count != null && count > 0;
+    }
+
     /*
      * Role checks (Employee-based, for backward compatibility)
      */
@@ -144,6 +181,10 @@ public class RebacService {
 
     public boolean canManageEmployees(Employee employee) {
         return isAdmin(employee) || isHr(employee) || isOperationsManager(employee) || (employee != null && employee.getSystemRole() == SystemRole.EMPLOYEE);
+    }
+
+    public boolean canWriteEmployees(Employee employee) {
+        return isAdmin(employee) || isHr(employee);
     }
 
     /**

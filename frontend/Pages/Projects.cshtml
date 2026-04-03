@@ -24,7 +24,7 @@
                     <th>Start Date</th>
                     <th>End Date</th>
                     <th>Markup</th>
-                    <th>PM ID</th>
+                    <th>Project Manager</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -242,6 +242,21 @@
                     });
                 }
 
+                // ---- Employee Name Lookup ----
+                function getEmployeeName(empId) {
+                    if (!empId) return 'N/A';
+                    const emp = allEmployees.find(e => e.empId === empId);
+                    if (emp) return `${emp.empFirstName} ${emp.empLastName}`;
+                    return `Employee #${empId}`;
+                }
+
+                function getEmployeeNameWithRole(empId) {
+                    if (!empId) return 'N/A';
+                    const emp = allEmployees.find(e => e.empId === empId);
+                    if (emp) return `${emp.empFirstName} ${emp.empLastName} (${emp.systemRole || 'N/A'})`;
+                    return `Employee #${empId}`;
+                }
+
                 // ---- Load Employees ----
                 async function loadEmployees() {
                     try {
@@ -294,7 +309,7 @@
                             `;
                         }
 
-                        if (isActualSupervisor || CURRENT_USER_ROLE === 'ADMIN') {
+                        if (isOpsManagerOrAdmin() || isActualSupervisor) {
                             memberAssignButton = `
                                 <button class="btn-action btn-assign" onclick="openMemberAssignmentModal('${esc(p.project_id)}')" title="Manage Team Members">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
@@ -313,7 +328,7 @@
                             <td>${formatDate(p.start_date)}</td>
                             <td>${formatDate(p.end_date)}</td>
                             <td>${p.markup_rate != null ? p.markup_rate.toFixed(2) : '0.00'}</td>
-                            <td>${p.project_manager_id || 'N/A'}</td>
+                            <td>${esc(getEmployeeName(p.project_manager_id))}</td>
                             <td class="actions-cell">
                                 ${reportButton}
                                 ${pmAssignButton}
@@ -346,7 +361,7 @@
                                 teamList.innerHTML = '<li>No employees assigned yet.</li>';
                             } else {
                                 teamList.innerHTML = team.map(e =>
-                                    `<li>• ${e.empFirstName} ${e.empLastName} (ID: ${e.empId}) - <strong style="color: #fff;">${e.projectRole || 'MEMBER'}</strong></li>`
+                                    `<li>• ${e.empFirstName} ${e.empLastName} (${e.projectRole || 'MEMBER'})</li>`
                                 ).join('');
                             }
                             return team; // Return the team so we can filter for the Remove dropdowns
@@ -403,25 +418,25 @@
                 }
 
                 // =========================================================
-                // TEAM MEMBER ASSIGNMENT MODAL (For Supervisors)
+                // TEAM MEMBER ASSIGNMENT MODAL
+                // Ops Manager / Admin can assign ALL employees.
+                // Supervisors can only assign their direct reports.
                 // =========================================================
                 async function openMemberAssignmentModal(projectId) {
                     document.getElementById('memberAssignProjectId').value = projectId;
                     document.getElementById('removeMemberProjectId').value = projectId;
                     document.getElementById('memberAssignmentModalTitle').textContent = `Manage Team Members: ${projectId}`;
-        
-                    // Populate the "Add" dropdown (supervisors: direct reports; ADMIN: anyone)
-                    const directReports = allEmployees.filter(e => e.supervisor_id === CURRENT_USER_ID);
-                    const addPool = CURRENT_USER_ROLE === 'ADMIN' ? allEmployees : directReports;
-                    const addEmptyMsg = CURRENT_USER_ROLE === 'ADMIN' ? "No Employees Found" : "No direct reports to assign";
+
+                    const canSeeAll = isOpsManagerOrAdmin();
+                    const addPool = canSeeAll ? allEmployees : allEmployees.filter(e => e.supervisor_id === CURRENT_USER_ID);
+                    const addEmptyMsg = canSeeAll ? "No Employees Found" : "No direct reports to assign";
                     populateDropdown(document.getElementById('memberAssignEmpId'), addPool, addEmptyMsg);
                     document.getElementById('memberAssignmentModal').classList.add('active');
-        
-                    // Wait for current project team to load
+
                     const currentTeam = await loadCurrentTeam(projectId, 'memberCurrentTeamList');
-        
+
                     let removableMembers;
-                    if (CURRENT_USER_ROLE === 'ADMIN') {
+                    if (canSeeAll) {
                         removableMembers = currentTeam.filter(tm => tm.projectRole === 'MEMBER');
                     } else {
                         removableMembers = currentTeam.filter(teamMember => {
@@ -431,8 +446,8 @@
                                 teamMember.projectRole === 'MEMBER';
                         });
                     }
-        
-                    const removeEmptyMsg = CURRENT_USER_ROLE === 'ADMIN' ? "No team members to remove" : "No assigned direct reports to remove";
+
+                    const removeEmptyMsg = canSeeAll ? "No team members to remove" : "No assigned direct reports to remove";
                     populateDropdown(document.getElementById('removeMemberEmpId'), removableMembers, removeEmptyMsg);
                 }
 

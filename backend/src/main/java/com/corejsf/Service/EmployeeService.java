@@ -2,11 +2,11 @@ package com.corejsf.Service;
 
 import com.corejsf.DTO.employee.EmployeeManagerUpdateDto;
 import jakarta.ws.rs.BadRequestException;
-import jakarta.ws.rs.InternalServerErrorException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.hibernate.Hibernate;
 import org.mindrot.jbcrypt.BCrypt;
 
 import com.corejsf.DTO.employee.EmployeeCreateDTO;
@@ -18,7 +18,6 @@ import com.corejsf.Entity.LaborGrade;
 
 import jakarta.ejb.Stateless;
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.EntityTransaction;
 import jakarta.persistence.PersistenceContext;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.core.Response;
@@ -49,8 +48,11 @@ public class EmployeeService {
      * @return a list of all employees.
      */
     public List<Employee> getAllEmployees() {
-        return em.createQuery("SELECT e FROM Employee e ORDER BY e.empId", Employee.class)
+        List<Employee> results = em.createQuery(
+                "SELECT e FROM Employee e ORDER BY e.empId", Employee.class)
                 .getResultList();
+        results.replaceAll(e -> (Employee) Hibernate.unproxy(e));
+        return results;
     }
 
     /**
@@ -66,7 +68,7 @@ public class EmployeeService {
         if (emp == null) {
             throw new NotFoundException("Employee with id " + id + " not found.");
         }
-        return emp;
+        return (Employee) Hibernate.unproxy(emp);
     }
 
     /**
@@ -127,34 +129,19 @@ public class EmployeeService {
 
         Employee newEmp = new Employee();
 
-        // Getting the transaction to prepare for database transaction
-        EntityTransaction transaction = em.getTransaction();
+        em.persist(sig);
 
-        transaction.begin();
+        newEmp.setEmpFirstName(dto.firstName());
+        newEmp.setEmpLastName(dto.lastName());
+        newEmp.setEmpPassword(BCrypt.hashpw(dto.password(), BCrypt.gensalt()));
+        newEmp.setLaborGrade(laborGrade);
+        newEmp.setSupervisor(supervisor);
+        newEmp.setVacationSickBalance(new BigDecimal(0));
+        newEmp.setExpectedWeeklyHours(new BigDecimal(40));
+        newEmp.setSystemRole(dto.systemRole());
+        newEmp.setESignature(sig);
 
-        try
-        {
-            em.persist(sig);
-
-            newEmp.setEmpFirstName(dto.firstName());
-            newEmp.setEmpLastName(dto.lastName());
-            newEmp.setEmpPassword(BCrypt.hashpw(dto.password(), BCrypt.gensalt()));
-            newEmp.setLaborGrade(laborGrade);
-            newEmp.setSupervisor(supervisor);
-            newEmp.setVacationSickBalance(new BigDecimal(0));
-            newEmp.setExpectedWeeklyHours(new BigDecimal(40));
-            newEmp.setSystemRole(dto.systemRole());
-            newEmp.setESignature(sig);
-
-            em.persist(newEmp);
-            transaction.commit();
-        }
-        catch(final Exception ex)
-        {
-            transaction.rollback();
-            throw new InternalServerErrorException("Unknown error has occurred when creating an new employee: " +
-                                                   ex.getClass().getName() + " - " + ex.getMessage());
-        }
+        em.persist(newEmp);
 
         return newEmp;
     }
@@ -227,50 +214,28 @@ public class EmployeeService {
             }
         }
 
-        EntityTransaction transaction = em.getTransaction();
-
-        try
-        {
-            transaction.begin();
-
-            if(dto.firstName() != null)
-            {
-                emp.setEmpFirstName(dto.firstName().trim());
-            }
-
-            if(dto.lastName() != null)
-            {
-                emp.setEmpLastName(dto.lastName().trim());
-            }
-
-            if(dto.password() != null)
-            {
-                emp.setEmpPassword(BCrypt.hashpw(dto.password().trim(), BCrypt.gensalt()));
-            }
-
-            if(newSupervisor != null)
-            {
-                emp.setSupervisor(newSupervisor);
-            }
-
-            if(newLaborGrade != null)
-            {
-                emp.setLaborGrade(newLaborGrade);
-            }
-
-            if(dto.systemRole() != null)
-            {
-                emp.setSystemRole(dto.systemRole());
-            }
-
-            transaction.commit();
+        if (dto.firstName() != null) {
+            emp.setEmpFirstName(dto.firstName().trim());
         }
-        catch(Exception ex)
-        {
-            transaction.rollback();
-            throw new InternalServerErrorException("Unknown error has occurred during the update: " +
-                                                   ex.getClass().getName() + " - " +
-                                                   ex.getMessage());
+
+        if (dto.lastName() != null) {
+            emp.setEmpLastName(dto.lastName().trim());
+        }
+
+        if (dto.password() != null) {
+            emp.setEmpPassword(BCrypt.hashpw(dto.password().trim(), BCrypt.gensalt()));
+        }
+
+        if (newSupervisor != null) {
+            emp.setSupervisor(newSupervisor);
+        }
+
+        if (newLaborGrade != null) {
+            emp.setLaborGrade(newLaborGrade);
+        }
+
+        if (dto.systemRole() != null) {
+            emp.setSystemRole(dto.systemRole());
         }
 
         return emp;
@@ -317,21 +282,12 @@ public class EmployeeService {
                                                                      ".").build();
         }
 
-        EntityTransaction transaction = em.getTransaction();
-
-        try
-        {
-            transaction.begin();
+        try {
             em.remove(emp);
-            transaction.commit();
-        }
-        catch(final Exception ex)
-        {
-            transaction.rollback();
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Unknown error has occurred when " +
-                                                                                 "deleting the employee with ID " + id +
-                                                                                 ": " + ex.getClass().getName() +
-                                                                                 " - " + ex.getMessage()).build();
+        } catch (final Exception ex) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity("Error deleting employee " + id + ": "
+                            + ex.getClass().getName() + " - " + ex.getMessage()).build();
         }
 
         return Response.status(Response.Status.OK).entity("The employee with ID " + id  + " was successfully deleted.")

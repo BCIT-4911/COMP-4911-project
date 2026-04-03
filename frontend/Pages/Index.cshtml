@@ -29,9 +29,17 @@
         opacity: 0.8;
     }
 
+    /* Stat card columns — hidden by default, shown via JS */
+    #statCardsRow > .col-lg {
+        display: none;
+    }
+    #statCardsRow > .col-lg.visible {
+        display: block;
+    }
+
     /* Stat cards */
     .dash-stat-card {
-        display: none;
+        display: flex;
         flex-direction: column;
         justify-content: space-between;
         background: #fff;
@@ -148,6 +156,7 @@
         font-size: 0.875rem;
         color: #263724;
         border-bottom: 1px solid #e5f2de;
+        vertical-align: middle;
     }
     .dash-ts-table tbody tr {
         transition: background 0.2s;
@@ -283,7 +292,7 @@
                                 <th>Project Name</th>
                                 <th>Task Category</th>
                                 <th>Total Hours</th>
-                                <th class="text-end">Status</th>
+                                <th class="text-center">Status</th>
                             </tr>
                         </thead>
                         <tbody id="tsBody">
@@ -329,7 +338,9 @@
 
     function showCard(id) {
         const el = document.getElementById(id);
-        if (el) el.style.display = 'flex';
+        if (el && el.closest('.col-lg')) {
+            el.closest('.col-lg').classList.add('visible');
+        }
     }
 
     function showPanel(id) {
@@ -406,8 +417,8 @@
         }
 
         showCard('cardTimesheet');
-        const draftCount = timesheets.filter(t => t.timesheetStatus === 'DRAFT').length;
-        const submittedCount = timesheets.filter(t => t.timesheetStatus === 'SUBMITTED').length;
+        const draftCount = timesheets.filter(t => t.status === 'DRAFT').length;
+        const submittedCount = timesheets.filter(t => t.status === 'SUBMITTED').length;
         if (draftCount > 0) {
             document.getElementById('statTimesheet').textContent = `${draftCount} Draft`;
         } else if (submittedCount > 0) {
@@ -464,7 +475,7 @@
                         projectName: r.wpName || r.wpId || '-',
                         taskCategory: r.wpId || '-',
                         hours: hours,
-                        status: ts.timesheetStatus
+                        status: ts.status
                     });
                 });
             } else {
@@ -472,18 +483,18 @@
                     projectName: ts.weekEnding || '-',
                     taskCategory: '-',
                     hours: calcTotalHours(ts),
-                    status: ts.timesheetStatus
+                    status: ts.status
                 });
             }
         });
         if (flatRows.length === 0) {
-            tsBody.innerHTML = '<tr><td colspan="4" class="text-center dash-empty py-5">No timesheets yet. Create your first timesheet to get started.</td></tr>';
+            tsBody.innerHTML = '<tr><td colspan="4" class="text-center py-5" style="color:#52644f; font-size:0.9rem; font-weight:500; opacity:0.7;">No timesheets yet. Create your first timesheet to get started.</td></tr>';
         } else {
             tsBody.innerHTML = flatRows.slice(0, 5).map(r => `<tr>
                 <td class="fw-semibold">${esc(r.projectName)}</td>
                 <td>${esc(r.taskCategory)}</td>
                 <td>${r.hours.toFixed(1)}h</td>
-                <td class="text-end">${statusBadge(r.status)}</td>
+                <td class="text-center align-middle">${statusBadge(r.status)}</td>
             </tr>`).join('');
         }
 

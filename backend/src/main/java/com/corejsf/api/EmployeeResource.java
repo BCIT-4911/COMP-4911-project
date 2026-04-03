@@ -2,8 +2,8 @@ package com.corejsf.api;
 
 import com.corejsf.DTO.employee.EmployeeManagerUpdateDto;
 import com.corejsf.DTO.employee.EmployeeSelfUpdateDto;
+import jakarta.ejb.EJBException;
 import jakarta.ws.rs.BadRequestException;
-import jakarta.ws.rs.InternalServerErrorException;
 import jakarta.ws.rs.NotFoundException;
 import java.util.List;
 
@@ -42,6 +42,11 @@ public class EmployeeResource {
         return Response.status(Response.Status.FORBIDDEN).entity("Access denied").build();
     }
 
+    private static Throwable unwrap(Exception ex) {
+        return (ex instanceof EJBException && ex.getCause() != null)
+                ? ex.getCause() : ex;
+    }
+
     @GET
     public Response getAll() {
         if (!rebacService.canManageEmployees(authContext.getSystemRole())) {
@@ -72,16 +77,15 @@ public class EmployeeResource {
 
         try {
             created = employeeService.createEmployee(dto);
-        } catch (final BadRequestException ex) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("Bad Request: " + ex.getMessage()).build();
-        } catch (final InternalServerErrorException ex) {
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                    .entity("Internal server error - " + ex.getMessage()).build();
         } catch (final Exception ex) {
+            Throwable cause = unwrap(ex);
+            if (cause instanceof BadRequestException) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity("Bad Request: " + cause.getMessage()).build();
+            }
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                    .entity("Unknown error when creating employee: "
-                            + ex.getClass().getName() + " - " + ex.getMessage()).build();
+                    .entity("Error creating employee: "
+                            + cause.getClass().getName() + " - " + cause.getMessage()).build();
         }
 
         return Response.status(Response.Status.CREATED).entity(created).build();
@@ -99,19 +103,19 @@ public class EmployeeResource {
 
         try {
             updated = employeeService.updateEmployee(id, dto);
-        } catch (NotFoundException ex) {
-            return Response.status(Response.Status.NOT_FOUND)
-                    .entity(ex.getMessage()).build();
-        } catch (BadRequestException ex) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity(ex.getMessage()).build();
-        } catch (InternalServerErrorException ex) {
+        } catch (final Exception ex) {
+            Throwable cause = unwrap(ex);
+            if (cause instanceof NotFoundException) {
+                return Response.status(Response.Status.NOT_FOUND)
+                        .entity(cause.getMessage()).build();
+            }
+            if (cause instanceof BadRequestException) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity(cause.getMessage()).build();
+            }
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                    .entity(ex.getMessage()).build();
-        } catch (Exception ex) {
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                    .entity("Unknown error when updating employee: "
-                            + ex.getClass().getName() + " - " + ex.getMessage()).build();
+                    .entity("Error updating employee: "
+                            + cause.getClass().getName() + " - " + cause.getMessage()).build();
         }
 
         if (updated == null) {

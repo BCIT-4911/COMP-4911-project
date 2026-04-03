@@ -162,4 +162,54 @@ public class RebacServiceTest {
     void nullEmployeeCannotWriteEmployees() {
         assertFalse(rebacService.canWriteEmployees((Employee) null));
     }
+
+    // ---- canManageLaborGrades (SystemRole overload) ----
+
+    @Test
+    void adminCanManageLaborGrades() {
+        assertTrue(rebacService.canManageLaborGrades(SystemRole.ADMIN));
+    }
+
+    @Test
+    void operationsManagerCanManageLaborGrades() {
+        assertTrue(rebacService.canManageLaborGrades(SystemRole.OPERATIONS_MANAGER));
+    }
+
+    @Test
+    void hrCannotManageLaborGrades() {
+        assertFalse(rebacService.canManageLaborGrades(SystemRole.HR));
+    }
+
+    @Test
+    void employeeCannotManageLaborGrades() {
+        assertFalse(rebacService.canManageLaborGrades(SystemRole.EMPLOYEE));
+    }
+
+    // ---- ADMIN role coverage for canCreateProject ----
+
+    @Test
+    void adminCanCreateProject() {
+        assertTrue(rebacService.canCreateProject(SystemRole.ADMIN));
+    }
+
+    @Test
+    void adminEmployeeCanCreateProject() {
+        Employee emp = new Employee();
+        emp.setSystemRole(SystemRole.ADMIN);
+        assertTrue(rebacService.canCreateProject(emp));
+    }
+
+    // ---- ADMIN role coverage for canManageEmployees ----
+
+    @Test
+    void adminCanManageEmployees() {
+        assertTrue(rebacService.canManageEmployees(SystemRole.ADMIN));
+    }
+
+    @Test
+    void adminEmployeeCanManageEmployees() {
+        Employee emp = new Employee();
+        emp.setSystemRole(SystemRole.ADMIN);
+        assertTrue(rebacService.canManageEmployees(emp));
+    }
 }

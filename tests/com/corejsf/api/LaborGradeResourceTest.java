@@ -10,7 +10,6 @@ import java.util.List;
 import java.util.Objects;
 
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -59,13 +58,14 @@ class LaborGradeResourceTest extends TestConfig {
                 .body("laborGradeId", equalTo(1));
     }
 
-    /*
     private static String uniqueGradeCode() {
         long n = Math.abs(System.nanoTime());
         char a = (char) ('A' + (n % 26));
         char b = (char) ('A' + ((n / 26) % 26));
         return "" + a + b;
     }
+
+    // ---- CRUD RBAC ----
 
     @Test
     void create_asOperationsManager_returns201() {
@@ -138,7 +138,7 @@ class LaborGradeResourceTest extends TestConfig {
                 .then()
                 .statusCode(200)
                 .body("laborGradeId", equalTo(id))
-                .body("chargeRate", closeTo(175.25, 0.01));
+                .body("chargeRate", equalTo(175.25f));
     }
 
     @Test
@@ -157,5 +157,104 @@ class LaborGradeResourceTest extends TestConfig {
                 .then()
                 .statusCode(403);
     }
-    */
+
+    @Test
+    void delete_asOperationsManager_returns200() {
+        String code = uniqueGradeCode();
+        Integer id = given()
+                .header("Authorization", "Bearer " + opsToken)
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                          "gradeCode": "%s",
+                          "chargeRate": 50.00
+                        }
+                        """.formatted(code))
+                .when()
+                .post("/labor-grades")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("laborGradeId");
+
+        given()
+                .header("Authorization", "Bearer " + opsToken)
+                .when()
+                .delete("/labor-grades/" + id)
+                .then()
+                .statusCode(200);
+    }
+
+    @Test
+    void delete_asRegularEmployee_returns403() {
+        given()
+                .header("Authorization", "Bearer " + tweetyToken)
+                .when()
+                .delete("/labor-grades/1")
+                .then()
+                .statusCode(403);
+    }
+
+    // ---- Validation ----
+
+    @Test
+    void create_blankGradeCode_returns400() {
+        given()
+                .header("Authorization", "Bearer " + opsToken)
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                          "gradeCode": "   ",
+                          "chargeRate": 50.00
+                        }
+                        """)
+                .when()
+                .post("/labor-grades")
+                .then()
+                .statusCode(400);
+    }
+
+    @Test
+    void create_gradeCodeTooLong_returns400() {
+        given()
+                .header("Authorization", "Bearer " + opsToken)
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                          "gradeCode": "ABC",
+                          "chargeRate": 50.00
+                        }
+                        """)
+                .when()
+                .post("/labor-grades")
+                .then()
+                .statusCode(400);
+    }
+
+    @Test
+    void create_negativeChargeRate_returns400() {
+        given()
+                .header("Authorization", "Bearer " + opsToken)
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                          "gradeCode": "ZZ",
+                          "chargeRate": -10.00
+                        }
+                        """)
+                .when()
+                .post("/labor-grades")
+                .then()
+                .statusCode(400);
+    }
+
+    @Test
+    void delete_seedGradeInUse_returns409() {
+        given()
+                .header("Authorization", "Bearer " + opsToken)
+                .when()
+                .delete("/labor-grades/1")
+                .then()
+                .statusCode(409);
+    }
 }

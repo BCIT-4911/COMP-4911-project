@@ -165,4 +165,13 @@ public class WorkPackageResource {
     public String report(@PathParam("id") String id) {
         return workPackageService.generateReport(id);
     }
+
+    @GET
+    @Path("/chargeable")
+    public Response getChargeableForCurrentUser(){
+        int authEmpId = authContext.getEmpId();
+        List<WorkPackage> chargeableWp = workPackageService.getAllWorkPackages().stream().filter(wp ->
+            rebacService.canChargeToWorkPackage(authEmpId, wp.getWpId())).toList();
+        return Response.ok(chargeableWp).build();
+    }
 }

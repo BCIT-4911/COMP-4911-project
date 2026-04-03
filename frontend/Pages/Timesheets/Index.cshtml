@@ -220,7 +220,7 @@
 
         async function loadWorkPackages() {
             try {
-                const res = await authFetch(`${API}/api/workpackages`);
+                const res = await authFetch(`${API}/api/workpackages/chargeable`);
                 if (!res.ok) throw new Error('Failed to load work packages');
                 workPackages = await res.json();
             } catch (err) {

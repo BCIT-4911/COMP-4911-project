@@ -102,7 +102,7 @@ public class EmployeeResource {
         Employee updated;
 
         try {
-            updated = employeeService.updateEmployee(id, dto);
+            updated = employeeService.updateEmployeeByManager(id, dto);
         } catch (final Exception ex) {
             Throwable cause = unwrap(ex);
             if (cause instanceof NotFoundException) {

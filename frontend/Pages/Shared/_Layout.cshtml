@@ -75,7 +75,7 @@
                             <li class="nav-item" id="laborReportNavItem" style="display:none;">
                                 <a class="nav-link header-link" asp-page="/EarnedValue/LaborReport">Labor Report</a>
                             </li>
-                            @if (role == "HR")
+                            @if (role == "HR" || role == "ADMIN")
                             {
                                 <li class="nav-item">
                                     <a class="nav-link header-link" asp-area="" asp-page="/Employee/Index">Employees</a>

@@ -38,6 +38,13 @@ public class RebacService {
     }
 
     /**
+     * Create, update, and delete employees (POST/PUT/DELETE). Only HR and ADMIN.
+     */
+    public boolean canWriteEmployees(SystemRole role) {
+        return role == SystemRole.ADMIN || role == SystemRole.HR;
+    }
+
+    /**
      * Returns true if empId is the project manager of the given project.
      */
     public boolean canManageProject(int empId, String projId) {
@@ -144,6 +151,10 @@ public class RebacService {
 
     public boolean canManageEmployees(Employee employee) {
         return isAdmin(employee) || isHr(employee) || isOperationsManager(employee) || (employee != null && employee.getSystemRole() == SystemRole.EMPLOYEE);
+    }
+
+    public boolean canWriteEmployees(Employee employee) {
+        return isAdmin(employee) || isHr(employee);
     }
 
     /**

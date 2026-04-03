@@ -45,6 +45,14 @@ public class RebacService {
     }
 
     /**
+     * Returns true if the given role is allowed to manage labor grades (CRUD).
+     * Only ADMIN and OPERATIONS_MANAGER have access.
+     */
+    public boolean canManageLaborGrades(SystemRole role) {
+        return role == SystemRole.ADMIN || role == SystemRole.OPERATIONS_MANAGER;
+    }
+
+    /**
      * Returns true if empId is the project manager of the given project.
      */
     public boolean canManageProject(int empId, String projId) {

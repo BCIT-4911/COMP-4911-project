@@ -45,6 +45,79 @@ public class LaborGradeService {
         return toDTO(lg);
     }
 
+    /**
+     * Creates a new labor grade.
+     * @param dto the labor grade data.
+     * @return the created labor grade as a DTO.
+     */
+    public LaborGradeDTO createLaborGrade(LaborGradeDTO dto) {
+        LaborGrade lg = new LaborGrade();
+        lg.setGradeCode(dto.getGradeCode());
+        lg.setChargeRate(dto.getChargeRate());
+        em.persist(lg);
+        em.flush();
+        return toDTO(lg);
+    }
+
+    /**
+     * Updates an existing labor grade.
+     * @param id the ID of the labor grade to update.
+     * @param dto the updated labor grade data.
+     * @return the updated labor grade as a DTO.
+     */
+    public LaborGradeDTO updateLaborGrade(int id, LaborGradeDTO dto) {
+        LaborGrade lg = em.find(LaborGrade.class, id);
+        if (lg == null) {
+            throw new NotFoundException("LaborGrade with id " + id + " not found.");
+        }
+        lg.setGradeCode(dto.getGradeCode());
+        lg.setChargeRate(dto.getChargeRate());
+        em.merge(lg);
+        em.flush();
+        return toDTO(lg);
+    }
+
+    /**
+     * Checks if a labor grade is currently in use by any employees or timesheet rows.
+     * @param id the ID of the labor grade to check.
+     * @return true if the labor grade is in use, false otherwise.
+     */
+    public boolean isLaborGradeInUse(int id) {
+        Long employeeCount = em.createQuery(
+                "SELECT COUNT(e) FROM Employee e WHERE e.laborGrade.laborGradeId = :lgId",
+                Long.class)
+                .setParameter("lgId", id)
+                .getSingleResult();
+        if (employeeCount != null && employeeCount > 0) {
+            return true;
+        }
+
+        Long timesheetRowCount = em.createQuery(
+                "SELECT COUNT(tr) FROM TimesheetRow tr WHERE tr.laborGrade.laborGradeId = :lgId",
+                Long.class)
+                .setParameter("lgId", id)
+                .getSingleResult();
+        return timesheetRowCount != null && timesheetRowCount > 0;
+    }
+
+    /**
+     * Deletes a labor grade by ID.
+     * @param id the ID of the labor grade to delete.
+     * @throws IllegalStateException if the labor grade is currently assigned to employees or timesheet rows.
+     */
+    public void deleteLaborGrade(int id) {
+        LaborGrade lg = em.find(LaborGrade.class, id);
+        if (lg == null) {
+            throw new NotFoundException("LaborGrade with id " + id + " not found.");
+        }
+        if (isLaborGradeInUse(id)) {
+            throw new IllegalStateException(
+                    "Cannot delete labor grade '" + lg.getGradeCode()
+                    + "' because it is currently assigned to one or more employees or timesheet rows.");
+        }
+        em.remove(lg);
+    }
+
     public LaborGradeDTO toDTO(LaborGrade lg) {
         LaborGradeDTO dto = new LaborGradeDTO();
         dto.setLaborGradeId(lg.getLaborGradeId());

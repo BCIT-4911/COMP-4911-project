@@ -81,6 +81,12 @@
                                     <a class="nav-link header-link" asp-area="" asp-page="/Employee/Index">Employees</a>
                                 </li>
                             }
+                            @if (role == "ADMIN" || role == "OPERATIONS_MANAGER")
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link header-link" asp-page="/LaborGrades/Index">Labor Grades</a>
+                                </li>
+                            }
                         }
                         else
                         {

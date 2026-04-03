@@ -561,3 +561,125 @@ button.header-link:focus {
   outline: none !important;
   box-shadow: none !important;
 }
+
+/* ===== Login page — Organic Editorial (style.md) ===== */
+.login-page {
+  --ds-surface-card: #fbfdf8;
+  --ds-surface-container: #eef3ea;
+  --ds-primary: #4b644f;
+  --ds-primary-dim: #405843;
+  --ds-on-surface: #263724;
+  --ds-on-surface-variant: #52644f;
+  --ds-on-primary: #e3ffe4;
+  --ds-danger-surface: rgba(159, 64, 62, 0.14);
+  --ds-on-danger: #5c2826;
+
+  min-height: 60vh;
+  padding: 3rem 1.25rem 4rem;
+  background: #fff;
+  font-family: 'Manrope', sans-serif;
+}
+
+.login-page-inner {
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.login-card {
+  background: var(--ds-surface-card);
+  border-radius: 1.5rem;
+  padding: 2rem 2rem 2.25rem;
+  border: 1px solid rgba(64, 88, 67, 0.22);
+  box-shadow: 0 20px 40px rgba(38, 55, 36, 0.06);
+}
+
+.login-title {
+  font-family: 'Manrope', sans-serif;
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--ds-on-surface);
+  margin: 0 0 0.35rem;
+}
+
+.login-subtitle {
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--ds-on-surface-variant);
+  opacity: 0.92;
+  margin: 0 0 1.75rem;
+}
+
+.login-field {
+  margin-bottom: 1.25rem;
+}
+
+.login-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ds-on-surface-variant);
+  margin-bottom: 0.4rem;
+}
+
+.login-input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  border: none;
+  background: var(--ds-surface-container);
+  border-radius: 0.75rem;
+  padding: 0.65rem 0.9rem;
+  font-size: 1rem;
+  font-family: 'Manrope', sans-serif;
+  color: var(--ds-on-surface);
+}
+
+.login-input::placeholder {
+  color: rgba(82, 100, 79, 0.55);
+}
+
+.login-input:focus {
+  outline: 2px solid rgba(75, 100, 79, 0.35);
+  outline-offset: 2px;
+}
+
+.login-btn-primary {
+  width: 100%;
+  margin-top: 0.5rem;
+  padding: 0.7rem 1.5rem;
+  border: none;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, var(--ds-primary) 0%, var(--ds-primary-dim) 100%);
+  color: var(--ds-on-primary);
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.login-btn-primary:hover {
+  opacity: 0.92;
+  color: var(--ds-on-primary);
+}
+
+.login-btn-primary:focus-visible {
+  outline: 2px solid rgba(75, 100, 79, 0.45);
+  outline-offset: 3px;
+}
+
+.login-alert {
+  border-radius: 0.75rem;
+  padding: 0.85rem 1rem;
+  margin-bottom: 1.25rem;
+  background: var(--ds-danger-surface);
+  color: var(--ds-on-danger);
+  font-size: 0.9rem;
+  font-weight: 500;
+  line-height: 1.4;
+}

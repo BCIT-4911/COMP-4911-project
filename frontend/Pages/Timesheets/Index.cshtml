@@ -4,120 +4,44 @@
     ViewData["Title"] = "Timesheet";
 }
 
-<style>
-    :root {
-        --brand-green: #4d604d;
-        --header-sage: #f5f7f0;
-        --dropdown-sage: #ecf3e6;
-        --border-color: #d1dbca;
-        --text-main: #1e293b;
-        --text-muted: #64748b;
-    }
+@section Head {
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
+}
 
-    body { background-color: #fcfdfb; font-family: 'Inter', sans-serif; color: var(--text-main); }
-
-    .info-card {
-        background: #fff;
-        border: 1px solid #e2e8f0;
-        border-radius: 12px;
-        padding: 1.5rem 2rem;
-    }
-    .info-label {
-        font-size: 0.65rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        color: var(--text-muted);
-        letter-spacing: 0.05em;
-        margin-bottom: 4px;
-    }
-    .info-value { font-size: 1.1rem; font-weight: 500; }
-
-    .timesheet-container {
-        border: 1px solid #e2e8f0;
-        border-radius: 12px;
-        overflow: hidden;
-        background: #fff;
-        margin-top: 1.5rem;
-    }
-    .table-ts thead th {
-        background-color: var(--header-sage);
-        color: #7c8b7c;
-        font-size: 0.65rem;
-        text-transform: uppercase;
-        font-weight: 700;
-        padding: 1rem;
-        border-bottom: 1px solid var(--border-color);
-    }
-    .form-select-ts {
-        background-color: var(--dropdown-sage) !important;
-        border: 1px solid var(--border-color) !important;
-        border-radius: 8px;
-        font-size: 0.85rem;
-        padding: 0.4rem 0.6rem;
-        color: #3d4d3d;
-    }
-    .hr-input {
-        border: none;
-        background: transparent;
-        text-align: center;
-        width: 100%;
-        font-weight: 500;
-    }
-    .hr-input.zero { color: #cbd5e1; }
-
-    .btn-submit { background-color: var(--brand-green); color: white; border: none; padding: 0.6rem 1.5rem; border-radius: 8px; font-weight: 500; }
-    .btn-add { border: 1px solid #cbd5e1; background: white; color: var(--text-main); border-radius: 8px; padding: 0.6rem 1.25rem; }
-
-    .total-pill {
-        background-color: var(--brand-green);
-        color: white;
-        padding: 6px 16px;
-        border-radius: 50px;
-        font-weight: 600;
-        font-size: 0.85rem;
-        display: inline-block;
-    }
-
-    .badge-approved { background-color: #dcfce7; color: #166534; font-size: 0.6rem; font-weight: 800; padding: 4px 8px; border-radius: 6px; }
-    .badge-processing { background-color: #f1f5f9; color: #475569; font-size: 0.6rem; font-weight: 800; padding: 4px 8px; border-radius: 6px; }
-    .badge-returned { background-color: #fee2e2; color: #dc2626; font-size: 0.6rem; font-weight: 800; padding: 4px 8px; border-radius: 6px; }
-    .badge-draft { background-color: #f1f5f9; color: #475569; font-size: 0.6rem; font-weight: 800; padding: 4px 8px; border-radius: 6px; }
-</style>
-
-<div class="container pb-5 pt-4">
+<div class="timesheet-page">
+<div class="timesheet-canvas">
 
     <div id="alertArea"></div>
 
-    <div class="d-flex align-items-end justify-content-between mb-4 flex-wrap gap-3">
+    <div class="timesheet-header d-flex align-items-end justify-content-between flex-wrap gap-3">
         <div>
-            <h1 class="fw-bold mb-1" style="font-size: 2rem;">Timesheet</h1>
-            <p class="text-muted mb-0">Record and manage your weekly labor distribution.</p>
+            <h1 class="timesheet-page-title">Timesheet</h1>
+            <p class="timesheet-page-subtitle">Record and manage your weekly labor distribution.</p>
         </div>
         <div class="d-flex gap-2">
-            <button type="button" class="btn btn-add shadow-sm" onclick="addRow()">+ Add Row</button>
-            <button type="button" class="btn btn-submit shadow-sm" onclick="submitTimesheet()">
+            <button type="button" class="btn btn-timesheet-add" onclick="addRow()">+ Add Row</button>
+            <button type="button" class="btn btn-timesheet-submit" onclick="submitTimesheet()">
                 &#9654; Submit
             </button>
         </div>
     </div>
 
-    <div class="info-card shadow-sm mb-4">
+    <div class="info-card mb-4">
         <div class="row">
             <div class="col-md-4">
                 <div class="info-label">Week Ending</div>
-                <input type="date" id="weekEndingInput" class="info-value border-0 p-0 bg-transparent w-100"
-                       style="outline: none;" />
+                <input type="date" id="weekEndingInput" class="info-value timesheet-week-input border-0 p-0 bg-transparent w-100" />
             </div>
         </div>
     </div>
 
-    <div class="timesheet-container shadow-sm">
+    <div class="timesheet-container">
         <div class="table-responsive">
             <table class="table table-ts align-middle mb-0">
                 <thead>
                     <tr>
-                        <th style="width: 30%;">Work Package</th>
-                        <th style="width: 20%;">Labor Grade</th>
+                        <th class="th-col-wp">Work Package</th>
+                        <th class="th-col-lg">Labor Grade</th>
                         <th class="text-center">Mon</th>
                         <th class="text-center">Tue</th>
                         <th class="text-center">Wed</th>
@@ -126,12 +50,12 @@
                         <th class="text-center">Sat</th>
                         <th class="text-center">Sun</th>
                         <th class="text-center">Total</th>
-                        <th style="width: 40px;"></th>
+                        <th class="th-col-actions"></th>
                     </tr>
                 </thead>
                 <tbody id="rowsBody"></tbody>
                 <tfoot>
-                    <tr class="fw-bold" style="border-top: 2px solid #eef2eb;">
+                    <tr class="fw-bold timesheet-tfoot-totals">
                         <td colspan="2" class="ps-4 py-3">Weekly Total Distribution</td>
                         <td class="text-center" id="totalMon">0.0</td>
                         <td class="text-center" id="totalTue">0.0</td>
@@ -150,12 +74,12 @@
         </div>
     </div>
 
-    <h5 class="fw-bold mt-5 mb-3 d-flex align-items-center gap-2">
+    <h2 class="timesheet-history-heading d-flex align-items-center gap-2">
         &#128336; Submitted History
-    </h5>
-    <div class="table-responsive">
-        <table class="table">
-            <thead class="text-muted" style="font-size: 0.7rem; text-transform: uppercase;">
+    </h2>
+    <div class="table-responsive timesheet-history-wrap">
+        <table class="table timesheet-history-table mb-0">
+            <thead>
                 <tr>
                     <th>Week ending</th>
                     <th>Total hours</th>
@@ -163,12 +87,13 @@
                     <th class="text-end">Action</th>
                 </tr>
             </thead>
-            <tbody id="historyBody" style="font-size: 0.9rem;"></tbody>
+            <tbody id="historyBody"></tbody>
         </table>
     </div>
 </div>
 
 <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastContainer"></div>
+</div>
 
 @section Scripts {
     <script>
@@ -273,7 +198,7 @@
                 ${hr('hr-sun')}
                 <td class="text-center fw-bold row-total">0.0</td>
                 <td>
-                    <button type="button" class="btn btn-link btn-sm text-danger text-decoration-none"
+                    <button type="button" class="btn btn-link btn-sm timesheet-remove-row"
                             onclick="removeRow(this)">&times;</button>
                 </td>
             `;
@@ -415,11 +340,11 @@
             const empId = CURRENT_USER_ID;
             const historyBody = document.getElementById('historyBody');
             if (!empId) {
-                historyBody.innerHTML = '<tr><td colspan="4" class="text-muted">Sign in to view your timesheet history.</td></tr>';
+                historyBody.innerHTML = '<tr><td colspan="4" class="timesheet-history-muted">Sign in to view your timesheet history.</td></tr>';
                 return;
             }
 
-            historyBody.innerHTML = '<tr><td colspan="4" class="text-muted">Loading...</td></tr>';
+            historyBody.innerHTML = '<tr><td colspan="4" class="timesheet-history-muted">Loading...</td></tr>';
 
             try {
                 const res = await authFetch(`${API}/api/timesheets?empId=${empId}`);
@@ -427,7 +352,7 @@
                 const list = await res.json();
 
                 if (list.length === 0) {
-                    historyBody.innerHTML = '<tr><td colspan="4" class="text-muted">No timesheets found.</td></tr>';
+                    historyBody.innerHTML = '<tr><td colspan="4" class="timesheet-history-muted">No timesheets found.</td></tr>';
                     return;
                 }
 
@@ -443,7 +368,7 @@
                             <td>${totalHours.toFixed(1)}</td>
                             <td>${renderStatusBadge(st)}</td>
                             <td class="text-end">
-                                <a href="#" class="text-muted text-decoration-none"
+                                <a href="#" class="timesheet-history-detail-link"
                                    onclick="toggleDetail(${ts.tsId}); return false;">View details</a>
                             </td>
                         </tr>
@@ -453,13 +378,13 @@
                     `;
                 }).join('');
             } catch (err) {
-                historyBody.innerHTML = `<tr><td colspan="4" class="text-danger">Error: ${esc(err.message)}</td></tr>`;
+                historyBody.innerHTML = `<tr><td colspan="4" class="timesheet-history-error">Error: ${esc(err.message)}</td></tr>`;
             }
         }
 
         function renderTimesheetDetail(ts) {
             if (!ts.rows || ts.rows.length === 0) {
-                return '<div class="p-3 text-muted">No rows.</div>';
+                return '<div class="p-3 timesheet-history-muted">No rows.</div>';
             }
 
             const dayFields = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
@@ -478,10 +403,10 @@
             }).join('');
 
             return `
-                <div style="background-color: #f5f7f0; border-top: 1px solid #e0e8e0;">
+                <div class="timesheet-detail-panel">
                     <table class="table table-sm mb-0">
                         <thead>
-                            <tr style="font-size: 0.7rem; text-transform: uppercase; color: #7c8b7c;">
+                            <tr class="timesheet-detail-thead-row">
                                 <th>Work package</th><th>Grade</th>
                                 ${dayHeaders.map(d => `<th class="text-center">${d}</th>`).join('')}
                                 <th class="text-center">Total</th>

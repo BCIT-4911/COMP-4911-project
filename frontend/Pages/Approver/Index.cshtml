@@ -4,22 +4,26 @@
     ViewData["Title"] = "Approver Dashboard";
 }
 
-<div class="container py-4">
-    <div class="d-flex align-items-center justify-content-between mb-3">
-        <div>
-            <h1 class="display-6 mb-0">Approver Dashboard</h1>
-            <div class="text-muted">Review submitted timesheets for your direct reports</div>
-        </div>
+@section Head {
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
+}
+
+<div class="approver-page">
+<div class="approver-canvas">
+
+    <div class="approver-header">
+        <h1 class="approver-page-title">Approver Dashboard</h1>
+        <p class="approver-page-subtitle mb-0 mt-1">Review submitted timesheets for your direct reports</p>
     </div>
 
     <div id="alertArea"></div>
 
-    <div class="card shadow-sm mb-4">
-        <div class="card-body">
+    <div class="card approver-panel mb-4">
+        <div class="card-body approver-panel-body">
             <div class="row g-3 align-items-end">
                 <div class="col-md-4">
-                    <label class="form-label">Direct Report Employee ID</label>
-                    <select class="form-select" id="employeeIdSelect">
+                    <label class="form-label approver-field-label" for="employeeIdSelect">Direct Report Employee ID</label>
+                    <select class="form-select approver-select" id="employeeIdSelect">
                         @foreach (var empId in Model.DirectReportIds)
                         {
                             if (Model.SelectedEmployeeId == empId)
@@ -34,22 +38,24 @@
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <button class="btn btn-primary" onclick="loadDashboard()">Load Dashboard</button>
+                    <button type="button" class="btn btn-approver-primary" onclick="loadDashboard()">Load Dashboard</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="card shadow-sm">
-        <div class="card-header">
-            <h5 class="mb-0">Submitted Timesheets Awaiting Review</h5>
+    <div class="card approver-panel">
+        <div class="card-header approver-panel-header">
+            <h2 class="approver-panel-title mb-0">Submitted Timesheets Awaiting Review</h2>
         </div>
-        <div class="card-body">
+        <div class="card-body approver-panel-body">
             <div id="dashboardArea">
-                <p class="text-muted mb-0">Select an employee and click "Load Dashboard".</p>
+                <p class="approver-muted mb-0">Select an employee and click "Load Dashboard".</p>
             </div>
         </div>
     </div>
+
+</div>
 </div>
 
 @section Scripts {
@@ -79,7 +85,7 @@
                 }
 
                 const area = document.getElementById('dashboardArea');
-                area.innerHTML = '<p class="text-muted mb-0">Loading...</p>';
+                area.innerHTML = '<p class="approver-muted mb-0">Loading...</p>';
 
                 try {
                     const res = await authFetch(`${API}/api/timesheets?empId=${selectedEmployeeId}&status=SUBMITTED`);
@@ -88,13 +94,13 @@
                     const reviewItems = await res.json();
 
                     if (reviewItems.length === 0) {
-                        area.innerHTML = '<p class="text-muted mb-0">No submitted timesheets found for this employee.</p>';
+                        area.innerHTML = '<p class="approver-muted mb-0">No submitted timesheets found for this employee.</p>';
                         return;
                     }
 
                     renderDashboard(reviewItems);
                 } catch (err) {
-                    area.innerHTML = `<p class="text-danger mb-0">Error: ${esc(err.message)}</p>`;
+                    area.innerHTML = `<p class="approver-error mb-0">Error: ${esc(err.message)}</p>`;
                 }
             }
 
@@ -102,9 +108,9 @@
                 const area = document.getElementById('dashboardArea');
 
                 area.innerHTML = `
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="table-light">
+                    <div class="table-responsive approver-table-wrap">
+                        <table class="table approver-table align-middle mb-0">
+                            <thead>
                                 <tr>
                                     <th>Timesheet ID</th>
                                     <th>Employee</th>
@@ -142,7 +148,7 @@
                         <td>${renderStatusBadge(ts.status || 'SUBMITTED')}</td>
                         <td>${totalHours.toFixed(1)}</td>
                         <td>
-                            <a class="btn btn-outline-primary btn-sm"
+                            <a class="btn btn-approver-detail btn-sm"
                                href="/Approver/Review?id=${ts.tsId}">
                                 View Details
                             </a>
@@ -168,10 +174,10 @@
             }
 
             function renderStatusBadge(status) {
-                if (status === 'APPROVED') return '<span class="badge bg-success">Approved</span>';
-                if (status === 'RETURNED') return '<span class="badge bg-danger">Returned</span>';
-                if (status === 'SUBMITTED') return '<span class="badge bg-primary">Submitted</span>';
-                return '<span class="badge bg-secondary">Draft</span>';
+                if (status === 'APPROVED') return '<span class="approver-badge approver-badge--approved">Approved</span>';
+                if (status === 'RETURNED') return '<span class="approver-badge approver-badge--returned">Returned</span>';
+                if (status === 'SUBMITTED') return '<span class="approver-badge approver-badge--submitted">Submitted</span>';
+                return '<span class="approver-badge approver-badge--draft">Draft</span>';
             }
 
             document.addEventListener('DOMContentLoaded', () => {

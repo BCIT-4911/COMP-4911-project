@@ -382,46 +382,6 @@
             }
         }
 
-        function renderTimesheetDetail(ts) {
-            if (!ts.rows || ts.rows.length === 0) {
-                return '<div class="p-3 timesheet-history-muted">No rows.</div>';
-            }
-
-            const dayFields = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-            const dayHeaders = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
-            const rowsHtml = ts.rows.map(r => {
-                const dayValues = dayFields.map(f => `<td class="text-center">${r[f] != null ? r[f] : '—'}</td>`).join('');
-                const rowTotal = dayFields.reduce((s, f) => s + (r[f] || 0), 0);
-                return `
-                    <tr>
-                        <td>${esc(r.wpId || '')}${r.wpName ? ' - ' + esc(r.wpName) : ''}</td>
-                        <td>${esc(r.laborGradeCode || '')}</td>
-                        ${dayValues}
-                        <td class="text-center fw-bold">${rowTotal.toFixed(1)}</td>
-                    </tr>`;
-            }).join('');
-
-            return `
-                <div class="timesheet-detail-panel">
-                    <table class="table table-sm mb-0">
-                        <thead>
-                            <tr class="timesheet-detail-thead-row">
-                                <th>Work package</th><th>Grade</th>
-                                ${dayHeaders.map(d => `<th class="text-center">${d}</th>`).join('')}
-                                <th class="text-center">Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>${rowsHtml}</tbody>
-                    </table>
-                </div>`;
-        }
-
-        function toggleDetail(tsId) {
-            const row = document.getElementById(`detail-${tsId}`);
-            if (row) row.style.display = row.style.display === 'none' ? '' : 'none';
-        }
-
         function renderStatusBadge(status) {
             if (status === 'APPROVED') return '<span class="badge-approved">APPROVED</span>';
             if (status === 'SUBMITTED') return '<span class="badge-processing">PROCESSING</span>';

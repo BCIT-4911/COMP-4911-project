@@ -6,6 +6,8 @@ import com.corejsf.DTO.EtcUpdateDTO;
 import com.corejsf.Entity.Employee;
 import com.corejsf.Entity.SystemRole;
 import com.corejsf.Entity.WorkPackage;
+import com.corejsf.Entity.WorkPackageStatus;
+import com.corejsf.Entity.WorkPackageType;
 import com.corejsf.Entity.WpRole;
 import com.corejsf.Service.RebacService;
 import com.corejsf.Service.WorkPackageService;
@@ -171,7 +173,9 @@ public class WorkPackageResource {
     public Response getChargeableForCurrentUser(){
         int authEmpId = authContext.getEmpId();
         List<WorkPackage> chargeableWp = workPackageService.getAllWorkPackages().stream().filter(wp ->
-            rebacService.canChargeToWorkPackage(authEmpId, wp.getWpId())).toList();
+            rebacService.canChargeToWorkPackage(authEmpId, wp.getWpId())
+                && wp.getWpType() == WorkPackageType.LOWEST_LEVEL
+                && wp.getStatus() == WorkPackageStatus.OPEN_FOR_CHARGES).toList();
         return Response.ok(chargeableWp).build();
     }
 }

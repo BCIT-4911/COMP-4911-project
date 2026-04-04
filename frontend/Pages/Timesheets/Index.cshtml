@@ -367,14 +367,14 @@
                             <td>${esc(ts.weekEnding || '')}</td>
                             <td>${totalHours.toFixed(1)}</td>
                             <td>${renderStatusBadge(st)}</td>
-                            <td class="text-end">
-                                <a href="#" class="timesheet-history-detail-link"
-                                   onclick="toggleDetail(${ts.tsId}); return false;">View details</a>
-                            </td>
+                        <td class="text-end">
+                            <a class="timesheet-history-detail-link"
+                                href="/Timesheets/Review?id=${ts.tsId}">
+                                    View details
+                            </a>
+                        </td>
                         </tr>
-                        <tr id="detail-${ts.tsId}" style="display:none;">
-                            <td colspan="4" class="p-0">${renderTimesheetDetail(ts)}</td>
-                        </tr>
+
                     `;
                 }).join('');
             } catch (err) {

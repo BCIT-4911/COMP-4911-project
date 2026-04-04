@@ -47,6 +47,23 @@
             </a>
         </div>
 
+        <!-- Leave Hours -->
+        <div class="col-lg col-md-6 col-sm-6" id="cardLeaveCol">
+            <div class="dash-stat-card" id="cardLeave" style="cursor:default;">
+                <div class="mb-4">
+                    <svg class="dash-stat-icon-text mb-3" width="30" height="30" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="1.8">
+                        <path
+                            d="M12 21s-6-4.35-9-8.5C.5 9.5 2.24 5 6.5 5c2.04 0 3.24 1.08 4.08 2.2C11.42 6.08 12.62 5 14.66 5 18.92 5 20.66 9.5 21 12.5 18 16.65 12 21 12 21z">
+                        </path>
+                    </svg>
+                    <div class="dash-stat-title">Leave Balance</div>
+                    <div class="dash-stat-sub">Combined leave bank</div>
+                </div>
+                <div class="dash-stat-footer" id="statLeave">-</div>
+            </div>
+        </div>
+
         <!-- Earned Value -->
         <div class="col-lg col-md-6 col-sm-6" id="cardEVCol">
             <a href="/EarnedValue/Index" class="dash-stat-card" id="cardEarnedValue">
@@ -200,22 +217,31 @@
         ]);
 
         // Welcome
-        const nameEl = document.getElementById('userName');
-        if (empRes && empRes.ok) {
-            const emp = await empRes.json();
-            nameEl.textContent = emp.empFirstName || 'User';
-        } else {
-            nameEl.textContent = 'User';
-        }
-        nameEl.classList.remove('dash-loading');
+            // Welcome
+            const nameEl = document.getElementById('userName');
+            if (empRes && empRes.ok) {
+                const emp = await empRes.json();
+                nameEl.textContent = emp.empFirstName || 'User';
 
-        let projects = [];
-        if (projRes && projRes.ok) projects = await projRes.json();
+                showCard('cardLeave');
+                const leaveHours = Number(emp.vacationSickBalance ?? 0);
+                const leaveDays = leaveHours / 8;
 
-        let timesheets = [];
-        if (tsRes && tsRes.ok) timesheets = await tsRes.json();
+                document.getElementById('statLeave').textContent =
+                    `${leaveHours.toFixed(2)} hrs (${leaveDays.toFixed(2)} days)`;
+            } else {
+                nameEl.textContent = 'User';
+            }
+            nameEl.classList.remove('dash-loading');
 
-        let isApprover = false;
+
+            let projects = [];
+            if (projRes && projRes.ok) projects = await projRes.json();
+
+            let timesheets = [];
+            if (tsRes && tsRes.ok) timesheets = await tsRes.json();
+
+            let isApprover = false;
         if (approverRes && approverRes.ok) {
             const data = await approverRes.json();
             isApprover = data && data.allowed;

@@ -69,6 +69,9 @@ public class Project {
     @Column(name = "markup_rate", precision = 5, scale = 2)
     private BigDecimal markupRate;
 
+    @Column(name = "bac", precision = 12, scale = 2)
+    private BigDecimal bac;
+
     @Transient
     private Integer projectManagerId;
 
@@ -155,6 +158,16 @@ public class Project {
     @JsonbProperty("markup_rate")
     public void setMarkupRate(final BigDecimal markupRate) {
         this.markupRate = markupRate;
+    }
+
+    @JsonbProperty("bac")
+    public BigDecimal getBac() {
+        return bac;
+    }
+
+    @JsonbProperty("bac")
+    public void setBac(final BigDecimal bac) {
+        this.bac = bac;
     }
 
     // --- Transient raw-ID accessors for the REST contract ---

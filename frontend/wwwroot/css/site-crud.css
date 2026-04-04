@@ -1,44 +1,4 @@
-html {
-  font-size: 14px;
-}
-
-@media (min-width: 768px) {
-  html {
-    font-size: 16px;
-  }
-}
-
-.btn:focus,
-.btn:active:focus,
-.btn-link.nav-link:focus,
-.form-control:focus,
-.form-check-input:focus {
-  box-shadow:
-    0 0 0 0.1rem white,
-    0 0 0 0.25rem #258cfb;
-}
-
-html {
-  position: relative;
-  min-height: 100%;
-}
-
-body {
-  margin-bottom: 60px;
-}
-
-.form-floating > .form-control-plaintext::placeholder,
-.form-floating > .form-control::placeholder {
-  color: var(--bs-secondary-color);
-  text-align: end;
-}
-
-.form-floating > .form-control-plaintext:focus::placeholder,
-.form-floating > .form-control:focus::placeholder {
-  text-align: start;
-}
-
-/* ===== CRUD Page Styles ===== */
+﻿/* ===== CRUD Page Styles ===== */
 
 .crud-page-container {
   max-width: 1200px;
@@ -77,6 +37,7 @@ body {
   font-weight: 500;
   transition: color 0.2s;
 }
+
 .back-link:hover {
   color: #3a0ca3;
 }
@@ -86,7 +47,7 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background: linear-gradient(135deg, #4361ee, #3a0ca3);
+  background: var(--tertiary-color);
   color: #fff;
   border: none;
   padding: 0.6rem 1.25rem;
@@ -99,10 +60,12 @@ body {
     box-shadow 0.2s;
   box-shadow: 0 2px 8px rgba(67, 97, 238, 0.3);
 }
+
 .btn-primary-crud:hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 16px rgba(67, 97, 238, 0.4);
 }
+
 .btn-primary-crud:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -123,20 +86,9 @@ body {
   cursor: pointer;
   transition: background 0.2s;
 }
+
 .btn-secondary-crud:hover {
   background: #dee2e6;
-}
-
-/* Select Mode */
-#viewModeSelect {
-  padding: 0.5rem 0.75rem;
-  border: 1.5px solid #dee2e6;
-  border-radius: 0.4rem;
-  background: #f8f9fb;
-  color: #495057;
-  font-size: 0.9rem;
-  font-weight: 600;
-  white-space: nowrap;
 }
 
 /* Table */
@@ -182,6 +134,7 @@ body {
 .crud-table tbody tr {
   transition: background 0.15s;
 }
+
 .crud-table tbody tr:hover {
   background: #f8f9fb;
 }
@@ -207,89 +160,9 @@ body {
   color: #6c757d;
   font-style: italic;
 }
+
 .error-cell {
   color: #dc3545;
-}
-
-/* Tree View */
-#crudTreeWrapper {
-  background: #fff;
-  border-radius: 0.75rem;
-  box-shadow:
-    0 1px 6px rgba(0, 0, 0, 0.06),
-    0 4px 24px rgba(0, 0, 0, 0.04);
-  border: 1px solid #e9ecef;
-  padding: 1rem;
-}
-
-.tree-root,
-.tree-list {
-  list-style: none;
-  margin: 0;
-  padding-left: 1.75rem;
-  position: relative;
-}
-
-.tree-root {
-  padding-left: 0;
-}
-
-.tree-item {
-  position: relative;
-  margin: 0.6rem 0;
-}
-
-.tree-list .tree-item::before {
-  content: '';
-  position: absolute;
-  left: -1rem;
-  top: -0.6rem;
-  width: 1px;
-  height: calc(100% + 1.2rem);
-  background: #dee2e6;
-}
-
-.tree-list .tree-item::after {
-  content: '';
-  position: absolute;
-  left: -1rem;
-  top: 2rem;
-  width: 1rem;
-  height: 1px;
-  background: #dee2e6;
-}
-
-.tree-list .tree-item:last-child::before {
-  height: 2.6rem;
-}
-
-.tree-root > .tree-item::before,
-.tree-root > .tree-item::after {
-  display: none;
-}
-
-.tree-item > .tree-list {
-  margin-top: 0.4rem;
-}
-
-.tree-item .node-content {
-  display: flex;
-  flex-wrap: wrap;
-  flex-direction: column;
-  align-items: center;
-  border: 2px solid #dee2e6;
-  border-radius: 2rem;
-  width: fit-content;
-  padding: 0.5rem 0.75rem; 
-  box-shadow:
-    0 1px 6px rgba(0, 0, 0, 0.06),
-    0 4px 24px rgba(0, 0, 0, 0.04);
-}
-
-.tree-item .node-content p {
-  margin: 0;
-  font-size: 0.85rem;
-  color: #212529;
 }
 
 
@@ -302,18 +175,22 @@ body {
   border-radius: 50px;
   white-space: nowrap;
 }
+
 .badge-open {
   background: #d3f9d8;
   color: #087f23;
 }
+
 .badge-archived {
   background: #e9ecef;
   color: #495057;
 }
+
 .badge-complete {
   background: #d0ebff;
   color: #1864ab;
 }
+
 .badge-type {
   background: #e8eafd;
   color: #4361ee;
@@ -339,17 +216,21 @@ body {
   color: #495057;
   transition: all 0.15s;
 }
+
 .btn-action:hover {
   background: #f1f3f5;
 }
+
 .btn-edit:hover {
   color: #4361ee;
   border-color: #4361ee;
 }
+
 .btn-delete:hover {
   color: #dc3545;
   border-color: #dc3545;
 }
+
 .btn-wp:hover {
   color: #087f23;
   border-color: #087f23;
@@ -367,6 +248,7 @@ body {
   padding-top: 6vh;
   animation: fade-in 0.2s ease;
 }
+
 .modal-overlay.active {
   display: flex;
 }
@@ -389,12 +271,14 @@ body {
   align-items: center;
   margin-bottom: 1.25rem;
 }
+
 .modal-header h2 {
   font-size: 1.3rem;
   font-weight: 700;
   color: #1a1a2e;
   margin: 0;
 }
+
 .modal-close {
   background: none;
   border: none;
@@ -404,6 +288,7 @@ body {
   line-height: 1;
   transition: color 0.15s;
 }
+
 .modal-close:hover {
   color: #495057;
 }
@@ -442,6 +327,7 @@ body {
   background: #fff;
   font-family: inherit;
 }
+
 .form-group input:focus,
 .form-group select:focus,
 .form-group textarea:focus {
@@ -459,36 +345,6 @@ body {
   display: flex;
   align-items: stretch;
   width: 100%;
-}
-
-.parent-wp-id-select {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.5rem 0.75rem;
-  border: 1.5px solid #dee2e6;
-  border-right: none;
-  border-radius: 0.4rem 0 0 0.4rem;
-  background: #f8f9fb;
-  color: #495057;
-  font-size: 0.9rem;
-  font-weight: 600;
-  white-space: nowrap;
-  max-width: 55%;
-}
-
-#parentWpIdSelect {
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
-}
-
-.wp-id-input-group #wpId {
-  flex: 1;
-  min-width: 0;
-  border-radius: 0 0.4rem 0.4rem 0;
-}
-
-.wp-id-input-group:focus-within .parent-wp-id-select {
-  border-color: #4361ee;
 }
 
 .modal-actions {
@@ -521,42 +377,51 @@ body {
   animation: slide-in-right 0.3s ease;
   max-width: 360px;
 }
+
 .toast-success {
   background: #087f23;
 }
+
 .toast-error {
-  background: #dc3545;
+  background: var(--danger-color);
 }
+
 .toast.fade-out {
   opacity: 0;
   transform: translateX(20px);
   transition: all 0.3s ease;
 }
 
+
 /* Animations */
 @keyframes fade-in {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
 }
+
 @keyframes slide-up {
   from {
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
   }
 }
+
 @keyframes slide-in-right {
   from {
     opacity: 0;
     transform: translateX(40px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -568,10 +433,12 @@ body {
   .form-grid {
     grid-template-columns: 1fr;
   }
+
   .crud-header {
     flex-direction: column;
     align-items: stretch;
   }
+
   .modal-content {
     margin: 0 0.5rem;
     padding: 1rem 1.25rem 1.5rem;

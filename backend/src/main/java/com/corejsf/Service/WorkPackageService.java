@@ -1,12 +1,15 @@
 package com.corejsf.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 import com.corejsf.Entity.Employee;
 import com.corejsf.Entity.Project;
+import com.corejsf.Entity.ProjectStatus;
 import com.corejsf.Entity.WorkPackage;
 import com.corejsf.Entity.WorkPackageAssignment;
 import com.corejsf.Entity.WorkPackageStatus;
@@ -34,6 +37,18 @@ public class WorkPackageService {
         return wp;
     }
 
+    /**
+     * JSON-B calls {@link WorkPackage#getProjId()} and {@link WorkPackage#getReEmployeeId()} during
+     * response serialization, which touch lazy associations. That happens after this EJB method returns,
+     * so without an active persistence context those reads cause LazyInitializationException (500).
+     * Touch the associations here while the transaction is still open.
+     */
+    private void initializeWorkPackageJsonAssociations(WorkPackage wp) {
+        wp.getProjId();
+        wp.getReEmployeeId();
+        wp.getParentWpId();
+    }
+
     private Employee findEmployee(int id) {
         Employee emp = em.find(Employee.class, id);
         if (emp == null) {
@@ -42,13 +57,29 @@ public class WorkPackageService {
         return emp;
     }
 
+    private Employee findEmployeeByFullName(String fullName) {
+        try {
+            return em.createQuery(
+                "SELECT e FROM Employee e WHERE LOWER(CONCAT(e.empFirstName, ' ', e.empLastName)) = LOWER(:fullName)",
+                Employee.class)
+                .setParameter("fullName", fullName.trim())
+                .getSingleResult();
+        } catch (NoResultException e) {
+            throw new NotFoundException("Employee with name '" + fullName + "' not found.");
+        }
+    }
+
     public List<WorkPackage> getAllWorkPackages() {
-        return em.createQuery("SELECT w FROM WorkPackage w", WorkPackage.class)
+        return em.createQuery(
+                "SELECT w FROM WorkPackage w LEFT JOIN FETCH w.responsibleEmployee",
+                WorkPackage.class)
                 .getResultList();
     }
 
     public WorkPackage getWorkPackage(String id) {
-        return findWorkPackage(id);
+        WorkPackage wp = findWorkPackage(id);
+        initializeWorkPackageJsonAssociations(wp);
+        return wp;
     }
 
     public WorkPackage createWorkPackage(WorkPackage wp) {
@@ -69,8 +100,11 @@ public class WorkPackageService {
         }
         wp.setProject(project);
 
+        String reName = wp.getReEmployeeName();
         Integer reEmpId = wp.getReEmployeeId();
-        if (reEmpId != null) {
+        if (reName != null && !reName.isBlank()) {
+            wp.setResponsibleEmployee(findEmployeeByFullName(reName));
+        } else if (reEmpId != null) {
             wp.setResponsibleEmployee(findEmployee(reEmpId));
         }
 
@@ -90,9 +124,20 @@ public class WorkPackageService {
             wp.setParentWorkPackage(null); 
         }
 
+        validateWpWithParentAndProjectBac(wp);
+
         wp.setCreatedDate(LocalDateTime.now());
         wp.setModifiedDate(LocalDateTime.now());
         em.persist(wp);
+
+        if (wp.getResponsibleEmployee() != null) {
+            WorkPackageAssignment reAssignment = new WorkPackageAssignment();
+            reAssignment.setWorkPackage(wp);
+            reAssignment.setEmployee(wp.getResponsibleEmployee());
+            reAssignment.setAssignmentDate(LocalDate.now());
+            reAssignment.setWpRole(WpRole.RE);
+            em.persist(reAssignment);
+        }
 
         List<WorkPackage> wpChildren = getChildren(wp.getWpId());
         if (!wpChildren.isEmpty()) {
@@ -104,39 +149,170 @@ public class WorkPackageService {
         return wp;
     }
 
+    private void validateWpWithParentAndProjectBac(WorkPackage wp) {
+        WorkPackage parent = wp.getParentWorkPackage();
+        if (parent != null) {
+            validateWpWithParentBac(wp, parent);
+        } else {
+            validateWpWithProjectBac(wp, wp.getProject());
+        }
+    }
+
+    private void validateWpWithParentBac(WorkPackage wp, WorkPackage parent) {
+        BigDecimal parentBac = parent.getBac();
+        validateBacAgainstLimit(
+                wp.getBac(),
+                parentBac,
+                "BAC of child work package (" + wp.getWpId() + ") cannot exceed BAC of parent work package.",
+                getChildren(parent.getWpId()),
+                "Total BAC of child work packages cannot exceed BAC of parent work package.");
+    }
+
+    private void validateWpWithProjectBac(WorkPackage wp, Project project) {
+        BigDecimal projectBac = project.getBac();
+        List<WorkPackage> existingRootWps = em.createQuery(
+                "SELECT w FROM WorkPackage w WHERE w.project.projId = :projId AND w.parentWorkPackage IS NULL",
+                WorkPackage.class)
+                .setParameter("projId", project.getProjId())
+                .getResultList();
+        validateBacAgainstLimit(
+                wp.getBac(),
+                projectBac,
+                "BAC of work package (" + wp.getWpId() + ") cannot exceed BAC of project.",
+                existingRootWps,
+                "Total BAC of root work packages cannot exceed BAC of project.");
+    }
+
+    private void validateBacAgainstLimit(
+        BigDecimal bacToValidate,
+        BigDecimal bacLimit,
+        String bacExceededMessage,
+        List<WorkPackage> workPackagesToSum,
+        String totalExceededMessage
+    ) {
+        if (bacToValidate.compareTo(bacLimit) > 0) {
+            throw new IllegalArgumentException(bacExceededMessage);
+        }
+
+        BigDecimal totalBac = bacToValidate;
+        for (WorkPackage workPackage : workPackagesToSum) {
+            if (workPackage.getBac() != null) {
+                totalBac = totalBac.add(workPackage.getBac());
+            }
+        }
+
+        if (totalBac.compareTo(bacLimit) > 0) {
+            throw new IllegalArgumentException(totalExceededMessage);
+        }
+    }
+
+    /**
+     * Validates BAC when it is set for the first time on an existing work package (PUT).
+     * Excludes {@code existing} from sibling/root sums so we do not double-count its new BAC.
+     */
+    private void validateBacOnFirstSetViaUpdate(WorkPackage existing, BigDecimal newBac) {
+        WorkPackage parent = existing.getParentWorkPackage();
+        if (parent != null) {
+            List<WorkPackage> siblings = getChildren(parent.getWpId());
+            List<WorkPackage> others = new ArrayList<>();
+            for (WorkPackage c : siblings) {
+                if (!c.getWpId().equals(existing.getWpId())) {
+                    others.add(c);
+                }
+            }
+            validateBacAgainstLimit(
+                    newBac,
+                    parent.getBac(),
+                    "BAC of child work package (" + existing.getWpId() + ") cannot exceed BAC of parent work package.",
+                    others,
+                    "Total BAC of child work packages cannot exceed BAC of parent work package.");
+        } else {
+            List<WorkPackage> existingRootWps = em.createQuery(
+                    "SELECT w FROM WorkPackage w WHERE w.project.projId = :projId AND w.parentWorkPackage IS NULL",
+                    WorkPackage.class)
+                    .setParameter("projId", existing.getProject().getProjId())
+                    .getResultList();
+            List<WorkPackage> otherRoots = new ArrayList<>();
+            for (WorkPackage w : existingRootWps) {
+                if (!w.getWpId().equals(existing.getWpId())) {
+                    otherRoots.add(w);
+                }
+            }
+            validateBacAgainstLimit(
+                    newBac,
+                    existing.getProject().getBac(),
+                    "BAC of work package (" + existing.getWpId() + ") cannot exceed BAC of project.",
+                    otherRoots,
+                    "Total BAC of root work packages cannot exceed BAC of project.");
+        }
+    }
+
     public void updateWorkPackage(String id, WorkPackage wp) {
         WorkPackage existing = findWorkPackage(id);
 
         WorkPackageValidation.validateName(wp.getWpName());
 
-        String parentWpId = wp.getParentWpId();
-        if (parentWpId != null) {
-            WorkPackage parent = em.find(WorkPackage.class, parentWpId);
-            if (parent == null) {
-                throw new NotFoundException("Parent WorkPackage with id " + parentWpId + " not found.");
-            }
-            existing.setParentWorkPackage(parent);
-        } else {
-            existing.setParentWorkPackage(null);
-        }
-
+        Employee newRe = null;
+        String reName = wp.getReEmployeeName();
         Integer reEmpId = wp.getReEmployeeId();
-        if (reEmpId != null) {
-            existing.setResponsibleEmployee(findEmployee(reEmpId));
+        if (reName != null && !reName.isBlank()) {
+            newRe = findEmployeeByFullName(reName);
+        } else if (reEmpId != null) {
+            newRe = findEmployee(reEmpId);
         }
 
-        // Map the existing fields
+        if (newRe != null) {
+            Integer oldReId = existing.getResponsibleEmployee() != null
+                    ? existing.getResponsibleEmployee().getEmpId() : null;
+            existing.setResponsibleEmployee(newRe);
+
+            if (!newRe.getEmpId().equals(oldReId)) {
+                syncReAssignment(id, newRe);
+            }
+        }
+
+        if (existing.getBac() != null && wp.getBac() != null
+                && existing.getBac().compareTo(wp.getBac()) != 0) {
+            throw new IllegalArgumentException("BAC cannot be changed after it is set.");
+        }
+        if (existing.getBac() == null && wp.getBac() != null) {
+            validateBacOnFirstSetViaUpdate(existing, wp.getBac());
+            existing.setBac(wp.getBac());
+        }
+
         existing.setWpName(wp.getWpName());
         existing.setDescription(wp.getDescription());
+        existing.setStatus(wp.getStatus());
         
-        // Map the NEW Estimate Fields!
-        existing.setBac(wp.getBac());
         existing.setEac(wp.getEac());
         existing.setPercentComplete(wp.getPercentComplete());
         existing.setBudgetedEffort(wp.getBudgetedEffort());
+        existing.setEtc(wp.getEtc());
 
         existing.setModifiedDate(LocalDateTime.now());
         em.merge(existing);
+    }
+
+    /**
+     * Keeps the assignment table in sync when the RE changes via a WP update.
+     * Demotes old RE assignment(s) to MEMBER and promotes/creates the new RE row.
+     */
+    private void syncReAssignment(String wpId, Employee newRe) {
+        demoteExistingReAssignments(wpId);
+
+        WorkPackageAssignment existing = findAssignment(wpId, newRe.getEmpId());
+        if (existing != null) {
+            existing.setWpRole(WpRole.RE);
+            em.merge(existing);
+        } else {
+            WorkPackage workPackage = findWorkPackage(wpId);
+            WorkPackageAssignment assignment = new WorkPackageAssignment();
+            assignment.setWorkPackage(workPackage);
+            assignment.setEmployee(newRe);
+            assignment.setAssignmentDate(LocalDate.now());
+            assignment.setWpRole(WpRole.RE);
+            em.persist(assignment);
+        }
     }
 
     public void deleteWorkPackage(String id) {
@@ -174,8 +350,10 @@ public class WorkPackageService {
     }
 
     /**
-     * Assigns an employee to a work package. Skips if already assigned.
-     * Uses AUTO_INCREMENT for ID generation instead of manual MAX query.
+     * Assigns an employee to a work package.
+     * If the employee is already assigned with a different role, their role is updated.
+     * When role is RE, the previous RE (if any) is demoted to MEMBER and
+     * {@code Work_Package.re_employee_id} is updated to keep a single source of truth.
      */
     public void assignEmployee(String wpId, int empId, WpRole role) {
         if (role == null) {
@@ -184,12 +362,27 @@ public class WorkPackageService {
         WorkPackage workPackage = findWorkPackage(wpId);
         Employee employee = findEmployee(empId);
 
-        TypedQuery<Long> query = em.createQuery(
-                "SELECT COUNT(wpa) FROM WorkPackageAssignment wpa WHERE wpa.workPackage.wpId = :wpId AND wpa.employee.empId = :empId",
+        TypedQuery<Long> projectAssignQuery = em.createQuery(
+                "SELECT COUNT(pa) FROM ProjectAssignment pa WHERE pa.project.projId = :projId AND pa.employee.empId = :empId",
                 Long.class);
-        query.setParameter("wpId", wpId);
-        query.setParameter("empId", empId);
-        if (query.getSingleResult() > 0) {
+        projectAssignQuery.setParameter("projId", workPackage.getProject().getProjId());
+        projectAssignQuery.setParameter("empId", empId);
+        if (projectAssignQuery.getSingleResult() == 0) {
+            throw new jakarta.ws.rs.WebApplicationException("Employee must be assigned to the project before being assigned to a work package.", jakarta.ws.rs.core.Response.Status.BAD_REQUEST);
+        }
+
+        if (role == WpRole.RE) {
+            demoteExistingReAssignments(wpId);
+            workPackage.setResponsibleEmployee(employee);
+            em.merge(workPackage);
+        }
+
+        WorkPackageAssignment existing = findAssignment(wpId, empId);
+        if (existing != null) {
+            if (existing.getWpRole() != role) {
+                existing.setWpRole(role);
+                em.merge(existing);
+            }
             return;
         }
 
@@ -201,7 +394,45 @@ public class WorkPackageService {
         em.persist(assignment);
     }
 
+    /**
+     * Demotes all existing RE assignments on a work package to MEMBER.
+     */
+    private void demoteExistingReAssignments(String wpId) {
+        List<WorkPackageAssignment> reAssignments = em.createQuery(
+                "SELECT wpa FROM WorkPackageAssignment wpa WHERE wpa.workPackage.wpId = :wpId AND wpa.wpRole = :role",
+                WorkPackageAssignment.class)
+                .setParameter("wpId", wpId)
+                .setParameter("role", WpRole.RE)
+                .getResultList();
+        for (WorkPackageAssignment wpa : reAssignments) {
+            wpa.setWpRole(WpRole.MEMBER);
+            em.merge(wpa);
+        }
+    }
+
+    private WorkPackageAssignment findAssignment(String wpId, int empId) {
+        try {
+            return em.createQuery(
+                    "SELECT wpa FROM WorkPackageAssignment wpa WHERE wpa.workPackage.wpId = :wpId AND wpa.employee.empId = :empId",
+                    WorkPackageAssignment.class)
+                    .setParameter("wpId", wpId)
+                    .setParameter("empId", empId)
+                    .getSingleResult();
+        } catch (NoResultException e) {
+            return null;
+        }
+    }
+
     public void removeEmployee(String wpId, int empId) {
+        WorkPackage workPackage = findWorkPackage(wpId);
+        if (workPackage.getResponsibleEmployee() != null
+                && workPackage.getResponsibleEmployee().getEmpId() == empId) {
+            throw new jakarta.ws.rs.WebApplicationException(
+                    jakarta.ws.rs.core.Response.status(jakarta.ws.rs.core.Response.Status.BAD_REQUEST)
+                            .entity("Cannot remove the Responsible Engineer from the work package. Change the RE first.")
+                            .build());
+        }
+
         TypedQuery<WorkPackageAssignment> query = em.createQuery(
                 "SELECT wpa FROM WorkPackageAssignment wpa WHERE wpa.workPackage.wpId = :wpId AND wpa.employee.empId = :empId",
                 WorkPackageAssignment.class);
@@ -245,14 +476,30 @@ public class WorkPackageService {
 
     public void open(String id) {
         WorkPackage wp = findWorkPackage(id);
+        if (wp.getProject() != null && wp.getProject().getStatus() == ProjectStatus.ARCHIVED) {
+            throw new jakarta.ws.rs.WebApplicationException(
+                    "Cannot reopen a work package while its project is closed.",
+                    jakarta.ws.rs.core.Response.Status.BAD_REQUEST);
+        }
         wp.setStatus(WorkPackageStatus.OPEN_FOR_CHARGES);
         em.merge(wp);
+    }
+
+    public WorkPackage updateEtc(String id, BigDecimal etc) {
+        WorkPackageValidation.validateEtc(etc);
+
+        WorkPackage wp = findWorkPackage(id);
+        wp.setEtc(etc);
+        wp.setModifiedDate(LocalDateTime.now());
+        em.merge(wp);
+        initializeWorkPackageJsonAssociations(wp);
+        return wp;
     }
 
     public List<WorkPackage> getChildren(String id) {
         findWorkPackage(id);
         return em.createQuery(
-                "SELECT w FROM WorkPackage w WHERE w.parentWorkPackage.wpId = :parentId", WorkPackage.class)
+                "SELECT w FROM WorkPackage w LEFT JOIN FETCH w.project LEFT JOIN FETCH w.responsibleEmployee WHERE w.parentWorkPackage.wpId = :parentId", WorkPackage.class)
                 .setParameter("parentId", id)
                 .getResultList();
     }
@@ -262,7 +509,15 @@ public class WorkPackageService {
         if (wp.getParentWorkPackage() == null) {
             throw new NotFoundException("Work package " + id + " has no parent.");
         }
-        return findWorkPackage(wp.getParentWorkPackage().getWpId());
+        String parentWpId = wp.getParentWorkPackage().getWpId();
+        // The persistence context already holds a Hibernate proxy for the parent (loaded when
+        // we navigated the lazy association above). em.find would return that same proxy, and
+        // JSON-B chokes on its synthetic 'hibernateLazyInitializer' property.
+        // Clearing the PC forces a fresh, non-proxied load.
+        em.clear();
+        WorkPackage parent = findWorkPackage(parentWpId);
+        initializeWorkPackageJsonAssociations(parent);
+        return parent;
     }
 
     public String generateReport(String id) {

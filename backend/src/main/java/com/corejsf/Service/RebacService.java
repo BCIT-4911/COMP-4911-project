@@ -20,22 +20,43 @@ public class RebacService {
     private EntityManager em;
 
 
+    private boolean isAdmin(int empId) {
+        Employee emp = em.find(Employee.class, empId);
+        return emp != null && emp.getSystemRole() == SystemRole.ADMIN;
+    }
+
     /*
      * Role checks (SystemRole-based, no DB lookup)
      */
     public boolean canCreateProject(SystemRole role) {
-        return role == SystemRole.OPERATIONS_MANAGER;
+        return role == SystemRole.ADMIN || role == SystemRole.OPERATIONS_MANAGER;
     }
 
     public boolean canManageEmployees(SystemRole role) {
         // Allowed Employees to see the directory so PMs can make assignments
-        return role == SystemRole.HR || role == SystemRole.OPERATIONS_MANAGER || role == SystemRole.EMPLOYEE;
+        return role == SystemRole.ADMIN || role == SystemRole.HR || role == SystemRole.OPERATIONS_MANAGER || role == SystemRole.EMPLOYEE;
+    }
+
+    /**
+     * Create, update, and delete employees (POST/PUT/DELETE). Only HR and ADMIN.
+     */
+    public boolean canWriteEmployees(SystemRole role) {
+        return role == SystemRole.ADMIN || role == SystemRole.HR;
+    }
+
+    /**
+     * Returns true if the given role is allowed to manage labor grades (CRUD).
+     * Only ADMIN and OPERATIONS_MANAGER have access.
+     */
+    public boolean canManageLaborGrades(SystemRole role) {
+        return role == SystemRole.ADMIN || role == SystemRole.OPERATIONS_MANAGER;
     }
 
     /**
      * Returns true if empId is the project manager of the given project.
      */
     public boolean canManageProject(int empId, String projId) {
+        if (isAdmin(empId)) return true;
         Project project = em.find(Project.class, projId);
         if (project == null) {
             return false;
@@ -64,6 +85,7 @@ public class RebacService {
      * Returns true if empId is PM of the work package's project.
      */
     public boolean canManageWorkPackage(int empId, String wpId) {
+        if (isAdmin(empId)) return true;
         WorkPackage wp = em.find(WorkPackage.class, wpId);
         if (wp == null || wp.getProject() == null) {
             return false;
@@ -71,9 +93,80 @@ public class RebacService {
         return canManageProject(empId, wp.getProject().getProjId());
     }
 
+    // -----------------------------------------------------------------------
+    // EV Report access control (EV Security feature)
+    // -----------------------------------------------------------------------
+
+    /**
+     * Returns true if the caller is allowed to view EV reports for the project
+     * that contains the given parent work package (parentWpId).
+     *
+     * Access rules:
+     *    PM assigned to the project:                           ALLOWED
+     *   PM NOT assigned to the project:                       DENIED
+     *   OPERATIONS_MANAGER (system role):                     ALLOWED
+     *   ADMIN (system role):                                  ALLOWED
+     *   Regular EMPLOYEE, unrelated RE, unrelated HR:         DENIED
+     *
+     * The parentWpId is used rather than a project ID because the existing
+     * weekly EV endpoint is keyed on a work package. We look up the project
+     * from the WP, then delegate to canManageProject for the PM check.
+     *
+     * @param empId       the authenticated employee ID
+     * @param systemRole  the authenticated employee's system role
+     * @param parentWpId  the parent work package ID passed to the EV endpoint
+     * @return true if access is permitted, false otherwise
+     */
+    public boolean canViewEVReport(int empId, SystemRole systemRole, String parentWpId) {
+        // Operations Manager always has access
+        if (systemRole == SystemRole.OPERATIONS_MANAGER) {
+            return true;
+        }
+
+        // Admin always has access
+        if (systemRole == SystemRole.ADMIN) {
+            return true;
+        }
+
+        // For all other roles, the only path to access is being the
+        // PM of the project that owns this work package.
+        // canManageWorkPackage internally calls canManageProject, which checks
+        // both the Project.projectManager field AND the ProjectAssignment table.
+        // EMPLOYEE, HR, and any RE who is not also a PM all fall through
+        // to this check and return false because canManageWorkPackage is PM-onl y.
+        return canManageWorkPackage(empId, parentWpId);
+    }
+
+
+
+    /**
+     * Is the employee assigned to the work package?
+     */
+    public boolean canChargeToWorkPackage(int empId, String wpId) {
+        WorkPackage wp = em.find(WorkPackage.class, wpId);
+        if (wp == null) {
+            return false;
+        }
+
+        // Are they assigned to this WP in any role?
+        Long count = em.createQuery(
+                        "SELECT COUNT(wpa) FROM WorkPackageAssignment wpa " +
+                                "WHERE wpa.workPackage.wpId = :wpId " +
+                                "AND wpa.employee.empId = :empId", Long.class)
+                .setParameter("wpId", wpId)
+                .setParameter("empId", empId)
+                .getSingleResult();
+
+        return count != null && count > 0;
+    }
+
     /*
      * Role checks (Employee-based, for backward compatibility)
      */
+    public boolean isAdmin(Employee employee) {
+        return employee != null && employee.getSystemRole() == SystemRole.ADMIN;
+    }
+
     public boolean isOperationsManager(Employee employee) {
         return employee != null && employee.getSystemRole() == SystemRole.OPERATIONS_MANAGER;
     }
@@ -83,11 +176,15 @@ public class RebacService {
     }
 
     public boolean canCreateProject(Employee employee) {
-        return isOperationsManager(employee);
+        return isAdmin(employee) || isOperationsManager(employee);
     }
 
     public boolean canManageEmployees(Employee employee) {
-        return isHr(employee) || isOperationsManager(employee) || (employee != null && employee.getSystemRole() == SystemRole.EMPLOYEE);
+        return isAdmin(employee) || isHr(employee) || isOperationsManager(employee) || (employee != null && employee.getSystemRole() == SystemRole.EMPLOYEE);
+    }
+
+    public boolean canWriteEmployees(Employee employee) {
+        return isAdmin(employee) || isHr(employee);
     }
 
     /**
@@ -105,6 +202,7 @@ public class RebacService {
      * Returns true if empId can view the timesheet (owner or approver).
      */
     public boolean canViewTimesheet(int empId, int timesheetId) {
+        if (isAdmin(empId)) return true;
         Timesheet ts = em.find(Timesheet.class, timesheetId);
         if (ts == null) return false;
         Integer boxed = Integer.valueOf(empId);
@@ -117,6 +215,7 @@ public class RebacService {
      * Relationship-based checks (empId-based, preferred for Resources)
      */
     public boolean canEditTimesheet(int empId, int timesheetId) {
+        if (isAdmin(empId)) return true;
         Timesheet ts = em.find(Timesheet.class, timesheetId);
         if (ts == null || ts.getEmployee() == null) {
             return false;
@@ -125,6 +224,7 @@ public class RebacService {
     }
 
     public boolean canApproveTimesheet(int empId, int timesheetId) {
+        if (isAdmin(empId)) return true;
         Timesheet ts = em.find(Timesheet.class, timesheetId);
         if (ts == null || ts.getApprover() == null) {
             return false;
@@ -156,6 +256,7 @@ public class RebacService {
     }
 
     public boolean canEditWorkPackage(int empId, String wpId) {
+        if (isAdmin(empId)) return true;
         WorkPackage wp = em.find(WorkPackage.class, wpId);
         if (wp == null) {
             return false;
@@ -199,6 +300,50 @@ public class RebacService {
 
     public boolean canEditWorkPackage(Employee employee, String wpId) {
         return employee != null && canEditWorkPackage(employee.getEmpId(), wpId);
+    }
+
+    public boolean canViewProject(final int empId, final String projId) {
+        Employee employee = em.find(Employee.class, empId);
+        if (employee == null) {
+            return false;
+        }
+
+        if (employee.getSystemRole() == SystemRole.OPERATIONS_MANAGER
+                || employee.getSystemRole() == SystemRole.HR) {
+            return true;
+        }
+
+        return canManageProject(empId, projId);
+    }
+
+    public boolean canEditEtc(final int empId, final String wpId) {
+        WorkPackage wp = em.find(WorkPackage.class, wpId);
+        if (wp == null) {
+            return false;
+        }
+
+        Employee employee = em.find(Employee.class, empId);
+        if (employee == null) {
+            return false;
+        }
+
+        if (employee.getSystemRole() == SystemRole.OPERATIONS_MANAGER) {
+            return true;
+        }
+
+        Integer empIdBoxed = Integer.valueOf(empId);
+
+        if (wp.getResponsibleEmployee() != null
+                && empIdBoxed.equals(wp.getResponsibleEmployee().getEmpId())) {
+            return true;
+        }
+
+        // Keep this only if PM is allowed by your policy
+        if (wp.getProject() != null && canManageProject(empId, wp.getProject().getProjId())) {
+            return true;
+        }
+
+        return false;
     }
 
 }

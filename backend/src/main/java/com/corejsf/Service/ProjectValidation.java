@@ -93,4 +93,13 @@ public final class ProjectValidation {
             throw new IllegalArgumentException("Project manager ID must be greater than 0");
         }
     }
+
+    public static void validateBac(final BigDecimal bac) {
+        if (bac == null) {
+            throw new IllegalArgumentException("BAC cannot be null.");
+        }
+        if (bac.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("BAC cannot be negative.");
+        }
+    }
 }

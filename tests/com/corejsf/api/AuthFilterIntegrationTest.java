@@ -1,23 +1,15 @@
 package com.corejsf.Api;
 
-import io.restassured.RestAssured;
+import com.corejsf.TestConfig;
 import io.restassured.http.ContentType;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
 
-public class AuthFilterIntegrationTest {
+public class AuthFilterIntegrationTest extends TestConfig {
 
     private static final String INVALID_BEARER = "Bearer this.is.not.a.valid.jwt";
-
-    @BeforeAll
-    static void setup() {
-        RestAssured.baseURI = "http://localhost";
-        RestAssured.port = 8080;
-        RestAssured.basePath = "/Project/api";
-    }
 
     // ---------- helpers ----------
 

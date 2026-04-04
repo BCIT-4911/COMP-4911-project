@@ -2,9 +2,12 @@ package com.corejsf.api;
 
 import java.util.List;
 
+import com.corejsf.DTO.EtcUpdateDTO;
 import com.corejsf.Entity.Employee;
 import com.corejsf.Entity.SystemRole;
 import com.corejsf.Entity.WorkPackage;
+import com.corejsf.Entity.WorkPackageStatus;
+import com.corejsf.Entity.WorkPackageType;
 import com.corejsf.Entity.WpRole;
 import com.corejsf.Service.RebacService;
 import com.corejsf.Service.WorkPackageService;
@@ -133,6 +136,19 @@ public class WorkPackageResource {
         return Response.ok().build();
     }
 
+    @PUT
+    @Path("/{id}/etc")
+    public Response updateEtc(@PathParam("id") String id, EtcUpdateDTO dto) {
+        if (!rebacService.canEditEtc(authContext.getEmpId(), id)) {
+            return forbidden();
+        }
+        if (dto == null) {
+            return Response.status(Response.Status.BAD_REQUEST).entity("etc is required").build();
+        }
+        WorkPackage updated = workPackageService.updateEtc(id, dto.getEtc());
+        return Response.ok(updated).build();
+    }
+
     @GET
     @Path("/{id}/children")
     public List<WorkPackage> getChildren(@PathParam("id") String id) {
@@ -150,5 +166,16 @@ public class WorkPackageResource {
     @Produces(MediaType.TEXT_PLAIN)
     public String report(@PathParam("id") String id) {
         return workPackageService.generateReport(id);
+    }
+
+    @GET
+    @Path("/chargeable")
+    public Response getChargeableForCurrentUser(){
+        int authEmpId = authContext.getEmpId();
+        List<WorkPackage> chargeableWp = workPackageService.getAllWorkPackages().stream().filter(wp ->
+            rebacService.canChargeToWorkPackage(authEmpId, wp.getWpId())
+                && wp.getWpType() == WorkPackageType.LOWEST_LEVEL
+                && wp.getStatus() == WorkPackageStatus.OPEN_FOR_CHARGES).toList();
+        return Response.ok(chargeableWp).build();
     }
 }

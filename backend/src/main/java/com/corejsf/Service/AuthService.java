@@ -38,6 +38,6 @@ public class AuthService {
                 ? employee.getSystemRole()
                 : SystemRole.EMPLOYEE;
 
-        return JwtUtil.generateToken(employee.getEmpId(), role);
+        return JwtUtil.generateToken(employee.getEmpId(), role, employee.getEmpFirstName(), employee.getEmpLastName());
     }
 }

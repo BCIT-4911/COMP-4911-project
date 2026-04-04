@@ -50,7 +50,7 @@
                 <option value="tree">Tree View</option>
             </select>
         </div>
-        <button class="btn text-white d-flex align-items-center gap-2" onclick="openCreateModal()" id="newWpBtn">
+        <button type="button" class="btn text-white d-flex align-items-center gap-2 d-none" onclick="openCreateModal()" id="newWpBtn">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             New Work Package
         </button>
@@ -391,13 +391,12 @@
             }
 
             async function loadWorkPackages() {
-                const canCreateWp = isOpsManagerOrAdmin() || canUserAssign();
                 const newWpBtn = document.getElementById('newWpBtn');
-                if (canCreateWp) {
+                if (canCreateNewWorkPackage()) {
                     newWpBtn.disabled = false;
-                    newWpBtn.style.display = '';
+                    newWpBtn.classList.remove('d-none');
                 } else {
-                    newWpBtn.style.display = 'none';
+                    newWpBtn.classList.add('d-none');
                 }
                 try {
                     const res = await authFetch(`${API}/api/projects/${encodeURIComponent(PROJECT_ID)}/workpackages`);
@@ -413,11 +412,20 @@
                 }
             }
 
-            // ---- Evaluate PM Authorization ----
-            function canUserAssign() {
+            // ---- Project PM vs system OM/ADMIN (RE / MEMBER must not create root WPs) ----
+            function isProjectManagerOnCurrentProject() {
                 const isAssignedPM = projectTeam.some(e => e.empId === CURRENT_USER_ID && e.projectRole === 'PM');
                 const isPrimaryPM = projectInfo && projectInfo.project_manager_id === CURRENT_USER_ID;
                 return isAssignedPM || isPrimaryPM;
+            }
+
+            function canUserAssign() {
+                return isProjectManagerOnCurrentProject();
+            }
+
+            /** New WP: OPERATIONS_MANAGER, ADMIN, or project PM only (not RE-only or MEMBER). */
+            function canCreateNewWorkPackage() {
+                return isOpsManagerOrAdmin() || isProjectManagerOnCurrentProject();
             }
 
             // ---- Rendering Functions ----
@@ -469,7 +477,10 @@
             function renderTable(wps) {
                 const tbody = document.getElementById('wpBody');
                 if (wps.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="10" class="empty-cell">No work packages found. Click "New Work Package" to create one.</td></tr>';
+                    const emptyHint = canCreateNewWorkPackage()
+                        ? ' Click "New Work Package" to create one.'
+                        : '';
+                    tbody.innerHTML = `<tr><td colspan="10" class="empty-cell">No work packages found.${emptyHint}</td></tr>`;
                     return;
                 }
 
@@ -536,7 +547,10 @@
                 const tree = buildTree(wps);
                 const treeContainer = document.getElementById('crudTreeWrapper');
                 if (tree.length === 0) {
-                    treeContainer.innerHTML = '<p class="empty-cell" style="padding:2rem 1rem;">No work packages found. Click "New Work Package" to create one.</p>';
+                    const emptyHint = canCreateNewWorkPackage()
+                        ? ' Click "New Work Package" to create one.'
+                        : '';
+                    treeContainer.innerHTML = `<p class="empty-cell" style="padding:2rem 1rem;">No work packages found.${emptyHint}</p>`;
                     return;
                 }
                 treeContainer.innerHTML = `<ul class="tree-list tree-root">${renderTreeNodes(tree, 0)}</ul>`;
@@ -872,6 +886,7 @@
             }
 
             function openCreateModal() {
+                if (!canCreateNewWorkPackage()) return;
                 document.getElementById('editMode').value = 'false';
                 document.getElementById('submitBtn').textContent = 'Create Work Package';
                 document.getElementById('wpId').disabled = false;

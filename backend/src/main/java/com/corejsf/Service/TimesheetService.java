@@ -2,7 +2,9 @@ package com.corejsf.Service;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import jakarta.ejb.Stateless;
 import jakarta.inject.Inject;
@@ -23,7 +25,7 @@ import com.corejsf.Entity.Timesheet;
 import com.corejsf.Entity.TimesheetRow;
 import com.corejsf.Entity.TimesheetStatus;
 import com.corejsf.Entity.WorkPackage;
-
+import com.corejsf.Entity.WorkPackageType;
 
 @Stateless
 public class TimesheetService {
@@ -33,6 +35,12 @@ public class TimesheetService {
 
     @Inject
     private TimesheetRowService timesheetRowService;
+
+    @Inject
+    private RebacService rebacService;
+
+    @Inject
+    private LeaveBalanceService leaveBalanceService;
 
     // -------------------------------------------------------------------------
     // Entity lookup helpers
@@ -110,17 +118,23 @@ public class TimesheetService {
     }
 
     public List<TimesheetResponseDTO> getAllTimesheets(Integer empId,
-                                                       Integer approverId,
-                                                       TimesheetStatus status) {
+            Integer approverId,
+            TimesheetStatus status) {
         StringBuilder jpql = new StringBuilder("SELECT t FROM Timesheet t WHERE 1=1");
-        if (empId != null) jpql.append(" AND t.employee.empId = :empId");
-        if (approverId != null) jpql.append(" AND t.approver.empId = :approverId");
-        if (status != null) jpql.append(" AND t.timesheetStatus = :status");
+        if (empId != null)
+            jpql.append(" AND t.employee.empId = :empId");
+        if (approverId != null)
+            jpql.append(" AND t.approver.empId = :approverId");
+        if (status != null)
+            jpql.append(" AND t.timesheetStatus = :status");
 
         TypedQuery<Timesheet> query = em.createQuery(jpql.toString(), Timesheet.class);
-        if (empId != null) query.setParameter("empId", empId);
-        if (approverId != null) query.setParameter("approverId", approverId);
-        if (status != null) query.setParameter("status", status);
+        if (empId != null)
+            query.setParameter("empId", empId);
+        if (approverId != null)
+            query.setParameter("approverId", approverId);
+        if (status != null)
+            query.setParameter("status", status);
 
         List<Timesheet> timesheets = query.getResultList();
         List<TimesheetResponseDTO> result = new ArrayList<>();
@@ -227,7 +241,23 @@ public class TimesheetService {
         ts.setReturnComment(null);
 
         em.merge(ts);
-        return toResponseDTO(ts, findRows(id));
+
+        List<TimesheetRow> rows = findRows(id);
+
+        leaveBalanceService.applyApprovedLeave(ts.getEmployee(), rows);
+
+        Set<String> processedWpIds = new HashSet<>();
+        for (TimesheetRow row : rows) {
+            WorkPackage wp = row.getWorkPackage();
+            if (wp.getWpType() == WorkPackageType.LOWEST_LEVEL
+                    && !Boolean.TRUE.equals(wp.getStructureLocked())
+                    && processedWpIds.add(wp.getWpId())) {
+                wp.setStructureLocked(true);
+                em.merge(wp);
+            }
+        }
+
+        return toResponseDTO(ts, rows);
     }
 
     public TimesheetResponseDTO returnTimesheet(int id, TimesheetReturnRequestDTO dto) {
@@ -273,7 +303,13 @@ public class TimesheetService {
         List<TimesheetRow> rows = new ArrayList<>();
         for (TimesheetRowRequestDTO rowDto : rowDTOs) {
             WorkPackage wp = findWorkPackage(rowDto.getWpId());
-            TimesheetValidation.validateWorkPackageChargeable(wp);
+            runValidation(() -> TimesheetValidation.validateWorkPackageChargeable(wp));
+
+            if (!rebacService.canChargeToWorkPackage(ts.getEmployee().getEmpId(), wp.getWpId())) {
+                throw new WebApplicationException(
+                        "Employee does not have permission to charge to work package " + wp.getWpId(),
+                        Response.Status.FORBIDDEN);
+            }
 
             LaborGrade lg = findLaborGrade(rowDto.getLaborGradeId());
 

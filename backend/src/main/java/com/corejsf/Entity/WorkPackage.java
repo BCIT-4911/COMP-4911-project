@@ -78,6 +78,9 @@ public class WorkPackage {
     @Column(name = "modified_date")
     private LocalDateTime modifiedDate;
 
+    @Column(name =  "etc")
+    private BigDecimal etc;
+
     @JsonbTransient
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by")
@@ -108,6 +111,9 @@ public class WorkPackage {
 
     @Transient
     private Integer reEmployeeIdTransient;
+
+    @Transient
+    private String reEmployeeNameTransient;
 
     public WorkPackage() {
     }
@@ -145,6 +151,20 @@ public class WorkPackage {
     @JsonbProperty("reEmployeeId")
     public void setReEmployeeId(Integer reEmployeeId) {
         this.reEmployeeIdTransient = reEmployeeId;
+    }
+
+    @JsonbProperty("reEmployeeName")
+    public String getReEmployeeName() {
+        if (reEmployeeNameTransient != null) return reEmployeeNameTransient;
+        if (responsibleEmployee != null) {
+            return responsibleEmployee.getEmpFirstName() + " " + responsibleEmployee.getEmpLastName();
+        }
+        return null;
+    }
+
+    @JsonbProperty("reEmployeeName")
+    public void setReEmployeeName(String reEmployeeName) {
+        this.reEmployeeNameTransient = reEmployeeName;
     }
 
     // --- Standard getters/setters ---
@@ -349,5 +369,13 @@ public class WorkPackage {
 
     public void setModifiedBy(final Employee modifiedBy) {
         this.modifiedBy = modifiedBy;
+    }
+
+    public BigDecimal getEtc() {
+        return etc;
+    }
+
+    public void setEtc(final BigDecimal etc) {
+        this.etc = etc;
     }
 }

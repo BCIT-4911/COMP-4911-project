@@ -1,0 +1,70 @@
+@page
+@model frontend.Pages.LaborGrades.CreateModel
+
+@{
+    var isEdit = Model.LaborGradeId.HasValue;
+    ViewData["Title"] = isEdit ? "Edit Labor Grade" : "Add Labor Grade";
+}
+
+@section Head {
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
+}
+
+<div class="labor-grades-page">
+<div class="labor-grades-canvas">
+    <a asp-page="/LaborGrades/Index" class="labor-grades-back-link">
+        <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" aria-hidden="true">
+            <path d="M400-80 0-480l400-400 71 71-329 329 329 329-71 71Z"/>
+        </svg>
+        Back to Labor Grades
+    </a>
+
+    <div class="labor-grades-header">
+        <h1 class="labor-grades-page-title">Labor grade</h1>
+        <p class="labor-grades-page-subtitle mb-0 mt-1">
+            @(isEdit ? "Update grade code and charge rate" : "Create a grade code and charge rate")
+        </p>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-0 p-4 p-md-5 labor-grades-form-card">
+                @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+                {
+                    <div class="alert alert-danger mb-4" role="alert">@Model.ErrorMessage</div>
+                }
+
+                <form method="post">
+                    <input type="hidden" asp-for="LaborGradeId" />
+
+                    <div class="mb-3">
+                        <label asp-for="GradeCode" class="form-label labor-grades-field-label">
+                            Grade Code
+                        </label>
+                        <input asp-for="GradeCode" class="form-control labor-grades-input" maxlength="2"
+                               placeholder="e.g. P1, P2, DS" />
+                        <small class="labor-grades-help-text d-block mt-1">Max 2 characters</small>
+                    </div>
+
+                    <div class="mb-4">
+                        <label asp-for="ChargeRate" class="form-label labor-grades-field-label">
+                            Charge Rate ($)
+                        </label>
+                        <input asp-for="ChargeRate" class="form-control labor-grades-input" type="number" step="0.01" min="0"
+                               placeholder="e.g. 85.00" />
+                    </div>
+
+                    <div class="d-flex flex-wrap gap-3 mt-4 labor-grades-form-actions">
+                        <button type="submit" class="labor-grades-btn-primary">
+                            @(isEdit ? "Update" : "Create")
+                        </button>
+                        <a asp-page="/LaborGrades/Index" class="labor-grades-btn-secondary">
+                            Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+</div>

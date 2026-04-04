@@ -1,5 +1,6 @@
 package com.corejsf.Service;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
 
@@ -17,6 +18,7 @@ public final class WorkPackageValidation {
         validateId(wp.getWpId());
         validateName(wp.getWpName());
         validateProjectId(wp.getProjId());
+        validateBac(wp.getBac());
     }
 
     public static void validateId(final String id) {
@@ -53,6 +55,23 @@ public final class WorkPackageValidation {
     public static void validateProjectId(final String projId) {
         if (projId == null || projId.isEmpty()) {
             throw new IllegalArgumentException("Project ID for Work Package cannot be null or empty.");
+        }
+    }
+
+    public static void validateBac(final BigDecimal bac) {
+        validateBigDecimalEV(bac, "BAC");
+    }
+
+    public static void validateEtc(final BigDecimal etc) {
+        validateBigDecimalEV(etc, "ETC");
+    }
+
+    private static void validateBigDecimalEV(final BigDecimal value, final String fieldName) {
+        if (value == null) {
+            throw new IllegalArgumentException(fieldName + " cannot be null.");
+        }
+        if (value.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException(fieldName + " cannot be negative.");
         }
     }
 }

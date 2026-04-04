@@ -2,13 +2,14 @@ package com.corejsf.api;
 
 import java.util.List;
 
+import com.corejsf.DTO.WeeklyProjectReportDTO;
 import com.corejsf.Entity.Employee;
 import com.corejsf.Entity.Project;
 import com.corejsf.Entity.ProjectRole;
-import com.corejsf.Entity.SystemRole;
 import com.corejsf.Entity.WorkPackage;
 import com.corejsf.Service.ProjectService;
 import com.corejsf.Service.RebacService;
+import com.corejsf.Service.WeeklyProjectReportService;
 
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
@@ -37,6 +38,10 @@ public class ProjectResource {
     @Inject
     private AuthContext authContext;
 
+    // injecting the new weekly report service
+    @Inject
+    private WeeklyProjectReportService weeklyReportService;
+
     private Response forbidden() {
         return Response.status(Response.Status.FORBIDDEN).entity("Access denied").build();
     }
@@ -55,6 +60,23 @@ public class ProjectResource {
     @Path("/{id}")
     public Project get(@PathParam("id") String id) {
         return projectService.getProject(id);
+    }
+
+    // Weekly report endpoint - only PMs and Ops Managers can access
+    @GET
+    @Path("/{id}/weekly-report")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getWeeklyReport(@PathParam("id") String id) {
+        // only the PM (or ops manager) can access
+        boolean isOpsManager = rebacService.canCreateProject(authContext.getSystemRole());
+        boolean isProjectManager = rebacService.canManageProject(authContext.getEmpId(), id);
+
+        if (!isOpsManager && !isProjectManager) {
+            return forbidden(); // returns 403
+        }
+
+        WeeklyProjectReportDTO report = weeklyReportService.generateReport(id);
+        return Response.ok(report).build();
     }
 
     @POST
@@ -124,11 +146,10 @@ public class ProjectResource {
             return Response.status(Response.Status.BAD_REQUEST).entity("role query parameter is required").build();
         }
         
-        boolean isOpsManager = rebacService.canCreateProject(authContext.getSystemRole());
-        boolean isProjectManager = rebacService.canManageProject(authContext.getEmpId(), id);
+        boolean isOpsOrAdmin = rebacService.canCreateProject(authContext.getSystemRole());
         boolean isSupervisor = rebacService.isSupervisorOf(authContext.getEmpId(), empId);
 
-        if (!isOpsManager && !isProjectManager && !isSupervisor) {
+        if (!isOpsOrAdmin && !isSupervisor) {
             return forbidden();
         }
         
@@ -139,11 +160,10 @@ public class ProjectResource {
     @DELETE
     @Path("/{id}/employees/{empId}")
     public Response removeEmployee(@PathParam("id") String id, @PathParam("empId") int empId) {
-        boolean isOpsManager = rebacService.canCreateProject(authContext.getSystemRole());
-        boolean isProjectManager = rebacService.canManageProject(authContext.getEmpId(), id);
+        boolean isOpsOrAdmin = rebacService.canCreateProject(authContext.getSystemRole());
         boolean isSupervisor = rebacService.isSupervisorOf(authContext.getEmpId(), empId);
 
-        if (!isOpsManager && !isProjectManager && !isSupervisor) {
+        if (!isOpsOrAdmin && !isSupervisor) {
             return forbidden();
         }
         

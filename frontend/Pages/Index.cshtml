@@ -1,10 +1,372 @@
-﻿@page
+@page
 @model IndexModel
 @{
-    ViewData["Title"] = "Home page";
+    ViewData["Title"] = "Home";
 }
 
-<div class="text-center">
-    <h1 class="display-4">COMP4911 Project</h1>
-    <p>@Model.HelloFromApi</p>
+@section Head {
+    <link rel="stylesheet" href="~/css/home-dashboard.css" asp-append-version="true" />
+}
+
+
+<!-- Load Manrope font -->
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&display=swap" rel="stylesheet"/>
+
+<div class="dash-canvas">
+
+    <!-- Welcome Header -->
+    <div class="dash-welcome mb-5">
+        <h1>Welcome, <span id="userName" class="dash-loading">...</span>!</h1>
+        <p class="mb-0 mt-1">Here's an overview of your productivity today.</p>
+    </div>
+
+    <!-- Quick-Stat Cards -->
+    <div class="row g-4 mb-5" id="statCardsRow">
+
+        <!-- Projects -->
+        <div class="col-lg col-md-6 col-sm-6" id="cardProjectsCol">
+            <a href="/Projects" class="dash-stat-card" id="cardProjects">
+                <div class="mb-4">
+                    <svg class="dash-stat-icon-text mb-3" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                    <div class="dash-stat-title">Projects</div>
+                    <div class="dash-stat-sub">Manage active workflows</div>
+                </div>
+                <div class="dash-stat-footer" id="statProjects">-</div>
+            </a>
+        </div>
+
+        <!-- Timesheet -->
+        <div class="col-lg col-md-6 col-sm-6" id="cardTimesheetCol">
+            <a href="/Timesheets/Index" class="dash-stat-card" id="cardTimesheet">
+                <div class="mb-4">
+                    <svg class="dash-stat-icon-text mb-3" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    <div class="dash-stat-title">Timesheet</div>
+                    <div class="dash-stat-sub">Log your hours</div>
+                </div>
+                <div class="dash-stat-footer" id="statTimesheet">-</div>
+            </a>
+        </div>
+
+        <!-- Leave Hours -->
+        <div class="col-lg col-md-6 col-sm-6" id="cardLeaveCol">
+            <div class="dash-stat-card" id="cardLeave" style="cursor:default;">
+                <div class="mb-4">
+                    <svg class="dash-stat-icon-text mb-3" width="30" height="30" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="1.8">
+                        <path
+                            d="M12 21s-6-4.35-9-8.5C.5 9.5 2.24 5 6.5 5c2.04 0 3.24 1.08 4.08 2.2C11.42 6.08 12.62 5 14.66 5 18.92 5 20.66 9.5 21 12.5 18 16.65 12 21 12 21z">
+                        </path>
+                    </svg>
+                    <div class="dash-stat-title">Leave Balance</div>
+                    <div class="dash-stat-sub">Combined leave bank</div>
+                </div>
+                <div class="dash-stat-footer" id="statLeave">-</div>
+            </div>
+        </div>
+
+        <!-- Earned Value -->
+        <div class="col-lg col-md-6 col-sm-6" id="cardEVCol">
+            <a href="/EarnedValue/Index" class="dash-stat-card" id="cardEarnedValue">
+                <div class="mb-4">
+                    <svg class="dash-stat-icon-text mb-3" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                    <div class="dash-stat-title">Earned Value</div>
+                    <div class="dash-stat-sub">Financial performance</div>
+                </div>
+                <div class="dash-stat-footer" id="statEV">-</div>
+            </a>
+        </div>
+
+        <!-- Approvals -->
+        <div class="col-lg col-md-6 col-sm-6" id="cardApprovalsCol">
+            <a href="/Approver/Index" class="dash-stat-card" id="cardApprovals">
+                <div class="mb-4">
+                    <svg class="dash-stat-icon-text mb-3" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
+                    <div class="dash-stat-title">Approvals</div>
+                    <div class="dash-stat-sub">Awaiting your review</div>
+                </div>
+                <div class="dash-stat-footer" id="statApprovals">-</div>
+            </a>
+        </div>
+
+        <!-- Employees (HR) -->
+        <div class="col-lg col-md-6 col-sm-6" id="cardEmployeesCol">
+            <a href="/Employee/Index" class="dash-stat-card" id="cardEmployees">
+                <div class="mb-4">
+                    <svg class="dash-stat-icon-text mb-3" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    <div class="dash-stat-title">Employees</div>
+                    <div class="dash-stat-sub">Manage staff directory</div>
+                </div>
+                <div class="dash-stat-footer" id="statEmployees">-</div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Detail Panels -->
+    <div class="row g-4">
+        <!-- Time sheet Summary -->
+        <div class="col-xl-8 col-lg-7 col-md-12">
+            <div class="dash-panel p-4 p-lg-5" id="panelTimesheet">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2 class="mb-0">Time sheet Summary</h2>
+                    <a href="/Timesheets/Index" class="btn dash-btn-submit d-inline-flex align-items-center gap-2">
+                        <span>Submit Timesheet</span>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                    </a>
+                </div>
+                <div class="dash-ts-wrap">
+                    <table class="table dash-ts-table mb-0">
+                        <thead>
+                            <tr>
+                                <th>Project Name</th>
+                                <th>Task Category</th>
+                                <th>Total Hours</th>
+                                <th class="text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tsBody">
+                            <tr><td colspan="4" class="dash-loading text-center py-5">Loading timesheets...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Your Projects -->
+        <div class="col-xl-4 col-lg-5 col-md-12">
+            <div class="dash-panel p-4 p-lg-5 h-100" id="panelProjects">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2 class="mb-0">Your Projects</h2>
+                    <a href="/Projects" class="btn dash-btn-submit-sm d-inline-flex align-items-center"
+                           title="View all projects">
+                        <span>View All</span>
+                    </a>
+
+                </div>
+                <div id="projectsList">
+                    <div class="dash-loading">Loading projects...</div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+
+@section Scripts {
+<script>
+    const API = '@Model.ApiBaseUrl';
+    const TOKEN = '@Model.JwtToken';
+    const EMP_ID = '@Model.EmpId';
+    const SYSTEM_ROLE = '@Model.SystemRole';
+
+    function authFetch(url) {
+        return fetch(url, {
+            headers: { 'Authorization': `Bearer ${TOKEN}` }
+        }).then(res => {
+            if (res.status === 401) window.location.href = '/Login';
+            return res;
+        });
+    }
+
+    function showCard(id) {
+        const el = document.getElementById(id);
+        if (el && el.closest('.col-lg')) {
+            el.closest('.col-lg').classList.add('visible');
+        }
+    }
+
+    function showPanel(id) {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'block';
+    }
+
+    function statusBadge(status) {
+        const s = (status || '').toUpperCase();
+        const map = {
+            'DRAFT': 'badge-draft',
+            'SUBMITTED': 'badge-submitted',
+            'APPROVED': 'badge-approved',
+            'RETURNED': 'badge-returned',
+            'OPEN': 'badge-open',
+            'CLOSED': 'badge-closed'
+        };
+        const label = s.charAt(0) + s.slice(1).toLowerCase();
+        return `<span class="badge rounded-pill ${map[s] || 'badge-draft'}" style="font-size:0.625rem; font-weight:700; padding:0.2rem 0.6rem;">${label}</span>`;
+    }
+
+    function calcTotalHours(ts) {
+        if (!ts.rows || ts.rows.length === 0) return 0;
+        return ts.rows.reduce((sum, r) => {
+            return sum + (Number(r.monday) || 0) + (Number(r.tuesday) || 0)
+                + (Number(r.wednesday) || 0) + (Number(r.thursday) || 0)
+                + (Number(r.friday) || 0) + (Number(r.saturday) || 0)
+                + (Number(r.sunday) || 0);
+        }, 0);
+    }
+
+    function esc(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    async function init() {
+        const [empRes, projRes, tsRes, approverRes] = await Promise.all([
+            authFetch(`${API}/api/employees/${EMP_ID}`).catch(() => null),
+            authFetch(`${API}/api/projects`).catch(() => null),
+            authFetch(`${API}/api/timesheets?empId=${EMP_ID}`).catch(() => null),
+            authFetch(`${API}/api/auth/can-access-approver-dashboard`).catch(() => null)
+        ]);
+
+        // Welcome
+            // Welcome
+            const nameEl = document.getElementById('userName');
+            if (empRes && empRes.ok) {
+                const emp = await empRes.json();
+                nameEl.textContent = emp.empFirstName || 'User';
+
+                showCard('cardLeave');
+                const leaveHours = Number(emp.vacationSickBalance ?? 0);
+                const leaveDays = leaveHours / 8;
+
+                document.getElementById('statLeave').textContent =
+                    `${leaveHours.toFixed(2)} hrs (${leaveDays.toFixed(2)} days)`;
+            } else {
+                nameEl.textContent = 'User';
+            }
+            nameEl.classList.remove('dash-loading');
+
+
+            let projects = [];
+            if (projRes && projRes.ok) projects = await projRes.json();
+
+            let timesheets = [];
+            if (tsRes && tsRes.ok) timesheets = await tsRes.json();
+
+            let isApprover = false;
+        if (approverRes && approverRes.ok) {
+            const data = await approverRes.json();
+            isApprover = data && data.allowed;
+        }
+
+        // === STAT CARDS ===
+
+        if (SYSTEM_ROLE === 'OPERATIONS_MANAGER' || SYSTEM_ROLE === 'ADMIN' || projects.length > 0) {
+            showCard('cardProjects');
+            const openCount = projects.filter(p => p.project_status === 'OPEN').length;
+            document.getElementById('statProjects').textContent = `${openCount} Active`;
+        }
+
+        showCard('cardTimesheet');
+        const draftCount = timesheets.filter(t => t.status === 'DRAFT').length;
+        const submittedCount = timesheets.filter(t => t.status === 'SUBMITTED').length;
+        if (draftCount > 0) {
+            document.getElementById('statTimesheet').textContent = `${draftCount} Draft`;
+        } else if (submittedCount > 0) {
+            document.getElementById('statTimesheet').textContent = `${submittedCount} Submitted`;
+        } else {
+            document.getElementById('statTimesheet').textContent = `${timesheets.length} Total`;
+        }
+
+        if (SYSTEM_ROLE === 'OPERATIONS_MANAGER' || SYSTEM_ROLE === 'ADMIN') {
+            showCard('cardEarnedValue');
+            document.getElementById('statEV').textContent = `${projects.length} Projects`;
+        }
+
+        if (isApprover) {
+            showCard('cardApprovals');
+            try {
+                const pendingRes = await authFetch(`${API}/api/timesheets?approverId=${EMP_ID}&status=SUBMITTED`);
+                if (pendingRes.ok) {
+                    const pending = await pendingRes.json();
+                    document.getElementById('statApprovals').textContent = `${pending.length} Pending`;
+                }
+            } catch (e) {
+                document.getElementById('statApprovals').textContent = '0 Pending';
+            }
+        }
+
+        if (SYSTEM_ROLE === 'HR' || SYSTEM_ROLE === 'ADMIN') {
+            showCard('cardEmployees');
+            try {
+                const empListRes = await authFetch(`${API}/api/employees`);
+                if (empListRes.ok) {
+                    const empList = await empListRes.json();
+                    document.getElementById('statEmployees').textContent = `${empList.length} Employees`;
+                }
+            } catch (e) {
+                document.getElementById('statEmployees').textContent = '-';
+            }
+        }
+
+        // === DETAIL PANELS ===
+
+        // Time sheet Summary — flatten rows
+        showPanel('panelTimesheet');
+        const tsBody = document.getElementById('tsBody');
+        const flatRows = [];
+        timesheets.forEach(ts => {
+            if (ts.rows && ts.rows.length > 0) {
+                ts.rows.forEach(r => {
+                    const hours = (Number(r.monday) || 0) + (Number(r.tuesday) || 0)
+                        + (Number(r.wednesday) || 0) + (Number(r.thursday) || 0)
+                        + (Number(r.friday) || 0) + (Number(r.saturday) || 0)
+                        + (Number(r.sunday) || 0);
+                    flatRows.push({
+                        projectName: r.wpName || r.wpId || '-',
+                        taskCategory: r.wpId || '-',
+                        hours: hours,
+                        status: ts.status
+                    });
+                });
+            } else {
+                flatRows.push({
+                    projectName: ts.weekEnding || '-',
+                    taskCategory: '-',
+                    hours: calcTotalHours(ts),
+                    status: ts.status
+                });
+            }
+        });
+        if (flatRows.length === 0) {
+            tsBody.innerHTML = '<tr><td colspan="4" class="text-center py-5" style="color:#52644f; font-size:0.9rem; font-weight:500; opacity:0.7;">No timesheets yet. Create your first timesheet to get started.</td></tr>';
+        } else {
+            tsBody.innerHTML = flatRows.slice(0, 5).map(r => `<tr>
+                <td class="fw-semibold">${esc(r.projectName)}</td>
+                <td>${esc(r.taskCategory)}</td>
+                <td>${r.hours.toFixed(1)}h</td>
+                <td class="text-center align-middle">${statusBadge(r.status)}</td>
+            </tr>`).join('');
+        }
+
+        // Your Projects
+        if (projects.length > 0) {
+            showPanel('panelProjects');
+            const projectsList = document.getElementById('projectsList');
+            projectsList.innerHTML = projects.slice(0, 5).map(p => {
+                let subtitle = esc(p.project_type || p.project_id);
+                if (p.end_date) {
+                    const end = new Date(p.end_date);
+                    const now = new Date();
+                    const diffDays = Math.ceil((end - now) / (1000 * 60 * 60 * 24));
+                    if (diffDays > 1) subtitle = `Due in ${diffDays} days`;
+                    else if (diffDays === 1) subtitle = 'Due tomorrow';
+                    else if (diffDays === 0) subtitle = 'Due today';
+                    else if (diffDays === -1) subtitle = '1 day overdue';
+                    else subtitle = `${Math.abs(diffDays)} days overdue`;
+                }
+                return `<div class="dash-project-item d-flex justify-content-between align-items-center p-3 mb-2">
+                    <div>
+                        <div class="dash-project-name">${esc(p.project_name || p.project_id)}</div>
+                        <div class="dash-project-sub">${subtitle}</div>
+                    </div>
+                    ${statusBadge(p.project_status)}
+                </div>`;
+            }).join('');
+            if (projects.length > 5) {
+                projectsList.innerHTML += `<div class="text-center py-2"><a href="/Projects" style="color: #4b644f; font-weight: 600; font-size: 0.85rem;">View all ${projects.length} projects</a></div>`;
+            }
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+</script>
+}

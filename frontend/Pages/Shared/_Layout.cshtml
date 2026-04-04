@@ -1,75 +1,120 @@
 @inject IConfiguration Config
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - frontend</title>
     <script type="importmap"></script>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.3.7/css/dataTables.bootstrap5.min.css" />
+    <link rel="stylesheet" href="~/css/site-base.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/site-crud.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/site-layout-header.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/site-page-projects.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/site-page-timesheets.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/site-page-employees.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/site-page-labor-grades.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/site-page-approver.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/site-page-labor-report.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/site-page-login.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/frontend.styles.css" asp-append-version="true" />
+    @await RenderSectionAsync("Head", required: false)
 </head>
+
 <body>
     <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container">
-                <a class="navbar-brand" asp-area="" asp-page="/Index">frontend</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse"
-                        aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <nav class="navbar navbar-expand-lg custom-header py-3">
+            <div class="container-fluid px-sm-4 px-2 d-flex align-items-center">
+
+                <a class="navbar-brand header-brand mb-0 me-4" asp-area="" asp-page="/Index">
+                    <img src="~/images/logo.png" alt="Logo" class="header-logo" />
+                </a>
+
+                <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse"
+                        data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent" aria-expanded="false"
+                        aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+
+                <div class="navbar-collapse collapse w-100">
                     @{
                         var role = Context.Session.GetString("SystemRole") ?? "";
                         var empId = Context.Session.GetString("EmpId") ?? "";
+                        var empFirstName = Context.Session.GetString("EmpFirstName") ?? "";
+                        var empLastName = Context.Session.GetString("EmpLastName") ?? "";
                         var jwt = Context.Session.GetString("JWT") ?? "";
                         var apiBaseUrl = Config["ApiBaseUrl"] ?? "";
-                        var isLoggedIn = !string.IsNullOrEmpty(role) || !string.IsNullOrEmpty(Context.Session.GetString("JWT"));
+                        var isLoggedIn = !string.IsNullOrEmpty(role) ||
+                    !string.IsNullOrEmpty(Context.Session.GetString("JWT"));
+
+                        var lastInitial = "";
+                        if (empLastName.Length > 0)
+                        {
+                            lastInitial = empLastName[0].ToString();
+                        }
+
+                        var displayName = $"{empId}";
+                        if (!string.IsNullOrEmpty(empFirstName))
+                        {
+                            displayName = $"{empFirstName}. {lastInitial} - {empId}";
+                        }
                     }
-                    <ul class="navbar-nav flex-grow-1">
+
+                    <!-- Nav items -->
+                    <ul class="navbar-nav header-nav gap-lg-4 gap-2">
                         @if (isLoggedIn)
                         {
                             <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-page="/Index">Home</a>
+                                <a class="nav-link header-link" asp-area="" asp-page="/Index">Home</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-dark" asp-page="/Timesheets/Index">Timesheet</a>
+                                <a class="nav-link header-link" asp-area="" asp-page="/Projects">Projects</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-page="/Projects">Projects</a>
+                                <a class="nav-link header-link" asp-page="/Timesheets/Index">Timesheet</a>
                             </li>
                             <li class="nav-item" id="approverNavItem" style="display:none;">
-                                <a class="nav-link text-dark" asp-page="/Approver/Index">Approver Dashboard</a>
+                                <a class="nav-link header-link" asp-page="/Approver/Index">Approver Dashboard</a>
                             </li>
-                            @if (role == "OPERATIONS_MANAGER")
+                            <li class="nav-item" id="earnedValueNavItem" style="display:none;">
+                                <a class="nav-link header-link" asp-page="/EarnedValue/Index">Earned Value</a>
+                            </li>
+                            <li class="nav-item" id="laborReportNavItem" style="display:none;">
+                                <a class="nav-link header-link" asp-page="/EarnedValue/LaborReport">Labor Report</a>
+                            </li>
+                            @if (role == "HR" || role == "ADMIN")
                             {
                                 <li class="nav-item">
-                                    <a class="nav-link text-dark" asp-page="/EarnedValue/Index">Earned Value</a>
+                                    <a class="nav-link header-link" asp-area="" asp-page="/Employee/Index">Employees</a>
                                 </li>
                             }
-                            @if (role == "HR")
+                            @if (role == "ADMIN" || role == "OPERATIONS_MANAGER")
                             {
                                 <li class="nav-item">
-                                    <a class="nav-link text-dark" asp-area="" asp-page="/Employees">Employees</a>
+                                    <a class="nav-link header-link" asp-page="/LaborGrades/Index">Labor Grades</a>
                                 </li>
                             }
                         }
                         else
                         {
                             <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-page="/Login">Login</a>
+                                <a class="nav-link header-link" asp-area="" asp-page="/Login">Login</a>
                             </li>
                         }
                     </ul>
+
+                    <!--  Icons and userid-->
                     @if (isLoggedIn)
                     {
-                        <ul class="navbar-nav">
+                        <ul class="navbar-nav ms-auto align-items-center flex-row justify-content-end gap-3 mt-3 mt-lg-0">
                             <li class="nav-item">
-                                <span class="nav-link text-muted">Emp #@empId</span>
+                                <span class="nav-link text-muted">@displayName</span>
                             </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-page="/Login" asp-page-handler="Logout">Logout</a>
+
+                            <li class="nav-item ms-lg-2">
+                                <a asp-page="/Login" asp-page-handler="Logout" class="nav-link header-link px-0">Logout</a>
                             </li>
                         </ul>
 
@@ -77,33 +122,119 @@
                             (function () {
                                 const token = '@jwt';
                                 const apiBaseUrl = '@apiBaseUrl';
+                                const role = '@role';
+                                const currentEmpId = '@empId';
                                 if (!token || !apiBaseUrl) return;
 
-                                const cached = sessionStorage.getItem('canAccessApprover');
-                                if (cached === 'true') {
-                                    document.getElementById('approverNavItem').style.display = '';
+                                const approverNavItem = document.getElementById('approverNavItem');
+                                const earnedValueNavItem = document.getElementById('earnedValueNavItem');
+                                const laborReportNavItem = document.getElementById('laborReportNavItem');
+
+                                const approverCache = sessionStorage.getItem('canAccessApprover');
+                                if (approverCache === 'true' && approverNavItem) {
+                                    approverNavItem.style.display = '';
+                                }
+                                if (approverCache !== 'true' && approverCache !== 'false') {
+                                    fetch(`${apiBaseUrl}/api/auth/can-access-approver-dashboard`, {
+                                        headers: { 'Authorization': `Bearer ${token}` }
+                                    })
+                                        .then(r => r.ok ? r.json() : null)
+                                        .then(data => {
+                                            const allowed = data && data.allowed;
+                                            sessionStorage.setItem('canAccessApprover', String(allowed));
+                                            if (allowed && approverNavItem) {
+                                                approverNavItem.style.display = '';
+                                            }
+                                        })
+                                        .catch(() => {});
+                                }
+
+                                const showEarnedValue = () => {
+                                    if (earnedValueNavItem) {
+                                        earnedValueNavItem.style.display = '';
+                                    }
+                                };
+
+                                const showLaborReport = () => {
+                                    if (laborReportNavItem) {
+                                        laborReportNavItem.style.display = '';
+                                    }
+                                };
+
+                                if (role === 'OPERATIONS_MANAGER' || role === 'ADMIN') {
+                                    showEarnedValue();
+                                    showLaborReport();
                                     return;
                                 }
-                                if (cached === 'false') return;
 
-                                fetch(`${apiBaseUrl}/api/auth/can-access-approver-dashboard`, {
+                                const evCacheKey = `canAccessEarnedValue:${currentEmpId}`;
+                                const earnedValueCache = sessionStorage.getItem(evCacheKey);
+                                if (earnedValueCache === 'true') {
+                                    showEarnedValue();
+                                    showLaborReport();
+                                    return;
+                                }
+                                if (earnedValueCache === 'false') {
+                                    return;
+                                }
+
+                                const asOf = new Date().toISOString().slice(0, 10);
+                                fetch(`${apiBaseUrl}/api/projects`, {
                                     headers: { 'Authorization': `Bearer ${token}` }
                                 })
-                                    .then(r => r.ok ? r.json() : null)
-                                    .then(data => {
-                                        const allowed = data && data.allowed;
-                                        sessionStorage.setItem('canAccessApprover', String(allowed));
-                                        if (allowed) {
-                                            document.getElementById('approverNavItem').style.display = '';
+                                    .then(r => r.ok ? r.json() : [])
+                                    .then(async projects => {
+                                        for (const project of projects) {
+                                            const projectId = project.project_id || project.projId;
+                                            if (!projectId) {
+                                                continue;
+                                            }
+
+                                            const evResponse = await fetch(
+                                                `${apiBaseUrl}/api/earned-value/projects/${encodeURIComponent(projectId)}/monthly-report?asOf=${asOf}`,
+                                                { headers: { 'Authorization': `Bearer ${token}` } }
+                                            );
+
+                                            if (evResponse.ok) {
+                                                sessionStorage.setItem(evCacheKey, 'true');
+                                                showEarnedValue();
+                                                showLaborReport();
+                                                return;
+                                            }
                                         }
+
+                                        sessionStorage.setItem(evCacheKey, 'false');
                                     })
-                                    .catch(() => {});
+                                    .catch(() => { });
                             })();
                         </script>
                     }
                 </div>
             </div>
         </nav>
+
+        <!--Highlights current nav link-->
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                const navLinks = document.querySelectorAll('.header-link');
+                const currPath = window.location.pathname.toLowerCase();
+
+                navLinks.forEach(link => {
+                    const href = link.getAttribute('href');
+                    if (!href) return;
+
+                    const hrefLower = href.toLowerCase();
+
+                    if (currPath === '/' && (hrefLower === '/' || hrefLower === '/index')) {
+                        link.classList.add('active');
+                    } else if (currPath === '/index' && (hrefLower === '/' || hrefLower === '/index')) {
+                        link.classList.add('active');
+                    } else if (hrefLower !== '/' && hrefLower !== '/index' && currPath.startsWith(hrefLower)) {
+                        link.classList.add('active');
+                    }
+                });
+            });
+        </script>
     </header>
     <div class="container">
         <main role="main" class="pb-3">
@@ -112,13 +243,13 @@
     </div>
 
     <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - frontend - <a asp-area="" asp-page="/Privacy">Privacy</a>
-        </div>
+        <!-- No footer in current design -->
     </footer>
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/2.3.7/js/dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/2.3.7/js/dataTables.bootstrap5.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
 
     @await RenderSectionAsync("Scripts", required: false)

@@ -24,6 +24,11 @@ public class LoginModel : PageModel
 
     public async Task<IActionResult> OnPostAsync()
     {
+        if (string.IsNullOrWhiteSpace(Input.EmpId) || string.IsNullOrWhiteSpace(Input.Password))
+        {
+            ErrorMessage = "Enter employee ID and password.";
+            return Page();
+        }
         if (!ModelState.IsValid)
             return Page();
 
@@ -33,7 +38,7 @@ public class LoginModel : PageModel
 
         var loginData = new
         {
-            empId = Input.EmpId,
+            empId = int.TryParse(Input.EmpId, out var id) ? id : 0,
             password = Input.Password
         };
 
@@ -52,7 +57,7 @@ public class LoginModel : PageModel
 
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
-            ErrorMessage = "Invalid credentials.";
+            ErrorMessage = "Invalid employee ID or password.";
             return Page();
         }
 
@@ -100,8 +105,16 @@ public class LoginModel : PageModel
                 var empId = payload.TryGetProperty("empId", out var empIdProp)
                     ? empIdProp.GetRawText()
                     : "";
+                var firstName = payload.TryGetProperty("firstName", out var firstProp)
+                    ? firstProp.GetString() ?? ""
+                    : "";
+                var lastName = payload.TryGetProperty("lastName", out var lastProp)
+                    ? lastProp.GetString() ?? ""
+                    : "";
                 HttpContext.Session.SetString("SystemRole", role);
                 HttpContext.Session.SetString("EmpId", empId);
+                HttpContext.Session.SetString("EmpFirstName", firstName);
+                HttpContext.Session.SetString("EmpLastName", lastName);
             }
             catch { /* ignore decode errors, role/nav will fallback */ }
         }
@@ -112,7 +125,7 @@ public class LoginModel : PageModel
     public class LoginInput
     {
         [Required]
-        public int EmpId { get; set; }
+        public string EmpId { get; set; } = "";
 
         [Required]
         public string Password { get; set; } = "";

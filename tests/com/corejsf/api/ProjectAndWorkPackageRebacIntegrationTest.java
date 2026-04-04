@@ -1,31 +1,35 @@
 package com.corejsf.Api;
 
-import io.restassured.RestAssured;
-import io.restassured.http.ContentType;
-import io.restassured.response.Response;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-
 import java.util.List;
 import java.util.Map;
 
-import static io.restassured.RestAssured.given;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 
-public class ProjectAndWorkPackageRebacIntegrationTest {
+import com.corejsf.TestConfig;
 
-    private static Integer OPS_ID;
-    private static Integer HR_ID;
-    private static Integer PM_PROJ1_ID;
-    private static Integer RE_A_ID;
-    private static Integer MEMBER_A2_ID;
-    private static Integer RE_A2_ID;
-    private static Integer PM_PROJ2_ID;
+import static io.restassured.RestAssured.given;
+import io.restassured.http.ContentType;
+import io.restassured.response.Response;
 
-    private static final String PASSWORD = "password";
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+public class ProjectAndWorkPackageRebacIntegrationTest extends TestConfig {
+
+    private static int OPS_ID;
+    private static int ELMER_ID;
+    private static int HR_ID;
+    private static int PM_PROJ1_ID;
+    private static int RE_A_ID;
+    private static int MEMBER_A2_ID;
+    private static int RE_A2_ID;
+    private static int PM_PROJ2_ID;
 
     private static String opsToken;
+    private static String elmerToken;
     private static String hrToken;
     private static String pmProj1Token;
     private static String reAToken;
@@ -35,75 +39,30 @@ public class ProjectAndWorkPackageRebacIntegrationTest {
 
     @BeforeAll
     static void setup() {
-        RestAssured.baseURI = "http://localhost";
-        RestAssured.port = 8080;
-        RestAssured.basePath = "/Project/api";
+        opsToken = loginAsSeedOps();
+        StandardSeedIds ids = resolveStandardSeedIds(opsToken);
+        OPS_ID = ids.opsId();
+        ELMER_ID = ids.elmerId();
+        HR_ID = ids.hrId();
+        PM_PROJ1_ID = ids.pmProj1Id();
+        RE_A_ID = ids.daffyId();
+        MEMBER_A2_ID = ids.tweetyId();
+        RE_A2_ID = ids.sylvesterId();
+        PM_PROJ2_ID = ids.marvinPmProj2Id();
 
-        opsToken = login(1, PASSWORD);
-        resolveSeedIds(opsToken);
-        hrToken = login(HR_ID, PASSWORD);
-        pmProj1Token = login(PM_PROJ1_ID, PASSWORD);
-        reAToken = login(RE_A_ID, PASSWORD);
-        memberA2Token = login(MEMBER_A2_ID, PASSWORD);
-        reA2Token = login(RE_A2_ID, PASSWORD);
-        pmProj2Token = login(PM_PROJ2_ID, PASSWORD);
-    }
+        elmerToken = login(ELMER_ID, DEFAULT_PASSWORD);
+        hrToken = login(HR_ID, DEFAULT_PASSWORD);
+        pmProj1Token = login(PM_PROJ1_ID, DEFAULT_PASSWORD);
+        reAToken = login(RE_A_ID, DEFAULT_PASSWORD);
+        memberA2Token = login(MEMBER_A2_ID, DEFAULT_PASSWORD);
+        reA2Token = login(RE_A2_ID, DEFAULT_PASSWORD);
+        pmProj2Token = login(PM_PROJ2_ID, DEFAULT_PASSWORD);
 
-    private static void resolveSeedIds(String opsToken) {
-        List<Map<String, Object>> employees = given()
-                .header("Authorization", "Bearer " + opsToken)
+        // Remove stale WP assignments from previous test runs so visibility tests are accurate
+        given()
+                .header("Authorization", "Bearer " + pmProj1Token)
                 .when()
-                .get("/employees")
-                .then()
-                .statusCode(200)
-                .extract()
-                .jsonPath()
-                .getList("$");
-
-        for (Map<String, Object> e : employees) {
-            String first = (String) e.get("empFirstName");
-            String last = (String) e.get("empLastName");
-            int id = ((Number) e.get("empId")).intValue();
-            if ("Wile".equals(first) && "Coyote".equals(last)) OPS_ID = id;
-            else if ("Road".equals(first) && "Runner".equals(last)) HR_ID = id;
-            else if ("Bugs".equals(first) && "Bunny".equals(last)) PM_PROJ1_ID = id;
-            else if ("Daffy".equals(first) && "Duck".equals(last)) RE_A_ID = id;
-            else if ("Tweety".equals(first) && "Bird".equals(last)) MEMBER_A2_ID = id;
-            else if ("Sylvester".equals(first) && "Cat".equals(last)) RE_A2_ID = id;
-            else if ("Marvin".equals(first) && "Martian".equals(last)) PM_PROJ2_ID = id;
-        }
-        assertNotNull(OPS_ID, "Seed data missing: Wile Coyote. Run: cd sql && docker compose down -v && docker compose up -d");
-        assertNotNull(HR_ID, "Seed data missing: Road Runner");
-        assertNotNull(PM_PROJ1_ID, "Seed data missing: Bugs Bunny");
-        assertNotNull(RE_A_ID, "Seed data missing: Daffy Duck");
-        assertNotNull(MEMBER_A2_ID, "Seed data missing: Tweety Bird");
-        assertNotNull(RE_A2_ID, "Seed data missing: Sylvester Cat");
-        assertNotNull(PM_PROJ2_ID, "Seed data missing: Marvin Martian");
-    }
-
-    private static String login(int empId, String password) {
-        Response response = given()
-                .contentType(ContentType.JSON)
-                .body("""
-                        {
-                          "empId": %d,
-                          "password": "%s"
-                        }
-                        """.formatted(empId, password))
-                .when()
-                .post("/auth/login")
-                .then()
-                .statusCode(200)
-                .extract()
-                .response();
-
-        String token = response.jsonPath().getString("token");
-
-        if (token == null || token.isBlank()) {
-            throw new IllegalStateException("Login succeeded but token was missing for empId=" + empId);
-        }
-
-        return token;
+                .delete("/workpackages/A.WP-1/employees/" + MEMBER_A2_ID);
     }
 
     private Response postWithToken(String token, String endpoint) {
@@ -128,9 +87,26 @@ public class ProjectAndWorkPackageRebacIntegrationTest {
                 "Expected 2xx success but got " + status + " with body: " + response.getBody().asString());
     }
 
+    private List<String> getWorkPackageIds(String projId, String token) {
+        List<Map<String, Object>> wps = given()
+                .header("Authorization", "Bearer " + token)
+                .when()
+                .get("/projects/" + projId + "/workpackages")
+                .then()
+                .statusCode(200)
+                .extract()
+                .jsonPath()
+                .getList("$");
+        List<String> ids = new java.util.ArrayList<>();
+        for (Map<String, Object> wp : wps) {
+            ids.add((String) wp.get("wpId"));
+        }
+        return ids;
+    }
+
     // PROJECT ASSIGNMENT RBAC
-    // Endpoint:
-    // POST /projects/{id}/employees/{empId}?role=PM
+    // Only Ops/Admin and Supervisors (for their direct reports) may assign.
+    // PM role alone does NOT grant assignment rights.
 
     @Test
     void assignEmployeeToProject_asOpsManager_succeeds() {
@@ -143,7 +119,9 @@ public class ProjectAndWorkPackageRebacIntegrationTest {
     }
 
     @Test
-    void assignEmployeeToProject_asPmOfThatProject_succeeds() {
+    void assignEmployeeToProject_asSupervisor_succeeds() {
+        // Bugs Bunny (PM PROJ-1) is also supervisor of Sylvester (RE_A2).
+        // This succeeds via the supervisor path, NOT the PM path.
         Response response = postWithToken(
                 pmProj1Token,
                 "/projects/PROJ-1/employees/" + RE_A2_ID + "?role=MEMBER"
@@ -153,7 +131,8 @@ public class ProjectAndWorkPackageRebacIntegrationTest {
     }
 
     @Test
-    void assignEmployeeToProject_asPmOfDifferentProject_returns403() {
+    void assignEmployeeToProject_asNonSupervisorPm_returns403() {
+        // Marvin (PM PROJ-2) is NOT supervisor of Tweety (supervisor is Bugs).
         postWithToken(
                 pmProj2Token,
                 "/projects/PROJ-1/employees/" + MEMBER_A2_ID + "?role=MEMBER"
@@ -191,7 +170,7 @@ public class ProjectAndWorkPackageRebacIntegrationTest {
     void assignEmployeeToWorkPackage_asPmOfThatProject_succeeds() {
         Response response = postWithToken(
                 pmProj1Token,
-                "/workpackages/CA-1.WP-1/employees/" + MEMBER_A2_ID + "?role=MEMBER"
+                "/workpackages/A.WP-1/employees/" + MEMBER_A2_ID + "?role=MEMBER"
         );
 
         assertSuccess2xx(response);
@@ -200,8 +179,8 @@ public class ProjectAndWorkPackageRebacIntegrationTest {
     @Test
     void assignEmployeeToWorkPackage_asOpsManager_returns403() {
         postWithToken(
-                opsToken,
-                "/workpackages/CA-1.WP-1/employees/" + MEMBER_A2_ID + "?role=MEMBER"
+                elmerToken,
+                "/workpackages/A.WP-1/employees/" + MEMBER_A2_ID + "?role=MEMBER"
         )
         .then()
         .statusCode(403);
@@ -211,7 +190,7 @@ public class ProjectAndWorkPackageRebacIntegrationTest {
     void assignEmployeeToWorkPackage_asPmOfDifferentProject_returns403() {
         postWithToken(
                 pmProj2Token,
-                "/workpackages/CA-1.WP-1/employees/" + MEMBER_A2_ID + "?role=MEMBER"
+                "/workpackages/A.WP-1/employees/" + MEMBER_A2_ID + "?role=MEMBER"
         )
         .then()
         .statusCode(403);
@@ -221,7 +200,7 @@ public class ProjectAndWorkPackageRebacIntegrationTest {
     void assignEmployeeToWorkPackage_asRegularEmployee_returns403() {
         postWithToken(
                 memberA2Token,
-                "/workpackages/CA-1.WP-1/employees/" + RE_A_ID + "?role=MEMBER"
+                "/workpackages/A.WP-1/employees/" + RE_A_ID + "?role=MEMBER"
         )
         .then()
         .statusCode(403);
@@ -231,7 +210,7 @@ public class ProjectAndWorkPackageRebacIntegrationTest {
     void assignEmployeeToWorkPackage_asAssignedRe_returns403() {
         postWithToken(
                 reA2Token,
-                "/workpackages/CA-1.WP-1/employees/" + MEMBER_A2_ID + "?role=MEMBER"
+                "/workpackages/A.WP-1/employees/" + MEMBER_A2_ID + "?role=MEMBER"
         )
         .then()
         .statusCode(403);
@@ -251,7 +230,7 @@ public class ProjectAndWorkPackageRebacIntegrationTest {
     void closeWorkPackage_asAssignedRe_succeeds() {
         Response response = putWithToken(
                 reA2Token,
-                "/workpackages/CA-1.WP-2/close"
+                "/workpackages/A.WP-2/close"
         );
 
         assertSuccess2xx(response);
@@ -261,7 +240,7 @@ public class ProjectAndWorkPackageRebacIntegrationTest {
     void openWorkPackage_asAssignedRe_succeeds() {
         Response response = putWithToken(
                 reA2Token,
-                "/workpackages/CA-1.WP-2/open"
+                "/workpackages/A.WP-2/open"
         );
 
         assertSuccess2xx(response);
@@ -271,7 +250,7 @@ public class ProjectAndWorkPackageRebacIntegrationTest {
     void closeWorkPackage_asProjectPm_succeeds() {
         Response response = putWithToken(
                 pmProj1Token,
-                "/workpackages/CA-1.WP-2/close"
+                "/workpackages/A.WP-2/close"
         );
 
         assertSuccess2xx(response);
@@ -281,7 +260,7 @@ public class ProjectAndWorkPackageRebacIntegrationTest {
     void openWorkPackage_asProjectPm_succeeds() {
         Response response = putWithToken(
                 pmProj1Token,
-                "/workpackages/CA-1.WP-2/open"
+                "/workpackages/A.WP-2/open"
         );
 
         assertSuccess2xx(response);
@@ -291,7 +270,7 @@ public class ProjectAndWorkPackageRebacIntegrationTest {
     void closeWorkPackage_asUnrelatedPm_returns403() {
         putWithToken(
                 pmProj2Token,
-                "/workpackages/CA-1.WP-2/close"
+                "/workpackages/A.WP-2/close"
         )
         .then()
         .statusCode(403);
@@ -301,7 +280,7 @@ public class ProjectAndWorkPackageRebacIntegrationTest {
     void openWorkPackage_asRegularEmployee_returns403() {
         putWithToken(
                 memberA2Token,
-                "/workpackages/CA-1.WP-2/open"
+                "/workpackages/A.WP-2/open"
         )
         .then()
         .statusCode(403);
@@ -311,10 +290,92 @@ public class ProjectAndWorkPackageRebacIntegrationTest {
     void closeWorkPackage_asHr_returns403() {
         putWithToken(
                 hrToken,
-                "/workpackages/CA-1.WP-2/close"
+                "/workpackages/A.WP-2/close"
         )
         .then()
         .statusCode(403);
+    }
+
+    // ----------------------------------------------------------------
+    // WORK PACKAGE VISIBILITY (GET /projects/{id}/workpackages)
+    //
+    // Seed state for PROJ-1:
+    //   A        - Elmer Fudd (RE)
+    //   A.WP-1   - Daffy Duck (RE)
+    //   A.WP-2   - Sylvester Cat (RE), Tweety Bird (MEMBER)
+    //   A.WP-3   - Elmer Fudd (RE)
+    //
+    // @Order(1-6) ensures these read-only tests run BEFORE mutation tests
+    // (assignEmployeeToWorkPackage_asPmOfThatProject_succeeds adds Tweety
+    //  to A.WP-1, which would otherwise corrupt the size==1 assertion).
+    // ----------------------------------------------------------------
+
+    @Test
+    @Order(1)
+    void getWorkPackages_asOpsManager_returnsAllFourWps() {
+        List<String> ids = getWorkPackageIds("PROJ-1", opsToken);
+
+        assertTrue(ids.size() == 4,
+                "Ops Manager should see all 4 WPs in PROJ-1 but got: " + ids);
+        assertTrue(ids.containsAll(java.util.List.of("A", "A.WP-1", "A.WP-2", "A.WP-3")),
+                "Ops Manager is missing expected WP IDs. Got: " + ids);
+    }
+
+    @Test
+    @Order(2)
+    void getWorkPackages_asPmOfProject_returnsAllFourWps() {
+        List<String> ids = getWorkPackageIds("PROJ-1", pmProj1Token);
+
+        assertTrue(ids.size() == 4,
+                "PM of PROJ-1 should see all 4 WPs but got: " + ids);
+        assertTrue(ids.containsAll(java.util.List.of("A", "A.WP-1", "A.WP-2", "A.WP-3")),
+                "PM of PROJ-1 is missing expected WP IDs. Got: " + ids);
+    }
+
+    @Test
+    @Order(3)
+    void getWorkPackages_asReOnWp1_returnsOnlyWp1() {
+        // Daffy Duck is assigned as RE only to A.WP-1
+        List<String> ids = getWorkPackageIds("PROJ-1", reAToken);
+
+        assertTrue(ids.size() == 1,
+                "Daffy Duck (RE on A.WP-1 only) should see exactly 1 WP but got: " + ids);
+        assertTrue(ids.contains("A.WP-1"),
+                "Daffy Duck should see A.WP-1 but got: " + ids);
+    }
+
+    @Test
+    @Order(4)
+    void getWorkPackages_asMemberOnWp2_returnsOnlyWp2() {
+        // Tweety Bird is assigned as MEMBER only to A.WP-2
+        List<String> ids = getWorkPackageIds("PROJ-1", memberA2Token);
+
+        assertTrue(ids.size() == 1,
+                "Tweety Bird (MEMBER on A.WP-2 only) should see exactly 1 WP but got: " + ids);
+        assertTrue(ids.contains("A.WP-2"),
+                "Tweety Bird should see A.WP-2 but got: " + ids);
+    }
+
+    @Test
+    @Order(5)
+    void getWorkPackages_asReOnWp2_returnsOnlyWp2() {
+        // Sylvester Cat is assigned as RE only to A.WP-2
+        List<String> ids = getWorkPackageIds("PROJ-1", reA2Token);
+
+        assertTrue(ids.size() == 1,
+                "Sylvester Cat (RE on A.WP-2 only) should see exactly 1 WP but got: " + ids);
+        assertTrue(ids.contains("A.WP-2"),
+                "Sylvester Cat should see A.WP-2 but got: " + ids);
+    }
+
+    @Test
+    @Order(6)
+    void getWorkPackages_asPmOfDifferentProject_returnsZeroWps() {
+        // Marvin Martian is PM of PROJ-2 and has no WP assignments in PROJ-1
+        List<String> ids = getWorkPackageIds("PROJ-1", pmProj2Token);
+
+        assertTrue(ids.isEmpty(),
+                "Marvin Martian (PM of PROJ-2 only) should see 0 WPs in PROJ-1 but got: " + ids);
     }
 
 }

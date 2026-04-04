@@ -37,6 +37,9 @@ public class TimesheetService {
     @Inject
     private TimesheetRowService timesheetRowService;
 
+    @Inject
+    private RebacService rebacService;
+
     // -------------------------------------------------------------------------
     // Entity lookup helpers
     // -------------------------------------------------------------------------
@@ -291,6 +294,12 @@ public class TimesheetService {
         for (TimesheetRowRequestDTO rowDto : rowDTOs) {
             WorkPackage wp = findWorkPackage(rowDto.getWpId());
             runValidation(() -> TimesheetValidation.validateWorkPackageChargeable(wp));
+
+            if(!rebacService.canChargeToWorkPackage(ts.getEmployee().getEmpId(), wp.getWpId())){
+                throw new WebApplicationException(
+                        "Employee does not have permission to charge to work package " + wp.getWpId(),
+                        Response.Status.FORBIDDEN);
+            }
 
             LaborGrade lg = findLaborGrade(rowDto.getLaborGradeId());
 

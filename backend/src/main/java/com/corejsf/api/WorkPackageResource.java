@@ -6,6 +6,8 @@ import com.corejsf.DTO.EtcUpdateDTO;
 import com.corejsf.Entity.Employee;
 import com.corejsf.Entity.SystemRole;
 import com.corejsf.Entity.WorkPackage;
+import com.corejsf.Entity.WorkPackageStatus;
+import com.corejsf.Entity.WorkPackageType;
 import com.corejsf.Entity.WpRole;
 import com.corejsf.Service.RebacService;
 import com.corejsf.Service.WorkPackageService;
@@ -164,5 +166,16 @@ public class WorkPackageResource {
     @Produces(MediaType.TEXT_PLAIN)
     public String report(@PathParam("id") String id) {
         return workPackageService.generateReport(id);
+    }
+
+    @GET
+    @Path("/chargeable")
+    public Response getChargeableForCurrentUser(){
+        int authEmpId = authContext.getEmpId();
+        List<WorkPackage> chargeableWp = workPackageService.getAllWorkPackages().stream().filter(wp ->
+            rebacService.canChargeToWorkPackage(authEmpId, wp.getWpId())
+                && wp.getWpType() == WorkPackageType.LOWEST_LEVEL
+                && wp.getStatus() == WorkPackageStatus.OPEN_FOR_CHARGES).toList();
+        return Response.ok(chargeableWp).build();
     }
 }

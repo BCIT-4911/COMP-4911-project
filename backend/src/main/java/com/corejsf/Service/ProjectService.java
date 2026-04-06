@@ -252,16 +252,15 @@ public class ProjectService {
     }
 
     public void removeEmployee(String projId, int empId) {
-        jakarta.persistence.TypedQuery<ProjectAssignment> query = em.createQuery(
+        List<ProjectAssignment> assignments = em.createQuery(
                 "SELECT pa FROM ProjectAssignment pa WHERE pa.project.projId = :projId AND pa.employee.empId = :empId",
-                ProjectAssignment.class);
-        query.setParameter("projId", projId);
-        query.setParameter("empId", empId);
-        try {
-            ProjectAssignment assignment = query.getSingleResult();
+                ProjectAssignment.class)
+                .setParameter("projId", projId)
+                .setParameter("empId", empId)
+                .getResultList();
+
+        for (ProjectAssignment assignment : assignments) {
             em.remove(assignment);
-        } catch (jakarta.persistence.NoResultException e) {
-            // Nothing to remove
         }
     }
 

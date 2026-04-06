@@ -590,19 +590,26 @@
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(body)
                         });
-            
+
                         if (res.status === 403) throw new Error("You don't have permission to create a project.");
                         if (!res.ok) {
                             const text = await res.text();
                             throw new Error(text || res.statusText);
                         }
-                        
+
                         // Formally assign PM as a project team member after creation
-                        if (!isEdit) {
-                            await authFetch(`${API}/api/projects/${encodeURIComponent(id)}/employees/${body.project_manager_id}`, {
-                                method: 'POST'
-                            });
+                        if (!isEdit && body.project_manager_id) {
+                            const pmAssignRes = await authFetch(
+                                `${API}/api/projects/${encodeURIComponent(id)}/employees/${body.project_manager_id}?role=PM`,
+                                { method: 'POST' }
+                            );
+
+                            if (!pmAssignRes.ok) {
+                                const text = await pmAssignRes.text();
+                                throw new Error(text || 'Failed to assign project manager to project.');
+                            }
                         }
+
                         closeModal();
                         showToast(isEdit ? 'Project updated!' : 'Project created!', 'success');
                         loadProjects();

@@ -6,6 +6,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.mindrot.jbcrypt.BCrypt;
+
 import com.corejsf.Entity.Employee;
 import com.corejsf.Entity.EmployeeESignature;
 import com.corejsf.Entity.LaborGrade;
@@ -14,19 +16,18 @@ import com.corejsf.Entity.ProjectAssignment;
 import com.corejsf.Entity.ProjectRole;
 import com.corejsf.Entity.ProjectStatus;
 import com.corejsf.Entity.ProjectType;
+import com.corejsf.Entity.RateHistory;
+import com.corejsf.Entity.SystemRole;
 import com.corejsf.Entity.Timesheet;
 import com.corejsf.Entity.TimesheetRow;
 import com.corejsf.Entity.TimesheetStatus;
-import com.corejsf.Entity.SystemRole;
 import com.corejsf.Entity.WorkPackage;
 import com.corejsf.Entity.WorkPackageAssignment;
 import com.corejsf.Entity.WorkPackageStatus;
 import com.corejsf.Entity.WorkPackageType;
 import com.corejsf.Entity.WpRole;
-import com.corejsf.Entity.RateHistory;
 
 import jakarta.annotation.PostConstruct;
-import org.mindrot.jbcrypt.BCrypt;
 import jakarta.ejb.Singleton;
 import jakarta.ejb.Startup;
 import jakarta.persistence.EntityManager;

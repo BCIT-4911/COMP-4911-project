@@ -126,11 +126,11 @@
         }
 
         let workPackages = [];
-        let laborGrades = [];
+        let myLaborGradeLabel = '—';
 
         document.addEventListener('DOMContentLoaded', async () => {
             setDefaultWeekEnding();
-            await Promise.all([loadWorkPackages(), loadLaborGrades()]);
+            await Promise.all([loadWorkPackages(), loadMyLaborGrade()]);
             addRow();
             loadTimesheets();
         });
@@ -153,13 +153,24 @@
             }
         }
 
-        async function loadLaborGrades() {
+        async function loadMyLaborGrade() {
+            if (CURRENT_USER_ID == null || isNaN(CURRENT_USER_ID)) return;
             try {
-                const res = await authFetch(`${API}/api/labor-grades`);
-                if (!res.ok) throw new Error('Failed to load labor grades');
-                laborGrades = await res.json();
+                const empRes = await authFetch(`${API}/api/employees/${CURRENT_USER_ID}`);
+                if (!empRes.ok) throw new Error('Failed to load profile');
+                const emp = await empRes.json();
+                const lgId = emp.labor_grade_id ?? emp.laborGradeId;
+                if (lgId == null) {
+                    myLaborGradeLabel = '—';
+                    return;
+                }
+                const lgRes = await authFetch(`${API}/api/labor-grades/${lgId}`);
+                if (!lgRes.ok) throw new Error('Failed to load labor grade');
+                const lg = await lgRes.json();
+                myLaborGradeLabel = `${lg.gradeCode} ($${lg.chargeRate})`;
             } catch (err) {
-                showAlert('Could not load labor grades: ' + err.message, 'warning');
+                showAlert('Could not load your labor grade: ' + err.message, 'warning');
+                myLaborGradeLabel = '—';
             }
         }
 
@@ -171,10 +182,6 @@
                 `<option value="${esc(wp.wpId)}">${esc(wp.wpId)} - ${esc(wp.wpName || '')}</option>`
             ).join('');
 
-            const lgOptions = laborGrades.map(lg =>
-                `<option value="${lg.laborGradeId}">${esc(lg.gradeCode)} ($${lg.chargeRate})</option>`
-            ).join('');
-
             const hr = (cls) => `<td><input type="number" class="hr-input ${cls}" step="0.1" min="0" max="24" value="0" oninput="updateTotals()" /></td>`;
             tr.innerHTML = `
                 <td class="ps-3">
@@ -183,12 +190,7 @@
                         ${wpOptions}
                     </select>
                 </td>
-                <td>
-                    <select class="form-select form-select-ts lg-select">
-                        <option value="">Select...</option>
-                        ${lgOptions}
-                    </select>
-                </td>
+                <td class="ps-2 text-muted small">${esc(myLaborGradeLabel)}</td>
                 ${hr('hr-mon')}
                 ${hr('hr-tue')}
                 ${hr('hr-wed')}
@@ -301,22 +303,15 @@
 
             document.querySelectorAll('#rowsBody tr').forEach((tr, idx) => {
                 const wpId = tr.querySelector('.wp-select').value;
-                const lgId = tr.querySelector('.lg-select').value;
 
                 if (!wpId) {
                     showAlert(`Row ${idx + 1}: Please select a work package.`, 'warning');
                     valid = false;
                     return;
                 }
-                if (!lgId) {
-                    showAlert(`Row ${idx + 1}: Please select a labor grade.`, 'warning');
-                    valid = false;
-                    return;
-                }
 
                 rows.push({
                     wpId: wpId,
-                    laborGradeId: parseInt(lgId, 10),
                     monday: parseHours(tr.querySelector('.hr-mon').value),
                     tuesday: parseHours(tr.querySelector('.hr-tue').value),
                     wednesday: parseHours(tr.querySelector('.hr-wed').value),

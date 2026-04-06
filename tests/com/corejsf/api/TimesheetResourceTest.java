@@ -410,7 +410,6 @@ class TimesheetResourceTest extends TestConfig {
                   "rows": [
                     {
                       "wpId": "%s",
-                      "laborGradeId": 1,
                       "monday": 8.0,
                       "tuesday": 8.0,
                       "wednesday": 8.0,
@@ -422,6 +421,61 @@ class TimesheetResourceTest extends TestConfig {
                   ]
                 }
                 """.formatted(empId, weekEnding, wpId);
+    }
+
+    /**
+     * Row labor grade must always match the employee's profile, not a client-supplied id.
+     */
+    @Test
+    void create_ignoresClientLaborGradeId_usesEmployeeLaborGrade() {
+        int daffyLgId = given()
+                .header("Authorization", "Bearer " + daffyToken)
+                .when()
+                .get("/employees/" + IDS.daffyId())
+                .then()
+                .statusCode(200)
+                .extract()
+                .path("labor_grade_id");
+
+        LocalDate weekEnding = uniqueWeekEnding();
+        String body = """
+                {
+                  "empId": %d,
+                  "weekEnding": "%s",
+                  "rows": [
+                    {
+                      "wpId": "A.WP-1",
+                      "laborGradeId": 99999,
+                      "monday": 8.0,
+                      "tuesday": 8.0,
+                      "wednesday": 8.0,
+                      "thursday": 0,
+                      "friday": 0,
+                      "saturday": 0,
+                      "sunday": 0
+                    }
+                  ]
+                }
+                """.formatted(IDS.daffyId(), weekEnding);
+
+        int tsId = given()
+                .header("Authorization", "Bearer " + daffyToken)
+                .contentType(ContentType.JSON)
+                .body(body)
+                .when()
+                .post("/timesheets")
+                .then()
+                .statusCode(201)
+                .body("rows[0].laborGradeId", equalTo(daffyLgId))
+                .extract()
+                .path("tsId");
+
+        given()
+                .header("Authorization", "Bearer " + daffyToken)
+                .when()
+                .delete("/timesheets/" + tsId)
+                .then()
+                .statusCode(200);
     }
 
     /*

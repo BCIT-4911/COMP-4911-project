@@ -9,6 +9,7 @@ import java.math.BigDecimal;
 public class TimesheetRowRequestDTO {
 
     private String wpId;
+    /** Ignored on create/update; labor grade is taken from the timesheet owner's employee record. */
     private Integer laborGradeId;
     private BigDecimal monday;
     private BigDecimal tuesday;

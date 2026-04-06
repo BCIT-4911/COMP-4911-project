@@ -29,25 +29,98 @@ Instructor/Sponsor: Bruce Link
 ## Repository Structure
 
 ```text
-├── frontend/    # .NET client application
-├── backend/     # Jakarta EE backend (EJB + REST)
-├── Sql/         # SQL scripts and schema files
-├── tests/       # Any test code for front end or back end
-├── docs/        # Any documentation for the project
-└── README.md
+|- frontend/    # .NET client application
+|- backend/     # Jakarta EE backend (EJB + REST)
+|- sql/         # SQL scripts and schema files
+|- tests/       # Any test code for front end or back end
+|- docs/        # Any documentation for the project
+`- README.md
 ```
 
 
 ## REST Endpoints
 
-- `GET /api/greet` — health check
-- `GET /api/projects` — list all projects
-- `POST /api/projects` — create a project
-- `GET /api/projects/{id}/workpackages` — list work packages for a project
-- `GET /api/workpackages` — list all work packages
-- `POST /api/workpackages` — create a work package
-- `GET /api/earned-value` — earned value report data
+All backend routes are exposed under `/Project/api` in local development.
 
+### Health
+
+- `GET /api/greet` - simple backend health check
+
+### Authentication
+
+- `POST /api/auth/login` - authenticate with `empId` and password
+- `GET /api/auth/can-access-approver-dashboard` - check approver dashboard access for the current user
+- `GET /api/auth/direct-reports` - list direct report employee IDs for the current user
+
+### Employees
+
+- `GET /api/employees` - list employees
+- `GET /api/employees/{id}` - get one employee
+- `POST /api/employees` - create an employee
+- `PUT /api/employees/{id}` - update an employee
+- `POST /api/employees/employee-self-update-password` - update the logged-in employee password
+- `DELETE /api/employees/{id}` - delete an employee
+
+### Labor Grades
+
+- `GET /api/labor-grades` - list labor grades
+- `GET /api/labor-grades/{id}` - get one labor grade
+- `POST /api/labor-grades` - create a labor grade
+- `PUT /api/labor-grades/{id}` - update a labor grade
+- `DELETE /api/labor-grades/{id}` - delete a labor grade
+- `GET /api/labor-grades/report?projectId=&wpId=&employeeId=&weekEnding=` - labor report
+
+### Projects
+
+- `GET /api/projects` - list projects visible to the current user
+- `GET /api/projects/{id}` - get one project
+- `POST /api/projects` - create a project
+- `PUT /api/projects/{id}` - update a project
+- `DELETE /api/projects/{id}` - delete a project
+- `PUT /api/projects/{id}/close` - close a project
+- `PUT /api/projects/{id}/open` - reopen a project
+- `POST /api/projects/{id}/workpackages` - create a work package under a project
+- `GET /api/projects/{id}/workpackages` - list work packages for a project
+- `POST /api/projects/{id}/employees/{empId}?role=` - assign an employee to a project
+- `DELETE /api/projects/{id}/employees/{empId}` - remove an employee from a project
+- `GET /api/projects/{id}/employees` - list employees assigned to a project
+- `GET /api/projects/{id}/weekly-report` - weekly project report
+- `GET /api/projects/{id}/report` - plain-text project report
+
+### Work Packages
+
+- `GET /api/workpackages` - list work packages
+- `GET /api/workpackages/{id}` - get one work package
+- `POST /api/workpackages` - create a work package
+- `PUT /api/workpackages/{id}` - update a work package
+- `DELETE /api/workpackages/{id}` - delete a work package
+- `POST /api/workpackages/{id}/employees/{empId}?role=` - assign an employee to a work package
+- `DELETE /api/workpackages/{id}/employees/{empId}` - remove an employee from a work package
+- `GET /api/workpackages/{id}/employees` - list employees assigned to a work package
+- `PUT /api/workpackages/{id}/close` - close a work package
+- `PUT /api/workpackages/{id}/open` - reopen a work package
+- `PUT /api/workpackages/{id}/etc` - update estimated time to completion
+- `GET /api/workpackages/{id}/children` - list child work packages
+- `GET /api/workpackages/{id}/parent` - get parent work package
+- `GET /api/workpackages/{id}/report` - plain-text work package report
+- `GET /api/workpackages/chargeable` - list chargeable work packages for the current user
+
+### Timesheets
+
+- `GET /api/timesheets` - list timesheets, optionally filtered by `empId`, `approverId`, and `status`
+- `GET /api/timesheets/{id}` - get one timesheet
+- `POST /api/timesheets` - create a timesheet
+- `PUT /api/timesheets/{id}` - update a timesheet
+- `PUT /api/timesheets/{id}/submit` - submit a timesheet
+- `PUT /api/timesheets/{id}/approve` - approve a timesheet
+- `PUT /api/timesheets/{id}/return` - return a timesheet for changes
+- `DELETE /api/timesheets/{id}` - delete a timesheet
+
+### Earned Value
+
+- `GET /api/earned-value?parentWpId=&asOf=` - weekly earned value report for a control account
+- `GET /api/earned-value/projects/{projectId}/monthly-report?asOf=` - monthly earned value report for a project
+- `GET /api/earned-value/workpackages/{wpId}/monthly-performance?asOf=` - monthly performance report for one work package
 
 ## Local Development Setup
 
@@ -63,13 +136,13 @@ Install the following tools before proceeding:
 | .NET SDK | 10.0+ | Frontend (Razor Pages) |
 | Git | Latest | Version control |
 
-> WildFly does **not** need to be installed separately — Maven downloads and provisions it automatically via the `wildfly-maven-plugin` in `backend/pom.xml`.
+> WildFly does **not** need to be installed separately. Maven downloads and provisions it automatically via the `wildfly-maven-plugin` in `backend/pom.xml`.
 
 
 ### Step 1: Clone the Repository
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/BCIT-4911/COMP-4911-project.git
 cd COMP-4911-project
 ```
 
@@ -164,30 +237,30 @@ It connects to the backend at the URL configured in `frontend/appsettings.json` 
 ### Running Everything Together (Quick Reference)
 
 ```bash
-# Terminal 1 — Database (run once, stays running)
+# Terminal 1 - Database (run once, stays running)
 cd sql
 docker compose up -d
 
-# Terminal 2 — Backend
+# Terminal 2 - Backend
 cd backend
 mvn clean package wildfly:dev
 
-# Terminal 3 — Frontend
+# Terminal 3 - Frontend
 cd frontend
 dotnet watch
 ```
 
-Open http://localhost:3000 — the frontend should display data from the backend.
+Open http://localhost:3000 - the frontend should display data from the backend.
 
 
 ### Seeded users
 
-After the database and backend are running, the following users are seeded (passwords are BCrypt-hashed; **all passwords are `password`**):
+After the database and backend are running on a fresh local database, the following base users are seeded by `backend/src/main/java/com/corejsf/seed/EmptyDbSeeder.java`. Passwords are BCrypt-hashed in the database, and **all seeded passwords are `password`**:
 
 | emp_id | First name | Last name  | System role        | Supervisor   |
 |--------|------------|------------|--------------------|--------------|
-| 1      | Wile       | Coyote     | ADMIN              | —            |
-| 2      | Elmer      | Fudd       | OPERATIONS_MANAGER | —            |
+| 1      | Wile       | Coyote     | ADMIN              | N/A          |
+| 2      | Elmer      | Fudd       | OPERATIONS_MANAGER | N/A         |
 | 3      | Road       | Runner     | HR                 | Elmer Fudd   |
 | 4      | Bugs       | Bunny      | EMPLOYEE           | Elmer Fudd   |
 | 5      | Daffy      | Duck       | EMPLOYEE           | Bugs Bunny   |
@@ -195,7 +268,18 @@ After the database and backend are running, the following users are seeded (pass
 | 7      | Sylvester  | Cat        | EMPLOYEE           | Bugs Bunny   |
 | 8      | Marvin     | Martian    | EMPLOYEE           | Elmer Fudd   |
 
-Use **emp_id** and **password** to log in (e.g. `empId: 1`, `password: password` via API or the Login page).
+These eight users are the deterministic base accounts used by the backend tests and default demo flow.
+
+The seeder also creates additional demo data for labor and earned-value reporting, including extra employees such as `Marcus Aurelius`, `Elena Fisher`, `James Holden`, and `Sarah Connor`. Those extra records support report screenshots and test/demo scenarios, but the eight users above are the main accounts to use for local login.
+
+Use `empId` and `password` to log in. Example API payload:
+
+```json
+{
+  "empId": 1,
+  "password": "password"
+}
+```
 
 
 ### Troubleshooting
@@ -216,7 +300,7 @@ Source lives in `tests/`; `backend/pom.xml` points `<testSourceDirectory>` at th
 
 ### Unit tests (no server)
 
-`RebacServiceTest`, `JwtUtilTest`, `PasswordHashTest` — pure Java, no HTTP.
+`RebacServiceTest`, `JwtUtilTest`, `PasswordHashTest` - pure Java, no HTTP.
 
 ```bash
 cd backend
@@ -233,12 +317,12 @@ Need a running backend and MySQL with data compatible with `EmptyDbSeeder` (Loon
 |-------|--------|
 | `HealthCheckTest` | `GET /greet` with JWT |
 | `AuthEndpointTest` | Login, approver dashboard, direct reports |
-| `AuthFilterIntegrationTest` | Missing/invalid Bearer → 401 |
+| `AuthFilterIntegrationTest` | Missing/invalid Bearer -> 401 |
 | `EmployeeResourceTest` | Employees list/get/create |
 | `LaborGradeResourceTest` | Labor grades list/get |
 | `ProjectResourceTest` | Projects CRUD, close/open, assignments, report, RBAC |
 | `WorkPackageResourceTest` | Work packages CRUD, hierarchy, report |
-| `TimesheetResourceTest` | Draft → submit → approve/return → delete |
+| `TimesheetResourceTest` | Draft -> submit -> approve/return -> delete |
 | `ProjectAndWorkPackageRebacIntegrationTest` | Project/WP assignment and open/close ReBAC |
 
 **Commands**
@@ -277,103 +361,64 @@ mvn test -Dtest=AuthFilterIntegrationTest,WorkPackageResourceTest
 ```
 
 
-## Team Rules and Standards
-
-- Use meaningful names and keep code readable
-- Never push directly to main
-- Prefer small PRs that are easy to review
-- Use meaningful variable and class names
-- Keep REST endpoints small business logic belong in service/EJB layer
-
-### Branching
-- main → stable release branch  
-- dev → active development branch  
-- Feature branches:
-- Always create a feature branch:
-
-  feature/<task-name>
-
-- Examples:
-
-  feature/login  
-  feature/timesheet-entry  
-  bugfix/api-routing  
-
-- Open a Pull Request (PR) before merging
 
 
-### Pull Requests
-- PR must include a clear description of changes
-- Assign all reviewers listed here
-- PR should be small and focused
-All pull requests must be reviewed by:
+## Folder Organization Rules
 
-- Kaid  @kaid711
-- Nate  @NateRolo 
-- Lucas @zhapte
+- frontend/ - all .NET Razor UI code
+- backend/ - all Jakarta REST/EJB code
+- sql/ - DB setup or deployment scripts
+- tests/ - unit tests and integration tests for both frontend and backend
+- docs/ - reports, diagrams, meeting notes
 
+## Authentication
 
-### Naming Conventions
+Authentication is already implemented in the backend using JWT bearer tokens.
 
-Backend (Java)
-- Classes: PascalCase  
-- Methods: camelCase  
-- REST routes: `/api/resource-name`
+- Login endpoint: `POST /api/auth/login`
+- Login request body: `empId` and `password`
+- Login response: a signed JWT returned in the response body
+- Protected endpoints: require `Authorization: Bearer <token>`
+- Unprotected routes: `POST /api/auth/login` and `OPTIONS` requests
 
-Frontend (.NET)
-- Pages: PascalCase.cshtml  
-- PageModels: PascalCase.cshtml.cs  
-- Variables: camelCase
+### JWT contents
 
+The generated JWT currently includes:
 
-### Commit Message Guidelines
+- `empId`
+- `systemRole`
+- `firstName`
+- `lastName`
+- `exp` (expiration timestamp)
 
-Good examples:
-- Add hello world endpoint
-- Setup Razor Pages frontend
-- Fix API base URL config
+### Token behavior
 
-Bad examples:
-- update stuff
-- changes
-- fix
+- Tokens are signed with HMAC-SHA256
+- Token lifetime is currently 8 hours
+- The signing secret is read from the `JWT_SECRET` environment variable
+- If `JWT_SECRET` is not set, the backend falls back to a development default secret
 
+### Authorization model
 
-### Folder Organization Rules
+After authentication, the backend applies role-based and ReBAC-style authorization checks. In practice, access rules depend on both the user's system role and their relationship to the target employee, project, work package, or timesheet.
 
-- frontend/ → all .NET Razor UI code
-- backend/  → all Jakarta REST/EJB code
-- sql/      → DB setup or deployment scripts
-- tests/    → unit tests and integration tests for both frontend and backend 
-- docs/		→ reports, diagrams, meeting notes 
+### Example authenticated request
 
-
-### Documentation Rules
-
-- Inline code formatting should be used in documentation:
-  - Use `REST endpoints` instead of plain text
-  - Use `dotnet run` when referencing commands
-  - Use `GET /api/hello` when referencing routes
-  
-- Document all important endpoints in a simple list:
-
-  - `POST /api/auth/login`
-  - `GET /api/timesheets`
-  - `POST /api/timesheets/submit`
-
-- Add setup instructions directly in the README whenever something changes:
-  - New environment variable
-  - New required tool
-  - New deployment step
-  
-
-## Authentication Plan
-
-Planned approach:
-- Token-based login (UUID stored in database)
-- Token stored in HttpOnly cookie
-- Role-based access control (Admin, Employee, Manager)
+```http
+Authorization: Bearer <token>
+```
 
 
 ## Deployment Notes
+
+This project is deployed to OKD with separate frontend and backend delivery flows.
+
+- `frontend` is built as a Docker image and deployed to OKD
+- `backend` is deployed to OKD using the Helm-based setup together with the WildFly/Maven build from `backend/pom.xml`
+
+### Deployment links
+
+- Frontend: `http://frontend4911-liul-labs.apps.okd4.infoteach.ca/`
+- Backend: `https://backend-liul-labs.apps.okd4.infoteach.ca/`
+
 

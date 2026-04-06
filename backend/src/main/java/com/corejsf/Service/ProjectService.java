@@ -73,11 +73,15 @@ public class ProjectService {
         ProjectValidation.validateProjectManagerId(project.getProjectManagerId());
         ProjectValidation.validateBac(project.getBac());
 
-        project.setProjectManager(findEmployee(project.getProjectManagerId()));
+        Employee pm = findEmployee(project.getProjectManagerId());
+        project.setProjectManager(pm);
         project.setCreatedDate(LocalDateTime.now());
         project.setModifiedDate(LocalDateTime.now());
         em.persist(project);
+
+        assignEmployee(project.getProjId(), pm.getEmpId(), ProjectRole.PM);
     }
+
 
     public void updateProject(String id, Project project) {
         Project existing = findProject(id);
@@ -89,15 +93,28 @@ public class ProjectService {
         ProjectValidation.validateProjectManagerId(project.getProjectManagerId());
         ProjectValidation.validateBac(project.getBac());
 
+        Employee newPm = findEmployee(project.getProjectManagerId());
+
         existing.setProjName(project.getProjName());
         existing.setDescription(project.getDescription());
         existing.setStartDate(project.getStartDate());
         existing.setEndDate(project.getEndDate());
         existing.setMarkupRate(project.getMarkupRate());
-        existing.setProjectManager(findEmployee(project.getProjectManagerId()));
+        existing.setProjectManager(newPm);
         existing.setModifiedDate(LocalDateTime.now());
         em.merge(existing);
+
+        em.createQuery(
+                "DELETE FROM ProjectAssignment pa " +
+                "WHERE pa.project.projId = :projId AND pa.projectRole = :role")
+                .setParameter("projId", existing.getProjId())
+                .setParameter("role", ProjectRole.PM)
+                .executeUpdate();
+
+        assignEmployee(existing.getProjId(), newPm.getEmpId(), ProjectRole.PM);
     }
+
+
 
     public void deleteProject(String id) {
         findProject(id);
@@ -158,25 +175,34 @@ public class ProjectService {
         if (role == null) {
             throw new IllegalArgumentException("Project role is required.");
         }
+
         Project project = findProject(projId);
         Employee employee = findEmployee(empId);
 
         TypedQuery<Long> query = em.createQuery(
-                "SELECT COUNT(pa) FROM ProjectAssignment pa WHERE pa.project = :project AND pa.employee = :employee",
+                "SELECT COUNT(pa) FROM ProjectAssignment pa " +
+                "WHERE pa.project = :project AND pa.employee = :employee AND pa.projectRole = :role",
                 Long.class);
         query.setParameter("project", project);
         query.setParameter("employee", employee);
-        if (query.getSingleResult() > 0) {
-            return;
+        query.setParameter("role", role);
+
+        if (query.getSingleResult() == 0) {
+            ProjectAssignment assignment = new ProjectAssignment();
+            assignment.setProject(project);
+            assignment.setEmployee(employee);
+            assignment.setAssignmentDate(LocalDate.now());
+            assignment.setProjectRole(role);
+            em.persist(assignment);
         }
 
-        ProjectAssignment assignment = new ProjectAssignment();
-        assignment.setProject(project);
-        assignment.setEmployee(employee);
-        assignment.setAssignmentDate(LocalDate.now());
-        assignment.setProjectRole(role);
-        em.persist(assignment);
+        if (role == ProjectRole.PM) {
+            project.setProjectManager(employee);
+            project.setModifiedDate(LocalDateTime.now());
+            em.merge(project);
+        }
     }
+
 
     public List<WorkPackage> getWorkPackages(String projId, int empId, boolean isOpsOrPm) {
         findProject(projId);
@@ -226,16 +252,15 @@ public class ProjectService {
     }
 
     public void removeEmployee(String projId, int empId) {
-        jakarta.persistence.TypedQuery<ProjectAssignment> query = em.createQuery(
+        List<ProjectAssignment> assignments = em.createQuery(
                 "SELECT pa FROM ProjectAssignment pa WHERE pa.project.projId = :projId AND pa.employee.empId = :empId",
-                ProjectAssignment.class);
-        query.setParameter("projId", projId);
-        query.setParameter("empId", empId);
-        try {
-            ProjectAssignment assignment = query.getSingleResult();
+                ProjectAssignment.class)
+                .setParameter("projId", projId)
+                .setParameter("empId", empId)
+                .getResultList();
+
+        for (ProjectAssignment assignment : assignments) {
             em.remove(assignment);
-        } catch (jakarta.persistence.NoResultException e) {
-            // Nothing to remove
         }
     }
 

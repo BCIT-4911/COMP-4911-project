@@ -1,6 +1,0 @@
-build:
-  uri: 
-  mode: 
-  ref:
-deploy:
-  replicas: 1

@@ -1,0 +1,15 @@
+build:
+  uri: https://github.com/BCIT-4911/COMP-4911-project.git
+  mode: s2i
+  ref: backend
+deploy:
+  replicas: 1 
+  env:
+  - name: MYSQL_DATABASE
+    value: Project_Management
+  - name: MYSQL_USER
+    value: project_user
+  - name: MYSQL_PASSWORD
+    value: password
+  - name: MYSQL_DATASOURCE
+    value: Project_Management

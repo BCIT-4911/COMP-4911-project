@@ -70,14 +70,6 @@ public class TimesheetService {
         return wp;
     }
 
-    private LaborGrade findLaborGrade(int id) {
-        LaborGrade lg = em.find(LaborGrade.class, id);
-        if (lg == null) {
-            throw new NotFoundException("LaborGrade with id " + id + " not found.");
-        }
-        return lg;
-    }
-
     private List<TimesheetRow> findRows(int tsId) {
         return em.createQuery(
                 "SELECT r FROM TimesheetRow r WHERE r.timesheet.tsId = :tsId", TimesheetRow.class)
@@ -297,9 +289,16 @@ public class TimesheetService {
 
     /**
      * Maps TimesheetRowRequestDTOs to TimesheetRow entities,
-     * resolving WP and LaborGrade foreign keys, and persists each row.
+     * resolving WP foreign keys and assigning the timesheet owner's labor grade (client row laborGradeId is ignored).
      */
     public List<TimesheetRow> createRows(List<TimesheetRowRequestDTO> rowDTOs, Timesheet ts) {
+        LaborGrade employeeGrade = ts.getEmployee().getLaborGrade();
+        if (employeeGrade == null) {
+            throw new WebApplicationException(
+                    "Timesheet owner does not have a labor grade assigned.",
+                    Response.Status.BAD_REQUEST);
+        }
+
         List<TimesheetRow> rows = new ArrayList<>();
         for (TimesheetRowRequestDTO rowDto : rowDTOs) {
             WorkPackage wp = findWorkPackage(rowDto.getWpId());
@@ -311,12 +310,10 @@ public class TimesheetService {
                         Response.Status.FORBIDDEN);
             }
 
-            LaborGrade lg = findLaborGrade(rowDto.getLaborGradeId());
-
             TimesheetRow row = new TimesheetRow();
             row.setTimesheet(ts);
             row.setWorkPackage(wp);
-            row.setLaborGrade(lg);
+            row.setLaborGrade(employeeGrade);
             row.setMonday(nz(rowDto.getMonday()));
             row.setTuesday(nz(rowDto.getTuesday()));
             row.setWednesday(nz(rowDto.getWednesday()));

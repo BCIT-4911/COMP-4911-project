@@ -126,13 +126,13 @@ public final class TimesheetValidation {
     }
 
     /**
-     * Validates hours on every row and checks that each row has a WP and labor grade.
+     * Validates hours on every row and checks that each row has a work package.
+     * Labor grade is taken from the timesheet owner on the server, not from the row DTO.
      */
     public static void validateAllRowHours(List<TimesheetRowRequestDTO> rows) {
         for (int i = 0; i < rows.size(); i++) {
             TimesheetRowRequestDTO row = rows.get(i);
             validateRowWpId(row.getWpId(), i);
-            validateRowLaborGradeId(row.getLaborGradeId(), i);
             validateRowHours(row, i);
         }
     }
@@ -262,13 +262,6 @@ public final class TimesheetValidation {
         if (wpId == null || wpId.isEmpty()) {
             throw new IllegalArgumentException(
                     "Row " + (rowIndex + 1) + ": Work Package ID is required.");
-        }
-    }
-
-    public static void validateRowLaborGradeId(Integer laborGradeId, int rowIndex) {
-        if (laborGradeId == null || laborGradeId <= 0) {
-            throw new IllegalArgumentException(
-                    "Row " + (rowIndex + 1) + ": Labor Grade ID must be a positive integer.");
         }
     }
 

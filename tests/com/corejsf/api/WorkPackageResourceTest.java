@@ -535,7 +535,6 @@ class WorkPackageResourceTest extends TestConfig {
                           "rows": [
                             {
                               "wpId": "A.WP-1",
-                              "laborGradeId": 1,
                               "monday": 8.0,
                               "tuesday": 8.0,
                               "wednesday": 8.0,

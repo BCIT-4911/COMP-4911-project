@@ -108,7 +108,7 @@
 
     let currentTimesheet = null;
     let workPackages = [];
-    let laborGrades = [];
+    let myLaborGradeLabelForEdit = '—';
     let isEditable = false;
 
     function authFetch(url, options = {}) {
@@ -153,7 +153,10 @@
             isEditable = status === 'RETURNED';
 
             if (isEditable) {
-                await Promise.all([loadWorkPackages(), loadLaborGrades()]);
+                await Promise.all([
+                    loadWorkPackages(),
+                    loadEmployeeLaborGradeForEdit(currentTimesheet.empId)
+                ]);
             }
 
             renderPage();
@@ -170,10 +173,25 @@
         workPackages = await res.json();
     }
 
-    async function loadLaborGrades() {
-        const res = await authFetch(`${API}/api/labor-grades`);
-        if (!res.ok) throw new Error('Could not load labor grades.');
-        laborGrades = await res.json();
+    async function loadEmployeeLaborGradeForEdit(empId) {
+        if (empId == null || isNaN(empId)) return;
+        try {
+            const empRes = await authFetch(`${API}/api/employees/${empId}`);
+            if (!empRes.ok) throw new Error('Could not load employee profile.');
+            const emp = await empRes.json();
+            const lgId = emp.labor_grade_id ?? emp.laborGradeId;
+            if (lgId == null) {
+                myLaborGradeLabelForEdit = '—';
+                return;
+            }
+            const lgRes = await authFetch(`${API}/api/labor-grades/${lgId}`);
+            if (!lgRes.ok) throw new Error('Could not load labor grade.');
+            const lg = await lgRes.json();
+            myLaborGradeLabelForEdit = `${lg.gradeCode} ($${lg.chargeRate})`;
+        } catch (err) {
+            myLaborGradeLabelForEdit = '—';
+            showAlert(`Could not load labor grade: ${err.message}`, 'warning');
+        }
     }
 
     function renderPage() {
@@ -218,7 +236,6 @@
 
         if (isEditable) {
             const wpOptions = buildWpOptions(row.wpId, row.wpName);
-            const lgOptions = buildLgOptions(row.laborGradeId, row.laborGradeCode);
             const hr = (cls, value) => `<td><input type="number" class="hr-input ${cls}" step="0.1" min="0" max="24" value="${value ?? 0}" oninput="updateTotals()" /></td>`;
 
             tr.innerHTML = `
@@ -227,11 +244,7 @@
                         ${wpOptions}
                     </select>
                 </td>
-                <td>
-                    <select class="form-select form-select-ts lg-select">
-                        ${lgOptions}
-                    </select>
-                </td>
+                <td class="ps-2 text-muted small">${esc(myLaborGradeLabelForEdit)}</td>
                 ${hr('hr-mon', row.monday)}
                 ${hr('hr-tue', row.tuesday)}
                 ${hr('hr-wed', row.wednesday)}
@@ -279,24 +292,6 @@
         workPackages.forEach(wp => {
             const selected = wp.wpId === selectedId ? 'selected' : '';
             opts.push(`<option value="${esc(wp.wpId)}" ${selected}>${esc(wp.wpId)} - ${esc(wp.wpName || '')}</option>`);
-        });
-
-        return opts.join('');
-    }
-
-    function buildLgOptions(selectedId, selectedCode) {
-        const opts = [];
-        const currentExists = laborGrades.some(lg => Number(lg.laborGradeId) === Number(selectedId));
-
-        opts.push(`<option value="">Select...</option>`);
-
-        if (selectedId && !currentExists) {
-            opts.push(`<option value="${selectedId}" selected>${esc(selectedCode || '')}</option>`);
-        }
-
-        laborGrades.forEach(lg => {
-            const selected = Number(lg.laborGradeId) === Number(selectedId) ? 'selected' : '';
-            opts.push(`<option value="${lg.laborGradeId}" ${selected}>${esc(lg.gradeCode)} ($${lg.chargeRate})</option>`);
         });
 
         return opts.join('');
@@ -387,7 +382,6 @@
 
         document.querySelectorAll('#rowsBody tr').forEach((tr, idx) => {
             const wpId = tr.querySelector('.wp-select')?.value;
-            const laborGradeId = tr.querySelector('.lg-select')?.value;
 
             if (!wpId) {
                 showAlert(`Row ${idx + 1}: Please select a work package.`, 'warning');
@@ -395,15 +389,8 @@
                 return;
             }
 
-            if (!laborGradeId) {
-                showAlert(`Row ${idx + 1}: Please select a labor grade.`, 'warning');
-                valid = false;
-                return;
-            }
-
             rows.push({
                 wpId,
-                laborGradeId: parseInt(laborGradeId, 10),
                 monday: parseHours(tr.querySelector('.hr-mon')?.value),
                 tuesday: parseHours(tr.querySelector('.hr-tue')?.value),
                 wednesday: parseHours(tr.querySelector('.hr-wed')?.value),

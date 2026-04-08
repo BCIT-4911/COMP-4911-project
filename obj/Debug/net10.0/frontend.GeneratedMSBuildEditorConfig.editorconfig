@@ -1,0 +1,103 @@
+is_global = true
+build_property.TargetFramework = net10.0
+build_property.TargetFrameworkIdentifier = .NETCoreApp
+build_property.TargetFrameworkVersion = v10.0
+build_property.TargetPlatformMinVersion = 
+build_property.UsingMicrosoftNETSdkWeb = true
+build_property.ProjectTypeGuids = 
+build_property.InvariantGlobalization = 
+build_property.PlatformNeutralAssembly = 
+build_property.EnforceExtendedAnalyzerRules = 
+build_property._SupportedPlatformList = Linux,macOS,Windows
+build_property.RootNamespace = frontend
+build_property.RootNamespace = frontend
+build_property.ProjectDir = C:\Users\herek\Desktop\COMP4911\COMP-4911-project\
+build_property.EnableComHosting = 
+build_property.EnableGeneratedComInterfaceComImportInterop = 
+build_property.RazorLangVersion = 9.0
+build_property.SupportLocalizedComponentNames = 
+build_property.GenerateRazorMetadataSourceChecksumAttributes = 
+build_property.MSBuildProjectDirectory = C:\Users\herek\Desktop\COMP4911\COMP-4911-project
+build_property._RazorSourceGeneratorDebug = 
+build_property.EffectiveAnalysisLevelStyle = 10.0
+build_property.EnableCodeStyleSeverity = 
+
+[C:/Users/herek/Desktop/COMP4911/COMP-4911-project/Pages/Approver/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQXBwcm92ZXJcSW5kZXguY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/herek/Desktop/COMP4911/COMP-4911-project/Pages/Approver/Review.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQXBwcm92ZXJcUmV2aWV3LmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/herek/Desktop/COMP4911/COMP-4911-project/Pages/EarnedValue/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcRWFybmVkVmFsdWVcSW5kZXguY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/herek/Desktop/COMP4911/COMP-4911-project/Pages/EarnedValue/LaborReport.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcRWFybmVkVmFsdWVcTGFib3JSZXBvcnQuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/herek/Desktop/COMP4911/COMP-4911-project/Pages/Employee/Create.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcRW1wbG95ZWVcQ3JlYXRlLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/herek/Desktop/COMP4911/COMP-4911-project/Pages/Employee/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcRW1wbG95ZWVcSW5kZXguY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/herek/Desktop/COMP4911/COMP-4911-project/Pages/Employee/Update.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcRW1wbG95ZWVcVXBkYXRlLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/herek/Desktop/COMP4911/COMP-4911-project/Pages/Error.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcRXJyb3IuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/herek/Desktop/COMP4911/COMP-4911-project/Pages/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcSW5kZXguY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/herek/Desktop/COMP4911/COMP-4911-project/Pages/LaborGrades/Create.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcTGFib3JHcmFkZXNcQ3JlYXRlLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/herek/Desktop/COMP4911/COMP-4911-project/Pages/LaborGrades/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcTGFib3JHcmFkZXNcSW5kZXguY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/herek/Desktop/COMP4911/COMP-4911-project/Pages/Login.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcTG9naW4uY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/herek/Desktop/COMP4911/COMP-4911-project/Pages/Projects.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcUHJvamVjdHMuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/herek/Desktop/COMP4911/COMP-4911-project/Pages/Shared/_ValidationScriptsPartial.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcU2hhcmVkXF9WYWxpZGF0aW9uU2NyaXB0c1BhcnRpYWwuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/herek/Desktop/COMP4911/COMP-4911-project/Pages/Timesheets/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcVGltZXNoZWV0c1xJbmRleC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/herek/Desktop/COMP4911/COMP-4911-project/Pages/Timesheets/Review.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcVGltZXNoZWV0c1xSZXZpZXcuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/herek/Desktop/COMP4911/COMP-4911-project/Pages/WorkPackages.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcV29ya1BhY2thZ2VzLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/herek/Desktop/COMP4911/COMP-4911-project/Pages/_ViewImports.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcX1ZpZXdJbXBvcnRzLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/herek/Desktop/COMP4911/COMP-4911-project/Pages/_ViewStart.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcX1ZpZXdTdGFydC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/herek/Desktop/COMP4911/COMP-4911-project/Pages/Shared/_Layout.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcU2hhcmVkXF9MYXlvdXQuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = b-yf34twxdpp

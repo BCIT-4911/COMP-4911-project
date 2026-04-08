@@ -37,6 +37,27 @@ import jakarta.persistence.PersistenceContext;
 @Singleton
 public class EmptyDbSeeder {
 
+    private static final LocalDate DEMO_WEEK_ENDING = LocalDate.of(2026, 4, 11);
+    private static final LocalDate DEMO_PRIOR_WEEK = LocalDate.of(2026, 4, 4);
+    /** Extra week for seeded DRAFT timesheet (dashboard demo). */
+    private static final LocalDate DEMO_DRAFT_WEEK = LocalDate.of(2026, 4, 18);
+    /** Second week on PROJ-2 so Marvin can have SUBMITTED (wp3) without colliding with APPROVED (wp1) same timesheet. */
+    private static final LocalDate DEMO_SECOND_WEEK = LocalDate.of(2026, 4, 25);
+    private static final LocalDate PROJ1_PLAN_END = LocalDate.of(2026, 4, 30);
+    private static final LocalDate PROJ2_PLAN_END = LocalDate.of(2026, 4, 30);
+    private static final LocalDate LABOR1_PROJECT_END = LocalDate.of(2026, 6, 30);
+
+    private record DemoLaborGrades(
+            LaborGrade e1,
+            LaborGrade e2,
+            LaborGrade e3,
+            LaborGrade m1,
+            LaborGrade m2,
+            LaborGrade m3,
+            LaborGrade x1,
+            LaborGrade x2) {
+    }
+
     @PersistenceContext(unitName = "project-management-pu")
     private EntityManager em;
 
@@ -46,16 +67,7 @@ public class EmptyDbSeeder {
         if (!hasBaseSeed) {
             System.out.println("[Seeder] Empty DB detected. Seeding minimum dataset...");
 
-        LaborGrade lg = em.find(LaborGrade.class, 1);
-        if (lg == null) {
-            lg = new LaborGrade();
-            lg.setGradeCode("E1");
-            lg.setChargeRate(new BigDecimal("85.00"));
-            em.persist(lg);
-        }
-
-            createRateHistory(lg, "75.00", LocalDate.of(2025, 1, 1), LocalDate.of(2025, 12, 31));
-            createRateHistory(lg, "85.00", LocalDate.of(2026, 1, 1), null);
+            DemoLaborGrades grades = ensureDemoLaborGrades();
 
             EmployeeESignature sig = em.find(EmployeeESignature.class, 1);
             if (sig == null) {
@@ -65,40 +77,37 @@ public class EmptyDbSeeder {
                 em.persist(sig);
             }
 
-            // Admin is always first employee (id 1 on fresh DB). No find(100) - ensures deterministic order.
             Employee admin = new Employee();
             admin.setEmpFirstName("Wile");
             admin.setEmpLastName("Coyote");
             admin.setEmpPassword(BCrypt.hashpw("password", BCrypt.gensalt()));
             admin.setSystemRole(SystemRole.ADMIN);
             admin.setESignature(sig);
-            admin.setLaborGrade(lg);
+            admin.setLaborGrade(grades.x2());
             admin.setSupervisor(null);
             admin.setVacationSickBalance(new BigDecimal("40.00"));
             admin.setExpectedWeeklyHours(new BigDecimal("40.0"));
             em.persist(admin);
 
-            Employee elmerFudd = createEmployee("Elmer", "Fudd", SystemRole.OPERATIONS_MANAGER, null, lg);
-
-            Employee roadRunner = createEmployee("Road", "Runner", SystemRole.HR, elmerFudd, lg);
-            Employee bugsBunny = createEmployee("Bugs", "Bunny", SystemRole.EMPLOYEE, elmerFudd, lg);
-            Employee daffyDuck = createEmployee("Daffy", "Duck", SystemRole.EMPLOYEE, bugsBunny, lg);
-            Employee tweetyBird = createEmployee("Tweety", "Bird", SystemRole.EMPLOYEE, bugsBunny, lg);
-            Employee sylvesterCat = createEmployee("Sylvester", "Cat", SystemRole.EMPLOYEE, bugsBunny, lg);
-
-        
+            Employee elmerFudd = createEmployee("Elmer", "Fudd", SystemRole.OPERATIONS_MANAGER, null, grades.m3());
+            Employee roadRunner = createEmployee("Road", "Runner", SystemRole.HR, admin, grades.x1());
+            Employee bugsBunny = createEmployee("Bugs", "Bunny", SystemRole.EMPLOYEE, elmerFudd, grades.e2());
+            Employee daffyDuck = createEmployee("Daffy", "Duck", SystemRole.EMPLOYEE, bugsBunny, grades.e2());
+            Employee tweetyBird = createEmployee("Tweety", "Bird", SystemRole.EMPLOYEE, bugsBunny, grades.e1());
+            Employee sylvesterCat = createEmployee("Sylvester", "Cat", SystemRole.EMPLOYEE, bugsBunny, grades.e3());
+            Employee marvinMartian = createEmployee("Marvin", "Martian", SystemRole.EMPLOYEE, elmerFudd, grades.m1());
 
             Project proj = em.find(Project.class, "PROJ-1");
             if (proj == null) {
                 proj = new Project();
                 proj.setProjId("PROJ-1");
-                proj.setProjType(ProjectType.INTERNAL);  
-                proj.setProjectManager(elmerFudd);              
+                proj.setProjType(ProjectType.INTERNAL);
+                proj.setProjectManager(bugsBunny);
                 proj.setProjName("Demo Project");
                 proj.setDescription("Seed data for Earned Value report");
-                proj.setStatus(ProjectStatus.OPEN);      
+                proj.setStatus(ProjectStatus.OPEN);
                 proj.setStartDate(LocalDate.of(2026, 1, 1));
-                proj.setEndDate(LocalDate.of(2026, 3, 31));
+                proj.setEndDate(PROJ1_PLAN_END);
                 proj.setCreatedDate(LocalDateTime.now());
                 proj.setModifiedDate(LocalDateTime.now());
                 proj.setCreatedBy(elmerFudd);
@@ -109,21 +118,17 @@ public class EmptyDbSeeder {
                 em.persist(proj);
             }
 
-
-            Employee marvinMartian = createEmployee("Marvin", "Martian", SystemRole.EMPLOYEE, elmerFudd, lg);
-
-            // Project 2 for Seed cases
             Project proj2 = em.find(Project.class, "PROJ-2");
-            if(proj2 == null) {
+            if (proj2 == null) {
                 proj2 = new Project();
                 proj2.setProjId("PROJ-2");
                 proj2.setProjType(ProjectType.EXTERNAL);
                 proj2.setProjectManager(marvinMartian);
                 proj2.setProjName("Demo External Project");
-                proj2.setDescription("Seed Data for Earnved Value Report");
+                proj2.setDescription("Seed Data for Earned Value Report");
                 proj2.setStatus(ProjectStatus.OPEN);
                 proj2.setStartDate(LocalDate.of(2026, 1, 3));
-                proj2.setEndDate(LocalDate.of(2026, 3, 3));
+                proj2.setEndDate(PROJ2_PLAN_END);
                 proj2.setCreatedDate(LocalDateTime.now());
                 proj2.setModifiedDate(LocalDateTime.now());
                 proj2.setCreatedBy(admin);
@@ -131,7 +136,7 @@ public class EmptyDbSeeder {
                 proj2.setMarkupRate(new BigDecimal("10.00"));
                 proj2.setBac(new BigDecimal("15000.00"));
 
-                em.persist(proj2);  
+                em.persist(proj2);
             }
 
             WorkPackage parent = new WorkPackage();
@@ -141,17 +146,17 @@ public class EmptyDbSeeder {
             parent.setProject(proj);
             parent.setParentWorkPackage(null);
 
-            parent.setWpType(WorkPackageType.SUMMARY);               
-            parent.setStatus(WorkPackageStatus.OPEN_FOR_CHARGES);    
+            parent.setWpType(WorkPackageType.SUMMARY);
+            parent.setStatus(WorkPackageStatus.OPEN_FOR_CHARGES);
 
             parent.setStructureLocked(false);
             parent.setBudgetedEffort(new BigDecimal("0.00"));
             parent.setBcws(new BigDecimal("0.00"));
 
             parent.setPlanStartDate(LocalDate.of(2026, 1, 1));
-            parent.setPlanEndDate(LocalDate.of(2026, 3, 31));
+            parent.setPlanEndDate(PROJ1_PLAN_END);
 
-            parent.setResponsibleEmployee(elmerFudd); 
+            parent.setResponsibleEmployee(elmerFudd);
             parent.setBac(new BigDecimal("5000.00"));
             parent.setPercentComplete(new BigDecimal("25.00"));
 
@@ -171,9 +176,37 @@ public class EmptyDbSeeder {
                     new BigDecimal("1000.00"), new BigDecimal("50.00"));
 
             createChild("A.WP-3", "Build Road", proj, parent, elmerFudd,
-                    LocalDate.of(2026, 1, 15), LocalDate.of(2026, 3, 1),
+                    LocalDate.of(2026, 1, 15), LocalDate.of(2026, 4, 15),
                     new BigDecimal("2500.00"), new BigDecimal("35.00"));
 
+            WorkPackage parentC = new WorkPackage();
+            parentC.setWpId("C");
+            parentC.setWpName("Control Account C");
+            parentC.setDescription("Second summary control account on PROJ-1");
+            parentC.setProject(proj);
+            parentC.setParentWorkPackage(null);
+            parentC.setWpType(WorkPackageType.SUMMARY);
+            parentC.setStatus(WorkPackageStatus.OPEN_FOR_CHARGES);
+            parentC.setStructureLocked(false);
+            parentC.setBudgetedEffort(BigDecimal.ZERO);
+            parentC.setBcws(BigDecimal.ZERO);
+            parentC.setPlanStartDate(LocalDate.of(2026, 2, 1));
+            parentC.setPlanEndDate(PROJ1_PLAN_END);
+            parentC.setResponsibleEmployee(elmerFudd);
+            parentC.setBac(new BigDecimal("4000.00"));
+            parentC.setPercentComplete(new BigDecimal("20.00"));
+            parentC.setCreatedDate(LocalDateTime.now());
+            parentC.setModifiedDate(LocalDateTime.now());
+            parentC.setCreatedBy(elmerFudd);
+            parentC.setModifiedBy(elmerFudd);
+            em.persist(parentC);
+
+            createChild("C.WP-1", "Integration Cutover", proj, parentC, bugsBunny,
+                    LocalDate.of(2026, 2, 1), LocalDate.of(2026, 3, 31),
+                    new BigDecimal("1200.00"), new BigDecimal("10.00"));
+            createChild("C.WP-2", "Documentation & Closeout", proj, parentC, elmerFudd,
+                    LocalDate.of(2026, 3, 1), LocalDate.of(2026, 4, 20),
+                    new BigDecimal("900.00"), new BigDecimal("5.00"));
 
             ProjectAssignment paElmer = new ProjectAssignment();
             paElmer.setEmployee(elmerFudd);
@@ -220,18 +253,26 @@ public class EmptyDbSeeder {
             paMarvin.setProjectRole(ProjectRole.PM);
             em.persist(paMarvin);
 
+            ProjectAssignment paRoadProj2 = new ProjectAssignment();
+            paRoadProj2.setEmployee(roadRunner);
+            paRoadProj2.setProject(proj2);
+            paRoadProj2.setAssignmentDate(LocalDate.now());
+            paRoadProj2.setProjectRole(ProjectRole.MEMBER);
+            em.persist(paRoadProj2);
+
             proj2.setProjectManager(marvinMartian);
             proj2.setProjName("Demo External Project");
             proj2.setDescription("Seed Data for Earned Value Report");
             proj2.setStatus(ProjectStatus.OPEN);
             proj2.setStartDate(LocalDate.of(2026, 1, 3));
-            proj2.setEndDate(LocalDate.of(2026, 3, 3));
+            proj2.setEndDate(PROJ2_PLAN_END);
             proj2.setCreatedDate(LocalDateTime.now());
             proj2.setModifiedDate(LocalDateTime.now());
             proj2.setCreatedBy(admin);
             proj2.setModifiedBy(admin);
             proj2.setMarkupRate(new BigDecimal("10.00"));
             proj2.setBac(new BigDecimal("15000.00"));
+            em.merge(proj2);
 
             WorkPackageAssignment wpaElmerParent = new WorkPackageAssignment();
             wpaElmerParent.setEmployee(elmerFudd);
@@ -240,9 +281,18 @@ public class EmptyDbSeeder {
             wpaElmerParent.setWpRole(WpRole.RE);
             em.persist(wpaElmerParent);
 
+            WorkPackageAssignment wpaElmerParentC = new WorkPackageAssignment();
+            wpaElmerParentC.setEmployee(elmerFudd);
+            wpaElmerParentC.setWorkPackage(parentC);
+            wpaElmerParentC.setAssignmentDate(LocalDate.now());
+            wpaElmerParentC.setWpRole(WpRole.RE);
+            em.persist(wpaElmerParentC);
+
             WorkPackage wp1 = em.find(WorkPackage.class, "A.WP-1");
             WorkPackage wp2 = em.find(WorkPackage.class, "A.WP-2");
             WorkPackage wp3 = em.find(WorkPackage.class, "A.WP-3");
+            WorkPackage wpC1 = em.find(WorkPackage.class, "C.WP-1");
+            WorkPackage wpC2 = em.find(WorkPackage.class, "C.WP-2");
             if (wp1 != null) {
                 WorkPackageAssignment wpaDaffy = new WorkPackageAssignment();
                 wpaDaffy.setEmployee(daffyDuck);
@@ -250,6 +300,12 @@ public class EmptyDbSeeder {
                 wpaDaffy.setAssignmentDate(LocalDate.now());
                 wpaDaffy.setWpRole(WpRole.RE);
                 em.persist(wpaDaffy);
+                WorkPackageAssignment wpaBugsWp1 = new WorkPackageAssignment();
+                wpaBugsWp1.setEmployee(bugsBunny);
+                wpaBugsWp1.setWorkPackage(wp1);
+                wpaBugsWp1.setAssignmentDate(LocalDate.now());
+                wpaBugsWp1.setWpRole(WpRole.RE);
+                em.persist(wpaBugsWp1);
             }
             if (wp2 != null) {
                 WorkPackageAssignment wpaSylvester = new WorkPackageAssignment();
@@ -275,8 +331,24 @@ public class EmptyDbSeeder {
                 wpaElmerWp3.setWpRole(WpRole.RE);
                 em.persist(wpaElmerWp3);
             }
+            if (wpC1 != null) {
+                WorkPackageAssignment wpaBugsC1 = new WorkPackageAssignment();
+                wpaBugsC1.setEmployee(bugsBunny);
+                wpaBugsC1.setWorkPackage(wpC1);
+                wpaBugsC1.setAssignmentDate(LocalDate.now());
+                wpaBugsC1.setWpRole(WpRole.RE);
+                em.persist(wpaBugsC1);
+            }
+            if (wpC2 != null) {
+                WorkPackageAssignment wpaElmerC2 = new WorkPackageAssignment();
+                wpaElmerC2.setEmployee(elmerFudd);
+                wpaElmerC2.setWorkPackage(wpC2);
+                wpaElmerC2.setAssignmentDate(LocalDate.now());
+                wpaElmerC2.setWpRole(WpRole.RE);
+                em.persist(wpaElmerC2);
+            }
 
-            System.out.println("[Seeder] Seed complete: LaborGrade + Signature + Employee + Project + A + children + HR/PM/RE/MEMBER.");
+            System.out.println("[Seeder] Seed complete: demo labor grades, employees, PROJ-1 (A+C), PROJ-2, assignments.");
         } else {
             System.out.println("[Seeder] Base seed already present, ensuring labor report demo data.");
         }
@@ -357,32 +429,95 @@ public class EmptyDbSeeder {
         em.persist(rateHistory);
     }
 
+    private DemoLaborGrades ensureDemoLaborGrades() {
+        LaborGrade e1 = findOrCreateLaborGrade("E1", "80.00");
+        LaborGrade e2 = findOrCreateLaborGrade("E2", "90.00");
+        LaborGrade e3 = findOrCreateLaborGrade("E3", "96.00");
+        LaborGrade m1 = findOrCreateLaborGrade("M1", "118.00");
+        LaborGrade m2 = findOrCreateLaborGrade("M2", "132.00");
+        LaborGrade m3 = findOrCreateLaborGrade("M3", "148.00");
+        LaborGrade x1 = findOrCreateLaborGrade("X1", "170.00");
+        LaborGrade x2 = findOrCreateLaborGrade("X2", "185.00");
+
+        ensureRateHistory(e1, "75.00", LocalDate.of(2025, 1, 1), LocalDate.of(2025, 12, 31));
+        ensureRateHistory(e1, "80.00", LocalDate.of(2026, 1, 1), null);
+        ensureRateHistory(m1, "108.00", LocalDate.of(2025, 1, 1), LocalDate.of(2025, 12, 31));
+        ensureRateHistory(m1, "118.00", LocalDate.of(2026, 1, 1), null);
+
+        return new DemoLaborGrades(e1, e2, e3, m1, m2, m3, x1, x2);
+    }
+
+    private void ensureSeedEmployeeProfile(Employee employee,
+                                           SystemRole role,
+                                           Employee supervisor,
+                                           LaborGrade laborGrade) {
+        boolean dirty = false;
+        if (employee.getSystemRole() != role) {
+            employee.setSystemRole(role);
+            dirty = true;
+        }
+        Integer wantSupId = supervisor == null ? null : supervisor.getEmpId();
+        Integer haveSupId = employee.getSupervisor() == null ? null : employee.getSupervisor().getEmpId();
+        if (!java.util.Objects.equals(wantSupId, haveSupId)) {
+            employee.setSupervisor(supervisor);
+            dirty = true;
+        }
+        if (laborGrade != null && (employee.getLaborGrade() == null
+                || !laborGrade.getLaborGradeId().equals(employee.getLaborGrade().getLaborGradeId()))) {
+            employee.setLaborGrade(laborGrade);
+            dirty = true;
+        }
+        if (dirty) {
+            em.merge(employee);
+        }
+    }
+
+    private Employee findOrCreateAndAlignEmployee(String firstName,
+                                                  String lastName,
+                                                  SystemRole role,
+                                                  Employee supervisor,
+                                                  LaborGrade laborGrade) {
+        List<Employee> existing = em.createQuery(
+                "SELECT e FROM Employee e WHERE e.empFirstName = :firstName AND e.empLastName = :lastName",
+                Employee.class)
+                .setParameter("firstName", firstName)
+                .setParameter("lastName", lastName)
+                .getResultList();
+        if (!existing.isEmpty()) {
+            Employee e = existing.get(0);
+            ensureSeedEmployeeProfile(e, role, supervisor, laborGrade);
+            return e;
+        }
+        return createEmployee(firstName, lastName, role, supervisor, laborGrade);
+    }
+
     private void seedCrossReportDemoData() {
         Employee admin = em.find(Employee.class, 1);
         if (admin == null) {
             return;
         }
 
-        LaborGrade baseGrade = findOrCreateLaborGrade("E1", "85.00");
-        LaborGrade foremanTwo = findOrCreateLaborGrade("F2", "120.00");
-        LaborGrade journeyman = findOrCreateLaborGrade("JM", "105.00");
-        LaborGrade specialist = findOrCreateLaborGrade("SP", "110.00");
-        LaborGrade foremanOne = findOrCreateLaborGrade("F1", "115.00");
+        DemoLaborGrades grades = ensureDemoLaborGrades();
+        ensureSeedEmployeeProfile(admin, SystemRole.ADMIN, null, grades.x2());
 
-        ensureRateHistory(baseGrade, "75.00", LocalDate.of(2025, 1, 1), LocalDate.of(2025, 12, 31));
-        ensureRateHistory(baseGrade, "85.00", LocalDate.of(2026, 1, 1), null);
+        Employee elmerFudd = findOrCreateAndAlignEmployee(
+                "Elmer", "Fudd", SystemRole.OPERATIONS_MANAGER, null, grades.m3());
+        Employee roadRunner = findOrCreateAndAlignEmployee(
+                "Road", "Runner", SystemRole.HR, admin, grades.x1());
+        Employee bugsBunny = findOrCreateAndAlignEmployee(
+                "Bugs", "Bunny", SystemRole.EMPLOYEE, elmerFudd, grades.e2());
+        Employee daffyDuck = findOrCreateAndAlignEmployee(
+                "Daffy", "Duck", SystemRole.EMPLOYEE, bugsBunny, grades.e2());
+        Employee tweetyBird = findOrCreateAndAlignEmployee(
+                "Tweety", "Bird", SystemRole.EMPLOYEE, bugsBunny, grades.e1());
+        Employee sylvesterCat = findOrCreateAndAlignEmployee(
+                "Sylvester", "Cat", SystemRole.EMPLOYEE, bugsBunny, grades.e3());
+        Employee marvinMartian = findOrCreateAndAlignEmployee(
+                "Marvin", "Martian", SystemRole.EMPLOYEE, elmerFudd, grades.m1());
 
-        Employee elmerFudd = findOrCreateEmployee("Elmer", "Fudd", SystemRole.OPERATIONS_MANAGER, null, baseGrade);
-        Employee bugsBunny = findOrCreateEmployee("Bugs", "Bunny", SystemRole.EMPLOYEE, admin, baseGrade);
-        Employee daffyDuck = findOrCreateEmployee("Daffy", "Duck", SystemRole.EMPLOYEE, bugsBunny, baseGrade);
-        Employee tweetyBird = findOrCreateEmployee("Tweety", "Bird", SystemRole.EMPLOYEE, bugsBunny, baseGrade);
-        Employee sylvesterCat = findOrCreateEmployee("Sylvester", "Cat", SystemRole.EMPLOYEE, bugsBunny, baseGrade);
-        Employee marvinMartian = findOrCreateEmployee("Marvin", "Martian", SystemRole.EMPLOYEE, admin, baseGrade);
-        Employee roadRunner = findOrCreateEmployee("Road", "Runner", SystemRole.HR, admin, baseGrade);
-
-        ensureProjectOneDemo(admin, elmerFudd, bugsBunny, daffyDuck, tweetyBird, sylvesterCat, baseGrade);
-        ensureProjectTwoDemo(admin, marvinMartian, roadRunner, baseGrade);
-        ensureLaborProjectDemo(admin, foremanTwo, journeyman, specialist, foremanOne);
+        ensureProjectOneDemo(admin, elmerFudd, bugsBunny, daffyDuck, tweetyBird, sylvesterCat, grades);
+        ensureProjectTwoDemo(admin, elmerFudd, marvinMartian, roadRunner, grades);
+        ensureLaborProjectDemo(admin, grades);
     }
 
     private void ensureProjectOneDemo(Employee admin,
@@ -391,23 +526,25 @@ public class EmptyDbSeeder {
                                       Employee daffyDuck,
                                       Employee tweetyBird,
                                       Employee sylvesterCat,
-                                      LaborGrade baseGrade) {
+                                      DemoLaborGrades grades) {
         Project proj = em.find(Project.class, "PROJ-1");
         if (proj == null) {
             return;
         }
 
+        proj.setEndDate(PROJ1_PLAN_END);
+        proj.setStartDate(LocalDate.of(2026, 1, 1));
         assignProjectMember(proj, bugsBunny, ProjectRole.PM);
         proj.setProjectManager(bugsBunny);
-        em.merge(proj);
-
+        assignProjectMember(proj, elmerFudd);
         assignProjectMember(proj, daffyDuck);
         assignProjectMember(proj, tweetyBird);
         assignProjectMember(proj, sylvesterCat);
+        em.merge(proj);
 
         WorkPackage parent = findOrCreateSummaryWorkPackage(
-                "A", "Control Account A", proj, admin,
-                LocalDate.of(2026, 1, 1), LocalDate.of(2026, 3, 31),
+                "A", "Control Account A", proj, elmerFudd,
+                LocalDate.of(2026, 1, 1), PROJ1_PLAN_END,
                 new BigDecimal("5000.00"), new BigDecimal("25.00"));
 
         WorkPackage wp1 = findOrCreateChildWorkPackage(
@@ -420,29 +557,59 @@ public class EmptyDbSeeder {
                 new BigDecimal("1000.00"), new BigDecimal("50.00"));
         WorkPackage wp3 = findOrCreateChildWorkPackage(
                 "A.WP-3", "Build Road", proj, parent, elmerFudd,
-                LocalDate.of(2026, 1, 15), LocalDate.of(2026, 3, 1),
+                LocalDate.of(2026, 1, 15), LocalDate.of(2026, 4, 15),
                 new BigDecimal("2500.00"), new BigDecimal("35.00"));
 
+        WorkPackage parentC = findOrCreateSummaryWorkPackage(
+                "C", "Control Account C", proj, elmerFudd,
+                LocalDate.of(2026, 2, 1), PROJ1_PLAN_END,
+                new BigDecimal("4000.00"), new BigDecimal("20.00"));
+        WorkPackage wpC1 = findOrCreateChildWorkPackage(
+                "C.WP-1", "Integration Cutover", proj, parentC, bugsBunny,
+                LocalDate.of(2026, 2, 1), LocalDate.of(2026, 3, 31),
+                new BigDecimal("1200.00"), new BigDecimal("10.00"));
+        WorkPackage wpC2 = findOrCreateChildWorkPackage(
+                "C.WP-2", "Documentation & Closeout", proj, parentC, elmerFudd,
+                LocalDate.of(2026, 3, 1), LocalDate.of(2026, 4, 20),
+                new BigDecimal("900.00"), new BigDecimal("5.00"));
+
+        // Older seeds assigned Tweety MEMBER on C.WP-2; remove so ReBAC "member on A.WP-2 only" stays valid.
+        deleteWorkPackageAssignmentIfExists("C.WP-2", tweetyBird, WpRole.MEMBER);
+
+        assignWorkPackageMember(parent, elmerFudd, WpRole.RE);
+        assignWorkPackageMember(parentC, elmerFudd, WpRole.RE);
+
         assignWorkPackageMember(wp1, daffyDuck, WpRole.RE);
+        assignWorkPackageMember(wp1, bugsBunny, WpRole.RE);
         assignWorkPackageMember(wp2, sylvesterCat, WpRole.RE);
         assignWorkPackageMember(wp2, tweetyBird, WpRole.MEMBER);
         assignWorkPackageMember(wp3, elmerFudd, WpRole.RE);
+        assignWorkPackageMember(wpC1, bugsBunny, WpRole.RE);
+        assignWorkPackageMember(wpC2, elmerFudd, WpRole.RE);
 
-        LocalDate weekEnding = LocalDate.of(2026, 3, 8);
-        findOrCreateTimesheetWithSingleRow(daffyDuck, admin, weekEnding, TimesheetStatus.APPROVED, wp1, baseGrade, "32.0");
-        findOrCreateTimesheetWithSingleRow(sylvesterCat, admin, weekEnding, TimesheetStatus.APPROVED, wp2, baseGrade, "28.0");
-        findOrCreateTimesheetWithSingleRow(tweetyBird, admin, weekEnding, TimesheetStatus.SUBMITTED, wp3, baseGrade, "18.0");
+        findOrCreateTimesheetWithSingleRow(daffyDuck, bugsBunny, DEMO_WEEK_ENDING,
+                TimesheetStatus.SUBMITTED, wp1, grades.e2(), "32.0");
+        findOrCreateTimesheetWithSingleRow(daffyDuck, admin, DEMO_PRIOR_WEEK,
+                TimesheetStatus.APPROVED, wp1, grades.e2(), "24.0");
+        findOrCreateTimesheetWithSingleRow(sylvesterCat, admin, DEMO_WEEK_ENDING,
+                TimesheetStatus.APPROVED, wp2, grades.e3(), "28.0");
+        findOrCreateTimesheetWithSingleRow(tweetyBird, bugsBunny, DEMO_WEEK_ENDING,
+                TimesheetStatus.SUBMITTED, wp2, grades.e1(), "18.0");
+        findOrCreateTimesheetWithSingleRow(tweetyBird, null, DEMO_DRAFT_WEEK,
+                TimesheetStatus.DRAFT, wp2, grades.e1(), "8.0");
     }
 
     private void ensureProjectTwoDemo(Employee admin,
+                                      Employee elmerFudd,
                                       Employee marvinMartian,
                                       Employee roadRunner,
-                                      LaborGrade baseGrade) {
+                                      DemoLaborGrades grades) {
         Project proj2 = em.find(Project.class, "PROJ-2");
         if (proj2 == null) {
             return;
         }
 
+        proj2.setEndDate(PROJ2_PLAN_END);
         assignProjectMember(proj2, marvinMartian, ProjectRole.PM);
         proj2.setProjectManager(marvinMartian);
         em.merge(proj2);
@@ -451,7 +618,7 @@ public class EmptyDbSeeder {
 
         WorkPackage parent = findOrCreateSummaryWorkPackage(
                 "B", "Control Account B", proj2, marvinMartian,
-                LocalDate.of(2026, 1, 3), LocalDate.of(2026, 3, 3),
+                LocalDate.of(2026, 1, 3), PROJ2_PLAN_END,
                 new BigDecimal("6000.00"), new BigDecimal("40.00"));
 
         WorkPackage wp1 = findOrCreateChildWorkPackage(
@@ -464,30 +631,36 @@ public class EmptyDbSeeder {
                 new BigDecimal("2200.00"), new BigDecimal("65.00"));
         WorkPackage wp3 = findOrCreateChildWorkPackage(
                 "B.WP-3", "Final Inspection", proj2, parent, marvinMartian,
-                LocalDate.of(2026, 2, 21), LocalDate.of(2026, 3, 3),
+                LocalDate.of(2026, 2, 21), PROJ2_PLAN_END,
                 new BigDecimal("2000.00"), new BigDecimal("25.00"));
 
         assignWorkPackageMember(wp1, marvinMartian, WpRole.RE);
         assignWorkPackageMember(wp2, roadRunner, WpRole.RE);
         assignWorkPackageMember(wp3, marvinMartian, WpRole.MEMBER);
 
-        LocalDate weekEnding = LocalDate.of(2026, 3, 8);
-        findOrCreateTimesheetWithSingleRow(marvinMartian, admin, weekEnding, TimesheetStatus.APPROVED, wp1, baseGrade, "14.0");
-        findOrCreateTimesheetWithSingleRow(roadRunner, admin, weekEnding, TimesheetStatus.APPROVED, wp2, baseGrade, "22.0");
-        findOrCreateTimesheetWithSingleRow(marvinMartian, admin, weekEnding, TimesheetStatus.SUBMITTED, wp3, baseGrade, "10.0");
+        findOrCreateTimesheetWithSingleRow(marvinMartian, admin, DEMO_WEEK_ENDING,
+                TimesheetStatus.APPROVED, wp1, grades.m1(), "14.0");
+        findOrCreateTimesheetWithSingleRow(roadRunner, admin, DEMO_WEEK_ENDING,
+                TimesheetStatus.APPROVED, wp2, grades.x1(), "22.0");
+        findOrCreateTimesheetWithSingleRow(marvinMartian, elmerFudd, DEMO_SECOND_WEEK,
+                TimesheetStatus.SUBMITTED, wp3, grades.m1(), "10.0");
+        findOrCreateTimesheetWithSingleRow(roadRunner, admin, DEMO_PRIOR_WEEK,
+                TimesheetStatus.RETURNED, wp2, grades.x1(), "6.0");
+        findOrCreateTimesheetWithSingleRow(marvinMartian, null, DEMO_DRAFT_WEEK,
+                TimesheetStatus.DRAFT, wp1, grades.m1(), "4.0");
     }
 
-    private void ensureLaborProjectDemo(Employee admin,
-                                        LaborGrade foremanTwo,
-                                        LaborGrade journeyman,
-                                        LaborGrade specialist,
-                                        LaborGrade foremanOne) {
-        seedLaborReportDemo();
+    private void ensureLaborProjectDemo(Employee admin, DemoLaborGrades grades) {
+        seedLaborReportDemo(grades);
 
-        Employee marcus = findOrCreateEmployee("Marcus", "Aurelius", SystemRole.EMPLOYEE, admin, foremanTwo);
-        Employee elena = findOrCreateEmployee("Elena", "Fisher", SystemRole.EMPLOYEE, admin, journeyman);
-        Employee james = findOrCreateEmployee("James", "Holden", SystemRole.EMPLOYEE, admin, specialist);
-        Employee sarah = findOrCreateEmployee("Sarah", "Connor", SystemRole.EMPLOYEE, admin, foremanOne);
+        Employee marcus = findOrCreateAndAlignEmployee(
+                "Marcus", "Aurelius", SystemRole.EMPLOYEE, admin, grades.e2());
+        Employee elena = findOrCreateAndAlignEmployee(
+                "Elena", "Fisher", SystemRole.EMPLOYEE, admin, grades.m1());
+        Employee james = findOrCreateAndAlignEmployee(
+                "James", "Holden", SystemRole.EMPLOYEE, admin, grades.m2());
+        Employee sarah = findOrCreateAndAlignEmployee(
+                "Sarah", "Connor", SystemRole.EMPLOYEE, admin, grades.e3());
 
         Project project = em.find(Project.class, "LABOR-1");
         if (project == null) {
@@ -504,28 +677,30 @@ public class EmptyDbSeeder {
         updateWorkPackageForEarnedValue(hvac, james, LocalDate.of(2026, 2, 1), LocalDate.of(2026, 3, 15), "60000.00", "47.00");
         updateWorkPackageForEarnedValue(plumbing, sarah, LocalDate.of(2026, 2, 10), LocalDate.of(2026, 3, 20), "65000.00", "63.00");
 
-        LocalDate currentWeek = LocalDate.of(2026, 3, 8);
-        findOrCreateTimesheetWithSingleRow(marcus, admin, currentWeek, TimesheetStatus.APPROVED, foundations, foremanTwo, "36.0");
-        findOrCreateTimesheetWithSingleRow(elena, admin, currentWeek, TimesheetStatus.APPROVED, electrical, journeyman, "30.0");
-        findOrCreateTimesheetWithSingleRow(james, admin, currentWeek, TimesheetStatus.SUBMITTED, hvac, specialist, "34.0");
-        findOrCreateTimesheetWithSingleRow(sarah, admin, currentWeek, TimesheetStatus.APPROVED, plumbing, foremanOne, "41.0");
+        findOrCreateTimesheetWithSingleRow(marcus, admin, DEMO_WEEK_ENDING,
+                TimesheetStatus.APPROVED, foundations, grades.e2(), "36.0");
+        findOrCreateTimesheetWithSingleRow(elena, admin, DEMO_WEEK_ENDING,
+                TimesheetStatus.APPROVED, electrical, grades.m1(), "30.0");
+        findOrCreateTimesheetWithSingleRow(james, admin, DEMO_WEEK_ENDING,
+                TimesheetStatus.SUBMITTED, hvac, grades.m2(), "34.0");
+        findOrCreateTimesheetWithSingleRow(sarah, admin, DEMO_WEEK_ENDING,
+                TimesheetStatus.APPROVED, plumbing, grades.e3(), "41.0");
     }
 
-    private void seedLaborReportDemo() {
+    private void seedLaborReportDemo(DemoLaborGrades grades) {
         Employee admin = em.find(Employee.class, 1);
         if (admin == null) {
             return;
         }
 
-        LaborGrade foremanTwo = findOrCreateLaborGrade("F2", "120.00");
-        LaborGrade journeyman = findOrCreateLaborGrade("JM", "105.00");
-        LaborGrade specialist = findOrCreateLaborGrade("SP", "110.00");
-        LaborGrade foremanOne = findOrCreateLaborGrade("F1", "115.00");
-
-        Employee marcus = findOrCreateEmployee("Marcus", "Aurelius", SystemRole.EMPLOYEE, admin, foremanTwo);
-        Employee elena = findOrCreateEmployee("Elena", "Fisher", SystemRole.EMPLOYEE, admin, journeyman);
-        Employee james = findOrCreateEmployee("James", "Holden", SystemRole.EMPLOYEE, admin, specialist);
-        Employee sarah = findOrCreateEmployee("Sarah", "Connor", SystemRole.EMPLOYEE, admin, foremanOne);
+        Employee marcus = findOrCreateAndAlignEmployee(
+                "Marcus", "Aurelius", SystemRole.EMPLOYEE, admin, grades.e2());
+        Employee elena = findOrCreateAndAlignEmployee(
+                "Elena", "Fisher", SystemRole.EMPLOYEE, admin, grades.m1());
+        Employee james = findOrCreateAndAlignEmployee(
+                "James", "Holden", SystemRole.EMPLOYEE, admin, grades.m2());
+        Employee sarah = findOrCreateAndAlignEmployee(
+                "Sarah", "Connor", SystemRole.EMPLOYEE, admin, grades.e3());
 
         Project project = em.find(Project.class, "LABOR-1");
         if (project == null) {
@@ -537,7 +712,7 @@ public class EmptyDbSeeder {
             project.setDescription("Screenshot-aligned labor report demo dataset");
             project.setStatus(ProjectStatus.OPEN);
             project.setStartDate(LocalDate.of(2023, 10, 1));
-            project.setEndDate(LocalDate.of(2023, 12, 31));
+            project.setEndDate(LABOR1_PROJECT_END);
             project.setCreatedDate(LocalDateTime.now());
             project.setModifiedDate(LocalDateTime.now());
             project.setCreatedBy(admin);
@@ -545,6 +720,10 @@ public class EmptyDbSeeder {
             project.setMarkupRate(new BigDecimal("10.00"));
             project.setBac(new BigDecimal("250000.00"));
             em.persist(project);
+        } else {
+            project.setEndDate(LABOR1_PROJECT_END);
+            project.setProjectManager(admin);
+            em.merge(project);
         }
 
         assignProjectMember(project, marcus);
@@ -562,11 +741,15 @@ public class EmptyDbSeeder {
         assignWorkPackageMember(hvac, james);
         assignWorkPackageMember(plumbing, sarah);
 
-        LocalDate weekEnding = LocalDate.of(2023, 10, 27);
-        findOrCreateTimesheetWithSingleRow(marcus, admin, weekEnding, TimesheetStatus.APPROVED, foundations, foremanTwo, "40.0");
-        findOrCreateTimesheetWithSingleRow(elena, admin, weekEnding, TimesheetStatus.SUBMITTED, electrical, journeyman, "45.5");
-        findOrCreateTimesheetWithSingleRow(james, admin, weekEnding, TimesheetStatus.APPROVED, hvac, specialist, "38.0");
-        findOrCreateTimesheetWithSingleRow(sarah, admin, weekEnding, TimesheetStatus.APPROVED, plumbing, foremanOne, "42.0");
+        LocalDate weekEndingHistorical = LocalDate.of(2023, 10, 27);
+        findOrCreateTimesheetWithSingleRow(marcus, admin, weekEndingHistorical,
+                TimesheetStatus.APPROVED, foundations, grades.e2(), "40.0");
+        findOrCreateTimesheetWithSingleRow(elena, admin, weekEndingHistorical,
+                TimesheetStatus.SUBMITTED, electrical, grades.m1(), "45.5");
+        findOrCreateTimesheetWithSingleRow(james, admin, weekEndingHistorical,
+                TimesheetStatus.APPROVED, hvac, grades.m2(), "38.0");
+        findOrCreateTimesheetWithSingleRow(sarah, admin, weekEndingHistorical,
+                TimesheetStatus.APPROVED, plumbing, grades.e3(), "42.0");
 
         System.out.println("[Seeder] Labor report demo dataset ensured.");
     }
@@ -607,19 +790,6 @@ public class EmptyDbSeeder {
         }
 
         createRateHistory(laborGrade, chargeRate, startDate, endDate);
-    }
-
-    private Employee findOrCreateEmployee(String firstName, String lastName, SystemRole role, Employee supervisor, LaborGrade laborGrade) {
-        List<Employee> existing = em.createQuery(
-                "SELECT e FROM Employee e WHERE e.empFirstName = :firstName AND e.empLastName = :lastName",
-                Employee.class)
-                .setParameter("firstName", firstName)
-                .setParameter("lastName", lastName)
-                .getResultList();
-        if (!existing.isEmpty()) {
-            return existing.get(0);
-        }
-        return createEmployee(firstName, lastName, role, supervisor, laborGrade);
     }
 
     private WorkPackage findOrCreateLeafWorkPackage(String wpId, String name, Project project, Employee responsibleEmployee) {
@@ -798,6 +968,16 @@ public class EmptyDbSeeder {
         em.persist(assignment);
     }
 
+    private void deleteWorkPackageAssignmentIfExists(String wpId, Employee employee, WpRole role) {
+        em.createQuery(
+                "DELETE FROM WorkPackageAssignment wpa WHERE wpa.workPackage.wpId = :wpId "
+                        + "AND wpa.employee.empId = :empId AND wpa.wpRole = :role")
+                .setParameter("wpId", wpId)
+                .setParameter("empId", employee.getEmpId())
+                .setParameter("role", role)
+                .executeUpdate();
+    }
+
     private void assignWorkPackageMember(WorkPackage workPackage, Employee employee) {
         assignWorkPackageMember(workPackage, employee, WpRole.MEMBER);
     }
@@ -841,7 +1021,11 @@ public class EmptyDbSeeder {
             timesheet.setEmployee(employee);
             timesheet.setWeekEnding(weekEnding);
             timesheet.setApprover(approver);
-            timesheet.setReturnComment(null);
+            if (status == TimesheetStatus.RETURNED) {
+                timesheet.setReturnComment("Demo seed: please correct and resubmit.");
+            } else {
+                timesheet.setReturnComment(null);
+            }
             timesheet.setStatus(status);
             timesheet.setSignature(employee.getESignature());
             em.persist(timesheet);
@@ -849,6 +1033,11 @@ public class EmptyDbSeeder {
             timesheet = existing.get(0);
             timesheet.setApprover(approver);
             timesheet.setStatus(status);
+            if (status == TimesheetStatus.RETURNED) {
+                timesheet.setReturnComment("Demo seed: please correct and resubmit.");
+            } else {
+                timesheet.setReturnComment(null);
+            }
         }
 
         Long rowCount = em.createQuery(

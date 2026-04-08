@@ -141,14 +141,13 @@ public class EarnedValueResource {
         roundMap(projBcwpByWeek);
         roundMap(projAcwpByWeek);
 
-        final EarnedValueReportDTO report = new EarnedValueReportDTO();
-        report.setWeekCount(weekCount);
-        report.setWorkPackages(wpDtos);
-        report.setTotalBcwsByWeek(projBcwsByWeek);
-        report.setTotalBcwpByWeek(projBcwpByWeek);
-        report.setTotalAcwpByWeek(projAcwpByWeek);
+        calculatedReport.setWeekCount(weekCount);
+        calculatedReport.setWorkPackages(wpDtos);
+        calculatedReport.setTotalBcwsByWeek(projBcwsByWeek);
+        calculatedReport.setTotalBcwpByWeek(projBcwpByWeek);
+        calculatedReport.setTotalAcwpByWeek(projAcwpByWeek);
 
-        return Response.ok(report).build();
+        return Response.ok(calculatedReport).build();
     }
 
     private static Map<Integer, BigDecimal> initZeroMap(final int size) {

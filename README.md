@@ -255,22 +255,26 @@ Open http://localhost:3000 - the frontend should display data from the backend.
 
 ### Seeded users
 
-After the database and backend are running on a fresh local database, the following base users are seeded by `backend/src/main/java/com/corejsf/seed/EmptyDbSeeder.java`. Passwords are BCrypt-hashed in the database, and **all seeded passwords are `password`**:
+After the database and backend are running on a fresh local database, the following users are seeded by `backend/src/main/java/com/corejsf/seed/EmptyDbSeeder.java`. Passwords are BCrypt-hashed in the database, and **all seeded passwords are `password`**:
 
-| emp_id | First name | Last name  | System role        | Supervisor   |
-|--------|------------|------------|--------------------|--------------|
-| 1      | Wile       | Coyote     | ADMIN              | N/A          |
-| 2      | Elmer      | Fudd       | OPERATIONS_MANAGER | N/A         |
-| 3      | Road       | Runner     | HR                 | Elmer Fudd   |
-| 4      | Bugs       | Bunny      | EMPLOYEE           | Elmer Fudd   |
-| 5      | Daffy      | Duck       | EMPLOYEE           | Bugs Bunny   |
-| 6      | Tweety     | Bird       | EMPLOYEE           | Bugs Bunny   |
-| 7      | Sylvester  | Cat        | EMPLOYEE           | Bugs Bunny   |
-| 8      | Marvin     | Martian    | EMPLOYEE           | Elmer Fudd   |
+| emp_id | First name | Last name  | System role        | Supervisor   | Labor grade |
+|--------|------------|------------|--------------------|--------------|-------------|
+| 1      | Wile       | Coyote     | ADMIN              | N/A          | X2          |
+| 2      | Elmer      | Fudd       | OPERATIONS_MANAGER | N/A          | M3          |
+| 3      | Road       | Runner     | HR                 | Wile Coyote  | X1          |
+| 4      | Bugs       | Bunny      | EMPLOYEE           | Elmer Fudd   | E2          |
+| 5      | Daffy      | Duck       | EMPLOYEE           | Bugs Bunny   | E2          |
+| 6      | Tweety     | Bird       | EMPLOYEE           | Bugs Bunny   | E1          |
+| 7      | Sylvester  | Cat        | EMPLOYEE           | Bugs Bunny   | E3          |
+| 8      | Marvin     | Martian    | EMPLOYEE           | Elmer Fudd   | M1          |
+| 9      | Marcus     | Aurelius   | EMPLOYEE           | Wile Coyote  | E2          |
+| 10     | Elena      | Fisher     | EMPLOYEE           | Wile Coyote  | M1          |
+| 11     | James      | Holden     | EMPLOYEE           | Wile Coyote  | M2          |
+| 12     | Sarah      | Connor     | EMPLOYEE           | Wile Coyote  | E3          |
 
-These eight users are the deterministic base accounts used by the backend tests and default demo flow.
+On a **fresh** database, employees are persisted in this order, so these **emp_id** values apply as shown (1–12). If other rows were inserted earlier or out of order, look up `emp_id` in the app or API.
 
-The seeder also creates additional demo data for labor and earned-value reporting, including extra employees such as `Marcus Aurelius`, `Elena Fisher`, `James Holden`, and `Sarah Connor`. Those extra records support report screenshots and test/demo scenarios, but the eight users above are the main accounts to use for local login.
+The first eight users are the main accounts for backend tests and the default demo flow. Marcus, Elena, James, and Sarah exist for labor-report and related demo data on **LABOR-1**; use them when you need extra logins without touching the core cast.
 
 Use `empId` and `password` to log in. Example API payload:
 

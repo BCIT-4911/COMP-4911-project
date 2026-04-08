@@ -301,9 +301,12 @@ public class ProjectAndWorkPackageRebacIntegrationTest extends TestConfig {
     //
     // Seed state for PROJ-1:
     //   A        - Elmer Fudd (RE)
-    //   A.WP-1   - Daffy Duck (RE)
+    //   A.WP-1   - Daffy Duck (RE), Bugs Bunny (RE)
     //   A.WP-2   - Sylvester Cat (RE), Tweety Bird (MEMBER)
     //   A.WP-3   - Elmer Fudd (RE)
+    //   C        - Elmer Fudd (RE)
+    //   C.WP-1   - Bugs Bunny (RE)
+    //   C.WP-2   - Elmer Fudd (RE)
     //
     // @Order(1-6) ensures these read-only tests run BEFORE mutation tests
     // (assignEmployeeToWorkPackage_asPmOfThatProject_succeeds adds Tweety
@@ -312,23 +315,23 @@ public class ProjectAndWorkPackageRebacIntegrationTest extends TestConfig {
 
     @Test
     @Order(1)
-    void getWorkPackages_asOpsManager_returnsAllFourWps() {
+    void getWorkPackages_asOpsManager_returnsAllSevenWps() {
         List<String> ids = getWorkPackageIds("PROJ-1", opsToken);
 
-        assertTrue(ids.size() == 4,
-                "Ops Manager should see all 4 WPs in PROJ-1 but got: " + ids);
-        assertTrue(ids.containsAll(java.util.List.of("A", "A.WP-1", "A.WP-2", "A.WP-3")),
+        assertTrue(ids.size() == 7,
+                "Ops Manager should see all 7 WPs in PROJ-1 but got: " + ids);
+        assertTrue(ids.containsAll(java.util.List.of("A", "A.WP-1", "A.WP-2", "A.WP-3", "C", "C.WP-1", "C.WP-2")),
                 "Ops Manager is missing expected WP IDs. Got: " + ids);
     }
 
     @Test
     @Order(2)
-    void getWorkPackages_asPmOfProject_returnsAllFourWps() {
+    void getWorkPackages_asPmOfProject_returnsAllSevenWps() {
         List<String> ids = getWorkPackageIds("PROJ-1", pmProj1Token);
 
-        assertTrue(ids.size() == 4,
-                "PM of PROJ-1 should see all 4 WPs but got: " + ids);
-        assertTrue(ids.containsAll(java.util.List.of("A", "A.WP-1", "A.WP-2", "A.WP-3")),
+        assertTrue(ids.size() == 7,
+                "PM of PROJ-1 should see all 7 WPs but got: " + ids);
+        assertTrue(ids.containsAll(java.util.List.of("A", "A.WP-1", "A.WP-2", "A.WP-3", "C", "C.WP-1", "C.WP-2")),
                 "PM of PROJ-1 is missing expected WP IDs. Got: " + ids);
     }
 
